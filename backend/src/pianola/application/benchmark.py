@@ -43,6 +43,7 @@ class RunBenchmark:
         fingerprint = entry.url.fingerprint
         song_out = out_dir / f"{entry.index:02d}-{fingerprint}"
         song_work = work_dir / f"{entry.index:02d}-{fingerprint}"
+        logger.info("[%02d] %s (%s): start", entry.index, entry.label, fingerprint)
         song_out.mkdir(parents=True, exist_ok=True)
         song_work.mkdir(parents=True, exist_ok=True)
         base = SongResult(index=entry.index, label=entry.label, fingerprint=fingerprint)

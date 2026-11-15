@@ -1,12 +1,13 @@
-"""Command-line entry point (subcommands are added with the benchmark)."""
+"""Command-line entry point."""
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Sequence
+
+from pianola.cli import phase0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    del argv
-    sys.stderr.write("pianola: no command implemented yet\n")
-    return 2
+    args = phase0.main_args(argv)
+    phase0.configure_logging(args.verbose)
+    return phase0.handle(args)
