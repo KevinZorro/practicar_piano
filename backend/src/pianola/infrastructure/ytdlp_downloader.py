@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from pianola.domain.errors import DownloadError, DurationLimitExceededError
-from pianola.domain.models import AudioFile
+from pianola.domain.models import AudioFile, SongSource
 from pianola.domain.video_url import VideoUrl
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,10 @@ class YtDlpDownloader:
         self._proxy_url = proxy_url or None
         self._ydl_factory = ydl_factory
 
-    def download(self, url: VideoUrl, dest_dir: Path) -> AudioFile:
+    def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
+        if not isinstance(source, VideoUrl):
+            raise DownloadError("this downloader only handles YouTube links")
+        url = source
         dest_dir.mkdir(parents=True, exist_ok=True)
         try:
             duration = self._probe_duration(url)

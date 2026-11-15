@@ -2,8 +2,29 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from pianola.domain.video_url import VideoUrl
+
+
+@dataclass(frozen=True, slots=True)
+class LocalAudio:
+    """An audio file the user already has (the study's fallback when YouTube blocks the VPS)."""
+
+    path: Path
+
+    @property
+    def fingerprint(self) -> str:
+        """Short hash of the file name, safe for logs and output folder names."""
+        return hashlib.sha256(self.path.name.encode()).hexdigest()[:10]
+
+    def __repr__(self) -> str:
+        return f"LocalAudio(fingerprint={self.fingerprint!r})"
+
+
+SongSource = VideoUrl | LocalAudio
 
 
 @dataclass(frozen=True, slots=True)

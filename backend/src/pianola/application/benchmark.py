@@ -40,7 +40,7 @@ class RunBenchmark:
         return [self._run_song(entry, out_dir, work_dir) for entry in entries]
 
     def _run_song(self, entry: SongEntry, out_dir: Path, work_dir: Path) -> SongResult:
-        fingerprint = entry.url.fingerprint
+        fingerprint = entry.source.fingerprint
         song_out = out_dir / f"{entry.index:02d}-{fingerprint}"
         song_work = work_dir / f"{entry.index:02d}-{fingerprint}"
         logger.info("[%02d] %s (%s): start", entry.index, entry.label, fingerprint)
@@ -50,7 +50,7 @@ class RunBenchmark:
         try:
             started = self._clock()
             try:
-                audio = self._downloader.download(entry.url, song_work)
+                audio = self._downloader.download(entry.source, song_work)
             except PianolaError as exc:
                 logger.warning("song %s: download failed: %s", fingerprint, exc)
                 return replace(base, download_error=str(exc))

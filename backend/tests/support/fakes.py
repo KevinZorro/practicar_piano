@@ -8,7 +8,7 @@ from typing import TypeVar
 
 from pianola.application.ports import Measured
 from pianola.domain.errors import DownloadError, TranscriptionError
-from pianola.domain.models import AudioFile, ResourceUsage, TranscriptionOutput
+from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
 from pianola.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -24,13 +24,14 @@ class FakeDownloader:
         self._failing_ids = failing_ids
         self.downloaded: list[Path] = []
 
-    def download(self, url: VideoUrl, dest_dir: Path) -> AudioFile:
-        if url.video_id in self._failing_ids:
+    def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
+        key = source.video_id if isinstance(source, VideoUrl) else source.path.stem
+        if key in self._failing_ids:
             raise DownloadError("blocked by fake")
         path = dest_dir / "audio.m4a"
         path.write_bytes(b"fake-audio")
         self.downloaded.append(path)
-        return AudioFile(path=path, duration_seconds=self._durations.get(url.video_id, 180.0))
+        return AudioFile(path=path, duration_seconds=self._durations.get(key, 180.0))
 
 
 class FakeTranscriber:

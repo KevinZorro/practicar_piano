@@ -11,15 +11,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Protocol, TypeVar
 
-from pianola.domain.models import AudioFile, ResourceUsage, TranscriptionOutput
-from pianola.domain.video_url import VideoUrl
+from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
 
 T = TypeVar("T")
 
 
 class AudioDownloader(Protocol):
-    def download(self, url: VideoUrl, dest_dir: Path) -> AudioFile:
-        """Download only the audio into ``dest_dir``.
+    def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
+        """Get only the audio of ``source`` into ``dest_dir`` (a copy the caller may delete).
 
         Raises ``DownloadError`` on failure and ``DurationLimitExceededError`` when
         the video is longer than the adapter's configured limit.

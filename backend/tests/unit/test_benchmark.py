@@ -16,7 +16,7 @@ IDS = ["aaaaaaaaaaa", "bbbbbbbbbbb", "ccccccccccc"]
 def entries(count: int = 2) -> list[SongEntry]:
     return [
         SongEntry(
-            index=i + 1, label=f"song {i + 1}", url=VideoUrl.parse(f"https://youtu.be/{IDS[i]}")
+            index=i + 1, label=f"song {i + 1}", source=VideoUrl.parse(f"https://youtu.be/{IDS[i]}")
         )
         for i in range(count)
     ]

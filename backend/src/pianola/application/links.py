@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from pianola.domain.errors import InvalidVideoUrlError
+from pianola.domain.models import SongSource
 from pianola.domain.video_url import VideoUrl
 
 _MAX_LABEL_LENGTH = 80
@@ -19,7 +20,7 @@ _MAX_LABEL_LENGTH = 80
 class SongEntry:
     index: int
     label: str
-    url: VideoUrl
+    source: SongSource
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +43,7 @@ def parse_links(text: str) -> tuple[list[SongEntry], list[LinkIssue]]:
             issues.append(LinkIssue(line_number, str(exc)))
             continue
         index = len(entries) + 1
-        entries.append(SongEntry(index=index, label=_clean_label(label, index), url=url))
+        entries.append(SongEntry(index=index, label=_clean_label(label, index), source=url))
     return entries, issues
 
 

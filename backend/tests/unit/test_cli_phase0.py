@@ -136,3 +136,39 @@ def test_gate_requires_the_files_of_a_previous_run(tmp_path: Path) -> None:
 
 
 MODELS = ("basic-pitch", "bytedance")
+
+
+def test_run_with_audio_dir_processes_local_files_in_name_order(tmp_path: Path) -> None:
+    audio_dir, out = tmp_path / "audio", tmp_path / "out"
+    audio_dir.mkdir()
+    for name in ("b-second.mp3", "a-first.wav", "readme.txt"):
+        (audio_dir / name).write_bytes(b"x")
+
+    code = run_cli(["phase0", "run", "--audio-dir", str(audio_dir), "--out", str(out)])
+
+    assert code == phase0.EXIT_OK
+    labels = [song["label"] for song in json.loads((out / "results.json").read_text())["songs"]]
+    assert labels == ["a-first", "b-second"]
+    assert "local files" in (out / "results.json").read_text()
+    assert (audio_dir / "a-first.wav").exists(), "the user's audio is never deleted"
+
+
+def test_run_with_audio_dir_reports_missing_or_empty_folders(tmp_path: Path) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+
+    missing = run_cli(
+        ["phase0", "run", "--audio-dir", str(tmp_path / "nope"), "--out", str(tmp_path)]
+    )
+    no_files = run_cli(["phase0", "run", "--audio-dir", str(empty), "--out", str(tmp_path)])
+
+    assert missing == no_files == phase0.EXIT_USAGE
+
+
+def test_run_requires_exactly_one_audio_origin(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        phase0.main_args(["phase0", "run", "--out", str(tmp_path)])
+    with pytest.raises(SystemExit):
+        phase0.main_args(
+            ["phase0", "run", "--links", "a", "--audio-dir", "b", "--out", str(tmp_path)]
+        )
