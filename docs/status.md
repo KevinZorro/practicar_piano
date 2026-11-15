@@ -24,7 +24,9 @@
 
 ## Resultado en la VPS (2026-11-14)
 - Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004).
-- Modelos: pendientes; se evalúan con audio local (`--audio-dir`).
+- Audio local con `--audio-dir`, 10 canciones: Basic Pitch factor 0,04 (mediana) y 0,12 (peor), 505 MB; ByteDance factor ≈ 2,0 (≈ 6 min por canción de 3), 1,5 GB. Corregido un fallo de carga de audio con librosa 0.11.
+- A oído (Kevin): ByteDance mucho mejor, casi idéntico al original; Basic Pitch suena raro. Propuesta: ByteDance asíncrono ([0014](adr/0014-bytedance-asincrono-y-simplificacion.md)). Veredictos formales por canción y `gate` pendientes.
+- Observación: transcripciones con más de 15 notas simultáneas no se pueden tocar; la Fase 1 necesita simplificación.
 
 ## Siguiente paso
 Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
