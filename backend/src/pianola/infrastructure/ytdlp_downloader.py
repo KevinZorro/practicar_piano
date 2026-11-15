@@ -18,6 +18,26 @@ _AUDIO_BASENAME = "audio"
 _SAMPLE_RATE_HZ = "44100"
 
 
+class _SilentLogger:
+    """yt-dlp prints errors, with the video id in them, straight to stderr unless given a logger.
+
+    Failures still reach the caller as exceptions, which ``_scrub`` cleans before they are
+    logged or reported.
+    """
+
+    def debug(self, msg: str) -> None:
+        del msg
+
+    def info(self, msg: str) -> None:
+        del msg
+
+    def warning(self, msg: str) -> None:
+        del msg
+
+    def error(self, msg: str) -> None:
+        del msg
+
+
 def _default_factory(options: dict[str, Any]) -> Any:
     import yt_dlp
 
@@ -76,6 +96,7 @@ class YtDlpDownloader:
         options: dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
+            "logger": _SilentLogger(),
             "noplaylist": True,
             "socket_timeout": 30,
             "retries": 3,
