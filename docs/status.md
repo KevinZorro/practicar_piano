@@ -27,7 +27,7 @@
 - Modelos: pendientes; se evalúan con audio local (`--audio-dir`).
 
 ## Fase 1
-- Plan redactado en `docs/phase-1/plan.md`; **pendiente del visto bueno de Kevin**. No hay código de la Fase 1.
+- Plan redactado en `docs/phase-1/plan.md` (revisión 2: ByteDance, procesamiento asíncrono con caché y reducción de polifonía); **pendiente del visto bueno de Kevin**. No hay código de la Fase 1.
 
 ## Siguiente paso
 Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
