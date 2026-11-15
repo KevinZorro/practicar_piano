@@ -1,8 +1,9 @@
 # Phase 0 benchmark. From the repository root:
-#   mkdir -p phase0-output phase0-models
+#   mkdir -p phase0-output phase0-models phase0-audio   # phase0-audio only for --audio-dir
 #   docker compose -f infra/docker-compose.yml build
 #   docker compose -f infra/docker-compose.yml run --rm --entrypoint /app/scripts/fetch_bytedance_checkpoint.sh phase0
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run --links /data/links.txt --out /data/out
+#   (or, with audio files you already have: ... phase0 run --audio-dir /data/audio --out /data/out)
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 gate --out /data/out
 #
 # The container runs as your user (HOST_UID/HOST_GID) so the MIDI/WAV files it writes are
@@ -22,6 +23,7 @@ services:
       PIANOLA_MAX_DURATION_SECONDS: "${PIANOLA_MAX_DURATION_SECONDS:-600}"
     volumes:
       - "${PHASE0_LINKS:-../links.txt}:/data/links.txt:ro"
+      - "${PHASE0_AUDIO:-../phase0-audio}:/data/audio:ro"
       - "${PHASE0_OUTPUT:-../phase0-output}:/data/out"
       - "${PHASE0_MODELS:-../phase0-models}:/models"
     read_only: true
