@@ -1,22 +1,31 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-15 · Fase actual: **Fase 0** (compuerta 1)
+Última actualización: 2026-11-15 · Fase actual: **Fase 0** (compuerta 1) · Rama: `claude/project-thread-7gi51h`
 
 ## Hecho
-- [x] Andamiaje: licencia MIT, NOTICE, .gitignore, pre-commit, CLAUDE.md, git-guard
-- [x] ADR 0001–0012 (D-01 a D-12) y arquitectura
+- [x] Andamiaje: licencia MIT, NOTICE, .gitignore (bloquea medios y modelos), pre-commit, CLAUDE.md, git-guard
+- [x] ADR 0001–0012 (D-01 a D-12), ADR 0013 (checkpoint de ByteDance verificado) y arquitectura
+- [x] Backend hexagonal: validación de enlaces, puertos, orquestador, regla de la compuerta, informe y `verdicts.csv`
+- [x] Adaptadores: yt-dlp (proxy opcional), Basic Pitch sobre ONNX, ByteDance, sintetizador WAV, medidor de memoria por subproceso
+- [x] CLI `pianola phase0 run | gate`
+- [x] Pruebas: unitarias sin red, integración con Basic Pitch real y una melodía de dominio público generada en código, prueba de red marcada aparte (`PIANOLA_TEST_VIDEO_URL`)
+- [x] CI (Ruff, mypy estricto, pytest en 3.11 y 3.12, integración, gitleaks) y flujo que construye la imagen arm64 bajo QEMU
+- [x] Dockerfile linux/arm64 con Deno y ffmpeg, compose y runbook de la VPS
 
-## En curso / pendiente
-- [ ] Tooling del backend y CI
-- [ ] Validación de enlaces, puertos y orquestador con dobles de prueba
-- [ ] Adaptadores (yt-dlp, Basic Pitch, ByteDance, sintetizador, medidor)
-- [ ] CLI, informe y prueba de integración
-- [ ] Dockerfile linux/arm64 con Deno y ffmpeg
-- [ ] Runbook de la VPS y criterios de la compuerta
+## Verificado en el entorno de desarrollo (x86_64, Python 3.11 y 3.12)
+- 98 pruebas en verde, Ruff y mypy limpios; Basic Pitch ONNX transcribe una melodía sintetizada de dominio público.
 
-## No verificado (requiere la VPS)
-- Descarga real desde YouTube, memoria y tiempos reales por modelo, imagen en ARM64.
+## No verificado (requiere la VPS o la CI)
+- Descarga real desde YouTube (sin red a YouTube ni Deno en el entorno de desarrollo).
+- Modelo de ByteDance real (PyTorch y checkpoint no se instalaron; el adaptador se probó con un doble).
+- Construcción y ejecución de la imagen en ARM64 (no había daemon de Docker; lo cubre el flujo `docker-arm64` de la CI).
+- Tiempos y memoria reales por modelo en 2 OCPU.
+- Licencia del checkpoint de ByteDance (Zenodo inaccesible desde el entorno): ver `docs/phase-0/model-licenses.md`.
+
+## Siguiente paso
+Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
 
 ## Decisiones abiertas
-- D-06 (motor de transcripción): la resuelve esta fase.
+- D-06 (motor de transcripción): la resuelve la prueba.
 - Nombre definitivo del proyecto (`pianola` es provisional).
+- Licencia exacta del código y del checkpoint de ByteDance (ADR 0013).
