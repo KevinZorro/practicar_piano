@@ -31,9 +31,12 @@ class ByteDanceTranscriber:
     def transcribe(self, audio: AudioFile, midi_path: Path) -> TranscriptionOutput:
         self._require_checkpoint()
         try:
-            from piano_transcription_inference import PianoTranscription, load_audio, sample_rate
+            import librosa
+            from piano_transcription_inference import PianoTranscription, sample_rate
 
-            waveform, _ = load_audio(str(audio.path), sr=sample_rate, mono=True)
+            # The package's own load_audio calls librosa.core.audio, which librosa >= 0.10
+            # no longer exposes; librosa.load is the stable public equivalent.
+            waveform, _ = librosa.load(str(audio.path), sr=sample_rate, mono=True)
             transcriptor = PianoTranscription(
                 device=self._device, checkpoint_path=str(self._checkpoint_path)
             )
