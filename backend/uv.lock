@@ -1440,7 +1440,7 @@ dev = [
     { name = "mypy", specifier = ">=1.13" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.8.6" },
+    { name = "ruff", specifier = ">=0.17.5" },
 ]
 
 [[package]]
