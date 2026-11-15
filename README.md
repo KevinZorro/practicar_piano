@@ -32,17 +32,27 @@ so each can be swapped without touching the domain. Decisions are recorded as AD
 
 ## Quick start (Phase 0)
 
-Requirements: Python 3.11+, [uv](https://docs.astral.sh/uv/), ffmpeg, Deno (for yt-dlp).
+Run the benchmark with Docker (linux/arm64 image; also builds on amd64):
+
+```bash
+export HOST_UID=$(id -u) HOST_GID=$(id -g)
+mkdir -p phase0-output phase0-models
+docker compose -f infra/docker-compose.yml build
+docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run --links /data/links.txt --out /data/out
+docker compose -f infra/docker-compose.yml run --rm phase0 phase0 gate --out /data/out
+```
+
+Without Docker (needs Python 3.11+, [uv](https://docs.astral.sh/uv/), ffmpeg and Deno):
 
 ```bash
 cd backend
-uv sync --all-extras
-uv run pytest -q -m "not network and not integration"   # unit tests, no network
+uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance
+uv run pytest -q -m "not network"          # offline tests (+ integration with Basic Pitch)
 uv run pianola phase0 run --links ../links.txt --out ../phase0-output
 uv run pianola phase0 gate --out ../phase0-output
 ```
 
-Running it on the VPS with ten covers: [`docs/phase-0/runbook.md`](docs/phase-0/runbook.md).
+Step-by-step guide for the VPS with ten covers: [`docs/phase-0/runbook.md`](docs/phase-0/runbook.md).
 
 ## Configuration
 

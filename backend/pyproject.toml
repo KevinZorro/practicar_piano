@@ -1,0 +1,72 @@
+[project]
+name = "pianola"
+version = "0.1.0"
+description = "Phase 0 feasibility benchmark: YouTube audio download and piano transcription models."
+license = { text = "MIT" }
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "yt-dlp>=2025.11.1",
+]
+
+[project.optional-dependencies]
+# Basic Pitch with the ONNX runtime: avoids a TensorFlow build on ARM64 (see ADR 0006).
+basic-pitch = ["basic-pitch[onnx]>=0.4.0", "setuptools<81"]  # resampy needs pkg_resources
+# ByteDance high-resolution piano transcription (PyTorch).
+# torch>=2.6 so torch.load defaults to weights_only=True (the package loads a pickle checkpoint).
+bytedance = ["piano_transcription_inference>=0.0.6", "torch>=2.6"]
+# Pure-Python additive synthesizer used to render listenable WAVs from MIDI.
+synth = ["pretty_midi>=0.2.10", "numpy>=1.26"]
+
+[project.scripts]
+pianola = "pianola.cli.main:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=5.0",
+  "ruff>=0.17.5",
+  "mypy>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pianola"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -m 'not network'"
+markers = [
+  "network: hits the real network (YouTube); run explicitly",
+  "integration: needs the transcription models installed",
+  "slow: long-running test",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "C4", "SIM", "RUF", "PT", "T20"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PT018"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests"]
+mypy_path = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["basic_pitch.*", "piano_transcription_inference.*", "pretty_midi.*", "yt_dlp.*"]
+ignore_missing_imports = true
+
+[tool.uv]
+# basic-pitch 0.4.0 hard-depends on tensorflow<2.15.1 on Linux (cp311 wheels only), even
+# with the onnx extra. We drop it and run Basic Pitch on onnxruntime instead (ADR 0006).
+override-dependencies = ["tensorflow; sys_platform == 'never'"]

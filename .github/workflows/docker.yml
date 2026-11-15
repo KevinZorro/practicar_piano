@@ -1,0 +1,46 @@
+name: docker-arm64
+# Builds the Phase 0 image for linux/arm64 (the VPS architecture) under QEMU and smoke-tests it.
+on:
+  pull_request:
+    paths:
+      - backend/Dockerfile
+      - backend/.dockerignore
+      - backend/pyproject.toml
+      - backend/uv.lock
+      - backend/src/**
+      - backend/scripts/**
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: linux/arm64
+          load: true
+          push: false
+          tags: pianola-phase0:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test (arm64 under QEMU)
+        run: |
+          docker run --rm --platform linux/arm64 --entrypoint uname pianola-phase0:ci -m
+          docker run --rm --platform linux/arm64 --entrypoint deno pianola-phase0:ci --version
+          docker run --rm --platform linux/arm64 --entrypoint ffmpeg pianola-phase0:ci -version
+          docker run --rm --platform linux/arm64 pianola-phase0:ci phase0 --help
+          docker run --rm --platform linux/arm64 --entrypoint python pianola-phase0:ci \
+            -c "import onnxruntime, torch, pretty_midi, piano_transcription_inference; print('imports ok')"
