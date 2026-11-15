@@ -1,0 +1,13 @@
+.venv
+**/__pycache__
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.coverage
+tests
+*.md
+*.wav
+*.mid
+*.mp3
+*.pth
+*.onnx
