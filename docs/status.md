@@ -11,6 +11,7 @@
 - [x] Pruebas: unitarias sin red, integración con Basic Pitch real y una melodía de dominio público generada en código, prueba de red marcada aparte (`PIANOLA_TEST_VIDEO_URL`)
 - [x] CI (Ruff, mypy estricto, pytest en 3.11 y 3.12, integración, gitleaks) y flujo que construye la imagen arm64 bajo QEMU
 - [x] Dockerfile linux/arm64 con Deno y ffmpeg, compose y runbook de la VPS
+- [x] Proxy de casa por WireGuard: configuración de la VPS y del PC (Windows), proxy `gost`, sonda `check-proxy` en compose y runbook (ADR 0014)
 
 ## Verificado en el entorno de desarrollo (x86_64, Python 3.11 y 3.12)
 - 98 pruebas en verde, Ruff y mypy limpios; Basic Pitch ONNX transcribe una melodía sintetizada de dominio público.
@@ -23,11 +24,11 @@
 - Licencia del checkpoint de ByteDance (Zenodo inaccesible desde el entorno): ver `docs/phase-0/model-licenses.md`.
 
 ## Resultado en la VPS (2026-11-14)
-- Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004).
+- Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004, 0014): los archivos y el runbook `docs/phase-0/proxy-casa-wireguard.md` están listos, el túnel real está sin verificar.
 - Modelos: pendientes; se evalúan con audio local (`--audio-dir`).
 
 ## Siguiente paso
-Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
+Montar el túnel con `docs/phase-0/proxy-casa-wireguard.md`, correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
 
 ## Decisiones abiertas
 - D-06 (motor de transcripción): la resuelve la prueba.

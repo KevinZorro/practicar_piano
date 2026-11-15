@@ -87,10 +87,7 @@ docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run \
 
 El error típico es `Sign in to confirm you're not a bot` en el informe. Plan B del ADR 0004: sacar la descarga por la conexión de tu casa.
 
-1. Instala WireGuard en la VPS y en un equipo encendido en casa; la VPS alcanza al equipo en una IP privada (por ejemplo `10.8.0.2`).
-2. En el equipo de casa corre un proxy SOCKS5 pequeño **escuchando solo en la interfaz de WireGuard**, nunca abierto a Internet.
-3. Prueba: `curl --proxy socks5h://10.8.0.2:1080 -I https://www.youtube.com`.
-4. Vuelve a correr con la variable (el valor nunca se imprime ni se guarda):
+Sigue el paso a paso en [`proxy-casa-wireguard.md`](proxy-casa-wireguard.md): WireGuard con la VPS como servidor, proxy SOCKS5 en tu PC de casa y verificación con `check-tunnel.sh`. Con el túnel arriba, corre con la variable (el valor nunca se imprime ni se guarda):
 
 ```bash
 PIANOLA_PROXY_URL=socks5h://10.8.0.2:1080 \

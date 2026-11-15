@@ -17,3 +17,4 @@ Una ADR por decisión del registro del 14 de noviembre de 2026. El estado vigent
 | [0011](0011-stack.md) | D-11 Stack | Propuesta |
 | [0012](0012-licencias.md) | D-12 Licencias | Propuesta |
 | [0013](0013-checkpoint-bytedance-verificado.md) | Checkpoint verificado del modelo de ByteDance (nueva) | Propuesta |
+| [0014](0014-proxy-de-casa-wireguard.md) | Proxy de casa por WireGuard: topología y herramientas (nueva, detalla D-04) | Propuesta |
