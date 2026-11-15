@@ -15,3 +15,8 @@ Basic Pitch como base y el modelo de ByteDance si la prueba lo justifica. **La F
 
 ## Consecuencias
 La cola procesa una canción a la vez y la interfaz mostrará posición y progreso. Estado se actualiza a Aceptada o Reemplazada con los resultados de la Fase 0.
+
+## Actualización 2026-11-15 (implementación de la Fase 0)
+- `basic-pitch` 0.4.0 declara `tensorflow<2.15.1` como dependencia obligatoria en Linux (solo hay ruedas para Python 3.11), incluso con el extra `onnx`. Para no depender de TensorFlow en ARM64, el proyecto lo excluye con `override-dependencies` en `backend/pyproject.toml` y Basic Pitch corre sobre `onnxruntime`. Es una elección de ejecución, no cambia la decisión.
+- El modelo de ByteDance se carga con un checkpoint verificado: ver [0013](0013-checkpoint-bytedance-verificado.md).
+- La compuerta usa el tiempo de inferencia con el modelo ya cargado (el servidor lo cargará una vez al arrancar) y el informe muestra también el tiempo total con arranque en frío.
