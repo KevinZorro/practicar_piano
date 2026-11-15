@@ -28,7 +28,7 @@ Código de salida: 0 = PASS, 1 = PARTIAL o FAIL, 2 = INCOMPLETE o error de uso.
 - Variedad: una balada lenta, una pieza rápida, una con mucho pedal, una con acordes densos, una con melodía clara y acompañamiento simple.
 - Solo enlaces de audio que tengas derecho a usar (ver términos en ADR 0004).
 
-Crea `links.txt` en la raíz del repositorio (está ignorado por git; contiene canciones protegidas):
+Crea `links.txt` en la raíz del repositorio, **antes** de correr `docker compose run` (si no existe, Docker crea una carpeta con ese nombre; bórrala con `rmdir links.txt`). Está ignorado por git porque contiene canciones protegidas. La etiqueta puede llevar `|`: el enlace es lo que sigue al último `|`.
 
 ```
 # etiqueta | enlace
@@ -38,7 +38,21 @@ https://youtu.be/YYYYYYYYYYY
 
 ## 2. Preparar la VPS
 
-Ubuntu ARM64 con Docker y el plugin compose. Sin permisos especiales:
+Ubuntu ARM64. Si `docker` no existe, instálalo desde el repositorio oficial (trae `compose` y `buildx`) y añade tu usuario al grupo `docker`:
+
+```bash
+sudo apt-get update && sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo ${UBUNTU_CODENAME:-$VERSION_CODENAME}) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER && newgrp docker
+docker run --rm hello-world
+```
+
+Después:
 
 ```bash
 git clone https://github.com/KevinZorro/practicar_piano.git && cd practicar_piano
