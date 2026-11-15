@@ -1,7 +1,7 @@
 # 0006. D-06 Motor de transcripción
 
 - Fecha: 2026-11-14
-- Estado: Pendiente de prueba
+- Estado: Aceptada (ByteDance asíncrono, ver 0014)
 - Origen: registro de decisiones del 14 de noviembre de 2026 (D-06)
 
 ## Contexto

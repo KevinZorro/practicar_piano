@@ -1,7 +1,7 @@
 # 0014. ByteDance como motor principal, procesado asíncrono, y simplificación para tocar
 
 - Fecha: 2026-11-15
-- Estado: Propuesta (decisión de Kevin pendiente de confirmar tras la compuerta 1)
+- Estado: Aceptada (confirmada por Kevin el 2026-11-15)
 - Relacionada con: [0006](0006-motor-de-transcripcion.md), [0008](0008-visualizacion-y-practica.md)
 
 ## Contexto
