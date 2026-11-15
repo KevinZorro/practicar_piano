@@ -20,3 +20,6 @@ La cola procesa una canción a la vez y la interfaz mostrará posición y progre
 - `basic-pitch` 0.4.0 declara `tensorflow<2.15.1` como dependencia obligatoria en Linux (solo hay ruedas para Python 3.11), incluso con el extra `onnx`. Para no depender de TensorFlow en ARM64, el proyecto lo excluye con `override-dependencies` en `backend/pyproject.toml` y Basic Pitch corre sobre `onnxruntime`. Es una elección de ejecución, no cambia la decisión.
 - El modelo de ByteDance se carga con un checkpoint verificado: ver [0013](0013-checkpoint-bytedance-verificado.md).
 - La compuerta usa el tiempo de inferencia con el modelo ya cargado (el servidor lo cargará una vez al arrancar) y el informe muestra también el tiempo total con arranque en frío.
+
+## Actualización 2026-11-15 (resultado de la Fase 0)
+Con diez covers en la VPS, ByteDance resultó reconocible en 10 de 10 y Basic Pitch claramente peor a oído; ByteDance tarda ≈ 2× la duración (incumple el criterio de 2 min) y se propone usarlo de forma asíncrona. Ver [0014](0014-bytedance-asincrono-y-simplificacion.md).
