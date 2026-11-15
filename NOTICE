@@ -1,0 +1,16 @@
+Pianola (working name) — third-party notices
+
+This project is MIT-licensed. It depends only on permissively licensed
+software. Licenses that require preserving notices are listed here; the full
+texts ship with each package and are kept up to date in docs/adr/0012-licencias.md.
+
+- Basic Pitch (Spotify) ............ Apache-2.0  https://github.com/spotify/basic-pitch
+- piano_transcription_inference
+  (ByteDance, Kong et al.) ......... Apache-2.0 (code). The pretrained
+                                      checkpoint's license is verified in
+                                      docs/phase-0/model-licenses.md.
+- music21 ........................... BSD-3-Clause
+- OpenSheetMusicDisplay ............. BSD-3-Clause
+- yt-dlp ............................ Unlicense (public domain)
+
+No audio or MIDI of copyrighted songs is stored in this repository.
