@@ -1,0 +1,17 @@
+# WireGuard client (home Windows PC). Name the tunnel "pianola".
+# In the WireGuard app use "Add empty tunnel...": it generates the key pair for you, so the
+# private key never leaves this PC. Replace only the placeholders below.
+[Interface]
+# PrivateKey = (the app inserts it; do not paste it anywhere else)
+Address = 10.8.0.2/24
+
+[Peer]
+PublicKey = <PUBLIC_KEY_OF_THE_VPS>
+# Split tunnel: only the VPS tunnel address. NEVER 0.0.0.0/0 here, or the PC would send
+# all its traffic through the VPS.
+AllowedIPs = 10.8.0.1/32
+# The VPS public IP (Oracle reserved public IP) and the WireGuard port.
+Endpoint = <VPS_PUBLIC_IP>:51820
+# The home PC is behind NAT (and maybe CGNAT) and dials out; the keepalive keeps the NAT
+# mapping open so the VPS can reach the proxy at any time.
+PersistentKeepalive = 25
