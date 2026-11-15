@@ -18,7 +18,7 @@
 - Compuerta 1 (rev. 2): por oído, **ByteDance es «mucho mejor» que Basic Pitch** y Kevin lo elige. Cuesta factor ≈ 2,0 en la VPS (una canción de 3 minutos tarda ≈ 6 minutos, frente al presupuesto original de 2) y ≈ 1,5 GB de memoria; Basic Pitch hace factor 0,04–0,12 con ≈ 500 MB. Kevin acepta el costo a cambio de procesar de forma asíncrona. El ADR 0006 y el criterio de tiempo de la compuerta los registra el hilo de la Fase 0, no este plan.
 - Sigue pendiente que la descarga funcione desde la VPS (YouTube la bloquea; el proxy por WireGuard se prepara aparte).
 
-**Supuesto de este plan (rev. 2):** ByteDance es el motor, detrás del puerto `Transcriber`; Basic Pitch queda como adaptador alternativo, sin interfaz propia en el MVP. Lo que cambia si falla la descarga está en §8.
+**Supuesto de este plan (rev. 2):** ByteDance es el motor (ADR 0014, aceptado por Kevin), detrás del puerto `Transcriber`; Basic Pitch queda como adaptador alternativo, sin interfaz propia en el MVP. Lo que cambia si falla la descarga está en §8.
 
 ## 2. Arquitectura objetivo
 
@@ -201,9 +201,9 @@ Reglas:
 ## 6. Qué cambiaría la arquitectura
 
 **Contradice hoy el texto de una decisión (rev. 2), y requiere ADR antes de implementarse:**
-- **D-07 y el encargo («el servidor no guarda nada»):** la caché de resultados guarda en la VPS notas, MusicXML y mapa de tiempos durante 24 h. Kevin pidió «resultado en caché», pero conviene que el ADR 0014 lo registre explícitamente, con sus límites (sin audio, sin enlace, clave aleatoria, borrado a petición). Alternativa más estricta: solo memoria con TTL de 2 horas, que se pierde si el servicio reinicia.
+- **D-07 y el encargo («el servidor no guarda nada»):** la caché de resultados guarda en la VPS notas, MusicXML y mapa de tiempos durante 24 h. Kevin pidió «resultado en caché», pero conviene que el ADR 0015 lo registre explícitamente (el ADR 0014, ya aceptado, deja pendiente la política de caché y borrado), con sus límites (sin audio, sin enlace, clave aleatoria, borrado a petición). Alternativa más estricta: solo memoria con TTL de 2 horas, que se pierde si el servicio reinicia.
 - **D-06 (motor):** ahora es ByteDance, y la compuerta de tiempo (< 2 minutos por canción de 3) ya no se cumple. Lo registra el hilo de la Fase 0 (ADR 0006); este plan solo lo toma como entrada.
-- **D-08 y D-09:** la práctica y la partitura trabajan sobre notas reducidas (nuevo ADR 0019, ver abajo), no sobre la transcripción cruda.
+- **D-08 y D-09:** la práctica y la partitura trabajan sobre notas reducidas (nuevo ADR 0020, ver abajo), no sobre la transcripción cruda.
 
 **Otros puntos donde, si se confirman, hay que avisar a Kevin y escribir un ADR antes de cambiar nada:**
 
@@ -215,18 +215,18 @@ Reglas:
 6. **Reducción de polifonía en el servidor y no en el navegador.** Se prefiere el servidor para que la partitura y las notas salgan de la misma fuente; si se quiere un control más fino por el usuario, pasaría al cliente y habría que duplicar la lógica.
 
 **ADR nuevos que se escribirían (en español, con el formato de `docs/adr/`):**
-- 0014 Contrato de API de trabajos, procesamiento asíncrono y caché de resultados (SSE y consulta, `job_id` como credencial, TTL de 24 h, borrado, errores). Modifica D-07.
-- 0015 Reloj de reproducción único y sincronía con YouTube.
-- 0016 Estimación de pulso, cuantización y mapa de tiempos.
-- 0017 Biblioteca local: esquema de IndexedDB, versionado y formato de exportación.
-- 0018 Límites de uso (duración, cola, trabajos por IP, tamaños) y política de logs.
-- 0019 (rev. 2) Reducción de polifonía y niveles de dificultad: política de tocabilidad, qué notas se protegen y cómo se informa de lo descartado.
+- 0015 Contrato de API de trabajos, procesamiento asíncrono y caché de resultados (SSE y consulta, `job_id` como credencial, TTL de 24 h, borrado, errores). Modifica D-07.
+- 0016 Reloj de reproducción único y sincronía con YouTube.
+- 0017 Estimación de pulso, cuantización y mapa de tiempos.
+- 0018 Biblioteca local: esquema de IndexedDB, versionado y formato de exportación.
+- 0019 Límites de uso (duración, cola, trabajos por IP, tamaños) y política de logs.
+- 0020 (rev. 2) Reducción de polifonía y niveles de dificultad: política de tocabilidad, qué notas se protegen y cómo se informa de lo descartado.
 
 ## 7. Definición de terminado de la Fase 1
 
 - Todos los incrementos A, B, C y D1 mergeados, con CI en verde (backend, frontend, e2e, imagen arm64).
 - Flujo completo funcionando en la VPS con HTTPS: enlace → cola → práctica → biblioteca, con un cover real. **Hasta que Kevin lo pruebe en la VPS, YouTube y ARM64 reales se reportan como no verificados**, como indica `CLAUDE.md`.
-- ADR 0006 actualizado por el hilo de la Fase 0 (ByteDance) y ADR 0014–0019 escritos.
+- ADR 0006 y 0014 (ByteDance, asíncrono y simplificación) ya escritos por el hilo de la Fase 0 y ADR 0015–0020 escritos.
 - (rev. 2) Una canción difícil real se puede practicar con el nivel `playable` sin acordes de más de 10 notas ni más de 5 por mano, y Kevin confirma de oído que sigue siendo reconocible.
 - `docs/status.md` al día, runbook de despliegue y operación en `docs/phase-1/`.
 - Pendientes de lanzamiento (D2) resueltos antes de abrir el sitio: contacto para reclamos, términos de uso, dominio y nombre.
