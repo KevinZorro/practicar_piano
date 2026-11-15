@@ -100,6 +100,22 @@ docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run \
 
 Apunta en el informe si usaste proxy (`download: via proxy` aparece en el entorno del informe). Un proxy residencial de pago es el respaldo si tu conexión también es bloqueada.
 
+### Plan B: audio que ya tienes (si la descarga está bloqueada)
+
+El estudio prevé este respaldo: la entrada vuelve a ser un archivo. Sirve para evaluar los modelos sin depender de la descarga (la pregunta de la descarga se cierra aparte con el proxy).
+
+1. En tu computador (la IP de casa suele funcionar), baja el audio de cada canción, por ejemplo con yt-dlp: `yt-dlp -x --audio-format wav -o "%(autonumber)02d - %(title)s.%(ext)s" <enlace>`. Sirve cualquier formato de audio (wav, mp3, m4a, opus, flac...).
+2. Súbelos a la VPS: `scp *.wav ubuntu@<vps>:~/practicar_piano/phase0-audio/` (la carpeta está ignorada por git).
+3. Corre con `--audio-dir`; el orden alfabético de los archivos es el número de canción y el nombre del archivo es la etiqueta:
+
+```bash
+mkdir -p phase0-audio
+docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run \
+  --audio-dir /data/audio --out /data/out
+```
+
+Tus archivos originales nunca se tocan: se convierte una copia temporal que se borra al terminar. El informe indica `audio: local files (no download)`, así que la compuerta de la descarga queda **sin cerrar** hasta probar el proxy.
+
 ## 5. Escuchar y decidir
 
 1. Copia los WAV a tu computador: `scp -r vps:practicar_piano/phase0-output .`
