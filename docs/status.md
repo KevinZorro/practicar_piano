@@ -26,6 +26,9 @@
 - Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004).
 - Modelos: pendientes; se evalúan con audio local (`--audio-dir`).
 
+## Fase 1
+- Plan redactado en `docs/phase-1/plan.md`; **pendiente del visto bueno de Kevin**. No hay código de la Fase 1.
+
 ## Siguiente paso
 Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
 
