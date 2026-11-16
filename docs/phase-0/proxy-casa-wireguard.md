@@ -1,6 +1,6 @@
 # Proxy de casa con WireGuard (plan B de la descarga)
 
-Úsalo cuando YouTube bloquea la VPS (`Sign in to confirm you're not a bot`). Decisiones y porqué: ADR [0014](../adr/0014-proxy-de-casa-wireguard.md). Archivos: `infra/wireguard/` e `infra/home-proxy/`.
+Úsalo cuando YouTube bloquea la VPS (`Sign in to confirm you're not a bot`). Decisiones y porqué: ADR [0015](../adr/0015-proxy-de-casa-wireguard.md). Archivos: `infra/wireguard/` e `infra/home-proxy/`.
 
 ```
 contenedor (yt-dlp) → VPS wg0 10.8.0.1 ══ WireGuard (UDP 51820) ══► PC de casa 10.8.0.2:1080 (SOCKS5) → YouTube

@@ -6,9 +6,13 @@ texts ship with each package and are kept up to date in docs/adr/0012-licencias.
 
 - Basic Pitch (Spotify) ............ Apache-2.0  https://github.com/spotify/basic-pitch
 - piano_transcription_inference
-  (ByteDance, Kong et al.) ......... Apache-2.0 (code). The pretrained
-                                      checkpoint's license is verified in
-                                      docs/phase-0/model-licenses.md.
+  (ByteDance, Kong et al.) ......... Apache-2.0 / MIT (code, see
+                                      docs/phase-0/model-licenses.md).
+- ByteDance piano transcription
+  checkpoint (Kong et al., Zenodo
+  record 4034264) .................. CC-BY-4.0  https://creativecommons.org/licenses/by/4.0/
+                                      Attribution required; the model is used
+                                      unmodified.
 - music21 ........................... BSD-3-Clause
 - OpenSheetMusicDisplay ............. BSD-3-Clause
 - yt-dlp ............................ Unlicense (public domain)

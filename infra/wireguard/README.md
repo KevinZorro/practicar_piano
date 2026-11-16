@@ -1,6 +1,6 @@
 # WireGuard: VPS to home proxy
 
-Optional path for yt-dlp when YouTube blocks the VPS (ADR 0004, ADR 0014).
+Optional path for yt-dlp when YouTube blocks the VPS (ADR 0004, ADR 0015).
 
 ```
  container (yt-dlp) -> VPS wg0 10.8.0.1 ==WireGuard/UDP 51820==> home PC wg 10.8.0.2:1080 (SOCKS5) -> YouTube

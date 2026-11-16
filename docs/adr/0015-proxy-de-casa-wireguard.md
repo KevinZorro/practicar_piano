@@ -1,4 +1,4 @@
-# 0014. Proxy de casa por WireGuard: topología y herramientas
+# 0015. Proxy de casa por WireGuard: topología y herramientas
 
 - Fecha: 2026-11-15
 - Estado: Propuesta
