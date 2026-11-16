@@ -35,4 +35,4 @@ Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidi
 ## Decisiones abiertas
 - D-06 (motor de transcripción): resuelta a favor de ByteDance asíncrono (ADR 0014, aceptada).
 - Nombre definitivo del proyecto (`pianola` es provisional).
-- Licencia exacta del código y del checkpoint de ByteDance (ADR 0013).
+- Checkpoint de ByteDance: licencia CC BY 4.0 verificada (atribución en `NOTICE`); falta contrastar MD5 y fijar SHA-256 (ADR 0013).

@@ -25,3 +25,6 @@ Al implementar el adaptador de la Fase 0 se revisó el paquete `piano_transcript
 - Un paso manual más en la VPS (documentado en el runbook), a cambio de una descarga verificable y reproducible.
 - El hash fijado en el repositorio se vuelve la referencia de integridad del modelo.
 - Pendiente de verificar: licencia del checkpoint y coherencia con el aviso de `NOTICE`.
+
+## Actualización 2026-11-16
+Kevin comprobó en Zenodo que el checkpoint se publica bajo **CC BY 4.0**, no Apache 2.0 como decía el registro. Es una licencia permisiva que permite uso comercial y anuncios, con la condición de atribuir (autores, enlace a la licencia e indicar cambios). No bloquea el uso previsto, pero corrige D-12: la licencia del checkpoint es CC BY 4.0 y el aviso queda en `NOTICE`. La app mostrará la atribución en su pantalla de créditos. Pendiente: contrastar el MD5 de Zenodo (`22b961b77c1878239fec963362097045`) con el archivo de la VPS y fijar el SHA-256.
