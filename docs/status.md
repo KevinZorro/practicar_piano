@@ -11,6 +11,7 @@
 - [x] Pruebas: unitarias sin red, integración con Basic Pitch real y una melodía de dominio público generada en código, prueba de red marcada aparte (`PIANOLA_TEST_VIDEO_URL`)
 - [x] CI (Ruff, mypy estricto, pytest en 3.11 y 3.12, integración, gitleaks) y flujo que construye la imagen arm64 bajo QEMU
 - [x] Dockerfile linux/arm64 con Deno y ffmpeg, compose y runbook de la VPS
+- [x] Proxy de casa por WireGuard: configuración de la VPS y del PC (Windows), proxy `gost`, sonda `check-proxy` en compose y runbook (ADR 0015)
 
 ## Verificado en el entorno de desarrollo (x86_64, Python 3.11 y 3.12)
 - 98 pruebas en verde, Ruff y mypy limpios; Basic Pitch ONNX transcribe una melodía sintetizada de dominio público.
@@ -23,14 +24,14 @@
 - Licencia del checkpoint de ByteDance (Zenodo inaccesible desde el entorno): ver `docs/phase-0/model-licenses.md`.
 
 ## Resultado en la VPS (2026-11-14)
-- Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004).
+- Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Falta probar el proxy de casa con WireGuard (ADR 0004, 0015): los archivos y el runbook `docs/phase-0/proxy-casa-wireguard.md` están listos, el túnel real está sin verificar; no bloquea la compuerta 1, pero la Fase 1 necesita una descarga que funcione.
 - Audio local con `--audio-dir`, 10 canciones: Basic Pitch factor 0,04 (mediana) y 0,12 (peor), 505 MB; ByteDance factor ≈ 2,0 (≈ 6 min por canción de 3), 1,5 GB. Corregido un fallo de carga de audio con librosa 0.11.
 - A oído (Kevin): ByteDance mucho mejor, casi idéntico al original; Basic Pitch suena raro. Propuesta: ByteDance asíncrono ([0014](adr/0014-bytedance-asincrono-y-simplificacion.md)). Veredicto de Kevin (por oído, 2026-11-15): **10 de 10 reconocibles con ByteDance**; no se rellenó `verdicts.csv` ni se corrió `gate`, su palabra es el veredicto.
 - **Compuerta 1:** calidad cumplida (10/10); el criterio de tiempo original (< 2 min) no se cumple con ByteDance (≈ 6 min) y se acepta con procesado asíncrono.
 - Observación: transcripciones con más de 15 notas simultáneas no se pueden tocar; la Fase 1 necesita simplificación.
 
 ## Siguiente paso
-Correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
+Montar el túnel con `docs/phase-0/proxy-casa-wireguard.md`, correr el runbook (`docs/phase-0/runbook.md`) en la VPS con diez covers y decidir la compuerta 1.
 
 ## Decisiones abiertas
 - D-06 (motor de transcripción): resuelta a favor de ByteDance asíncrono (ADR 0014, aceptada).

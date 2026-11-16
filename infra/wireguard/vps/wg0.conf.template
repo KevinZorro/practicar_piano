@@ -1,0 +1,13 @@
+# WireGuard server (Oracle VPS). Rendered by render-wg0-conf.sh into /etc/wireguard/wg0.conf.
+# The private key never lives in the repository: it is generated on the VPS and read from
+# /etc/wireguard/server.key at render time.
+[Interface]
+Address = 10.8.0.1/24
+ListenPort = 51820
+PrivateKey = @SERVER_PRIVATE_KEY@
+
+# Home PC (client behind NAT). /32 means the VPS only routes 10.8.0.2 into the tunnel;
+# nothing else on the VPS is sent through the user's home connection.
+[Peer]
+PublicKey = @HOME_PUBLIC_KEY@
+AllowedIPs = 10.8.0.2/32
