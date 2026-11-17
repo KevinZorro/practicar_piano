@@ -23,16 +23,22 @@ docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD/frontend":/app -w
 sudo mkdir -p /var/www/pianola && sudo rsync -a --delete frontend/dist/ /var/www/pianola/
 ```
 
-## 4. Nginx y HTTPS
+## 4. Dominio, Nginx y HTTPS
+El HTTPS es obligatorio (notificaciones y Web MIDI exigen contexto seguro). Con DuckDNS es gratis:
+1. En duckdns.org crea un subdominio y apúntalo a la IP pública de la VPS (`curl -4 ifconfig.me`).
+2. Abre los puertos 80 y 443 en la lista de seguridad de Oracle y en `ufw`/`iptables` de la VPS.
+3. Pide el certificado antes de activar el bloque 443 (si no, `nginx -t` falla):
 ```bash
-sudo apt-get install -y nginx certbot python3-certbot-nginx
+D=TU.duckdns.org
+sudo apt-get install -y nginx certbot
+sudo systemctl stop nginx
+sudo certbot certonly --standalone -d $D
 sudo cp infra/nginx/pianola.conf /etc/nginx/sites-available/pianola
-sudo sed -i 's/pianola.example.duckdns.org/TU-DOMINIO.duckdns.org/g' /etc/nginx/sites-available/pianola
+sudo sed -i "s/pianola.example.duckdns.org/$D/g" /etc/nginx/sites-available/pianola
 sudo ln -sf /etc/nginx/sites-available/pianola /etc/nginx/sites-enabled/pianola
-sudo certbot certonly --nginx -d TU-DOMINIO.duckdns.org   # antes de activar el bloque 443
-sudo nginx -t && sudo systemctl reload nginx
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl start nginx
 ```
-Abre los puertos 80 y 443 en la lista de seguridad de Oracle y en `ufw`/`iptables` de la VPS. Si el certificado aún no existe, `nginx -t` falla en el bloque 443: pídelo primero con una configuración mínima en el puerto 80.
 
 ## 5. Prueba de punta a punta
 1. Abre `https://TU-DOMINIO.duckdns.org`, pega el enlace de un cover de unos 3 minutos y pulsa **Procesar canción**.
