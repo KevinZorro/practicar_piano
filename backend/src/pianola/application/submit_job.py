@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pianola.application.ports import Clock, DurationProbe, JobRepository
+from pianola.application.job_queue import JobQueue
+from pianola.application.ports import Clock, DurationProbe
 from pianola.domain.job import Job
 from pianola.domain.notes import DurationPolicy
 from pianola.domain.video_url import VideoUrl
@@ -15,13 +16,13 @@ class SubmitJob:
         self,
         *,
         probe: DurationProbe,
-        repository: JobRepository,
+        queue: JobQueue,
         clock: Clock,
         new_id: Callable[[], str],
         policy: DurationPolicy | None = None,
     ) -> None:
         self._probe = probe
-        self._repository = repository
+        self._queue = queue
         self._clock = clock
         self._new_id = new_id
         self._policy = policy or DurationPolicy()
@@ -29,10 +30,12 @@ class SubmitJob:
     def execute(self, raw_url: str, client_ip: str) -> Job:
         """Validate the link and its duration, then register a queued job.
 
-        Raises ``InvalidVideoUrlError``, ``DownloadError`` (probe failed) or
-        ``DurationLimitExceededError`` before anything is stored.
+        Raises ``InvalidVideoUrlError``, ``QueueFullError``, ``RateLimitedError``,
+        ``DownloadError`` (probe failed) or ``DurationLimitExceededError`` before anything is
+        stored. The cheap checks run first so a full queue never triggers a network probe.
         """
         video = VideoUrl.parse(raw_url)
+        self._queue.check_admission(client_ip)
         duration_s = self._probe.probe(video)
         self._policy.check(duration_s)
         job = Job(
@@ -42,5 +45,5 @@ class SubmitJob:
             duration_s=duration_s,
             created_at=self._clock.now(),
         )
-        self._repository.add(job)
+        self._queue.submit(job)
         return job

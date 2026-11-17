@@ -2,6 +2,7 @@ import itertools
 
 import pytest
 
+from pianola.application.job_queue import JobQueue, QueueLimits
 from pianola.application.submit_job import SubmitJob
 from pianola.domain.errors import DownloadError, DurationLimitExceededError, InvalidVideoUrlError
 from pianola.domain.job import JobStatus
@@ -13,11 +14,13 @@ URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 def make(probe: FakeProbe | None = None) -> tuple[SubmitJob, DictJobRepository]:
     repo = DictJobRepository()
+    clock = FakeClock()
+    queue = JobQueue(repo, clock, QueueLimits())
     ids = itertools.count(1)
     use_case = SubmitJob(
         probe=probe or FakeProbe(200.0),
-        repository=repo,
-        clock=FakeClock(),
+        queue=queue,
+        clock=clock,
         new_id=lambda: f"job-{next(ids)}",
         policy=DurationPolicy(max_seconds=600),
     )

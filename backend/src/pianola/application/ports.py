@@ -99,3 +99,6 @@ class ResultStore(Protocol):
         """Return the result. Raises ``ResultNotReadyError`` when absent or expired."""
 
     def discard(self, job_id: str) -> None: ...
+
+    def purge_expired(self) -> list[str]:
+        """Drop results past their safety expiry and return their job ids."""

@@ -149,3 +149,6 @@ class DictResultStore:
 
     def discard(self, job_id: str) -> None:
         self.items.pop(job_id, None)
+
+    def purge_expired(self) -> list[str]:
+        return []
