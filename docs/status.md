@@ -38,7 +38,8 @@
 - Hecho después: B1 (tempo), B2 (cuantización y manos), B3 (MusicXML con music21 y timemap), ADR [0018](adr/0018-pulso-cuantizacion-y-partitura.md).
 - Hecho después: B4 (`BuildResult`: tras transcribir se entregan los tres niveles —original, jugable, fácil— y la partitura MusicXML con su timemap de los dos reducidos; `GET /result` cambia a `{meta, levels[]}`).
 - Hecho después: C8 en parte (`core/library`: progreso por nivel, «dominada» con ≥ 90 % de acierto, velocidad 1 y sin modo espera, exportar e importar; `IndexedDbLibrary` con migraciones v1→v2 probada con `fake-indexeddb`; `collect` guarda la canción antes de borrarla del servidor). Falta la pantalla de biblioteca y mover los trabajos pendientes de localStorage a IndexedDB (su almacén es síncrono; se hará con C6).
-- Pendiente de la Fase 1: C6–C9, A4–A6, D1–D3; C8 cambiará el almacén de trabajos pendientes de localStorage a IndexedDB. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
+- Hecho después: C6 en parte (`core/sheet/cursor.ts`: paso del cursor y compás a partir del `timemap`, probado con Vitest; `OsmdSheet`, envoltorio de OpenSheetMusicDisplay). Comprobado a mano en Chromium con una partitura real de music21: el cursor avanza y retrocede con el tiempo. Falta la prueba e2e de Playwright, que necesita la pantalla de práctica.
+- Pendiente de la Fase 1: C6 (pantalla y e2e), C7–C9, A4–A6, D1–D3; C8 cambiará el almacén de trabajos pendientes de localStorage a IndexedDB. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
 - Límites conocidos: la cola y los resultados viven en memoria; un reinicio los pierde (ADR 0016).
 
 ## Siguiente paso
