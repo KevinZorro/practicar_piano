@@ -166,6 +166,28 @@ describe('JobTracker', () => {
     expect(store.saved).toEqual([]);
   });
 
+  it('collect saves the result before deleting it on the server', async () => {
+    const { tracker, api } = setup();
+    await tracker.submit('x');
+    const order: string[] = [];
+    await tracker.collect('j1', () => {
+      order.push(`saved (deleted so far: ${String(api.deleted.length)})`);
+      return Promise.resolve();
+    });
+    expect(order).toEqual(['saved (deleted so far: 0)']);
+    expect(api.deleted).toEqual(['j1']);
+  });
+
+  it('collect keeps the job on the server when saving fails', async () => {
+    const { tracker, api } = setup();
+    await tracker.submit('x');
+    await expect(tracker.collect('j1', () => Promise.reject(new Error('quota')))).rejects.toThrow(
+      'quota',
+    );
+    expect(api.deleted).toEqual([]);
+    expect(tracker.current).toHaveLength(1);
+  });
+
   it('collect still succeeds if the delete fails', async () => {
     const { tracker, api } = setup();
     await tracker.submit('x');

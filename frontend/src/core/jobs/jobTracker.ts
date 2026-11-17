@@ -79,9 +79,16 @@ export class JobTracker {
     return this.jobs.some((j) => !isTerminal(j.status));
   }
 
-  /** Downloads the result and tells the server to forget it. The caller keeps the data. */
-  async collect(jobId: string): Promise<ResultResponse> {
+  /**
+   * Downloads the result, hands it to `keep` and only then tells the server to forget it:
+   * the server keeps no copy, so a failed save must leave the result retrievable.
+   */
+  async collect(
+    jobId: string,
+    keep?: (result: ResultResponse) => Promise<void>,
+  ): Promise<ResultResponse> {
     const result = await this.api.getResult(jobId);
+    if (keep) await keep(result);
     await this.api.deleteJob(jobId).catch((error: unknown) => {
       // The result is in hand; a failed delete only means the server expires it later.
       if (!(error instanceof ApiError)) throw error;
