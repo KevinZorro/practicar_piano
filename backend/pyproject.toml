@@ -18,6 +18,9 @@ basic-pitch = ["basic-pitch[onnx]>=0.4.0", "setuptools<81"]  # resampy needs pkg
 bytedance = ["piano_transcription_inference>=0.0.6", "torch>=2.6"]
 # Pure-Python additive synthesizer used to render listenable WAVs from MIDI.
 synth = ["pretty_midi>=0.2.10", "numpy>=1.26"]
+score = [
+    "music21>=9.1",
+]
 
 [project.scripts]
 pianola = "pianola.cli.main:main"
@@ -68,6 +71,10 @@ mypy_path = ["src"]
 [[tool.mypy.overrides]]
 module = ["basic_pitch.*", "piano_transcription_inference.*", "pretty_midi.*", "yt_dlp.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pianola.infrastructure.music21_score"]
+disable_error_code = ["no-untyped-call"]
 
 [tool.uv]
 # basic-pitch 0.4.0 hard-depends on tensorflow<2.15.1 on Linux (cp311 wheels only), even

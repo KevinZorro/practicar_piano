@@ -35,11 +35,12 @@
 - Plan en `docs/phase-1/plan.md`; Kevin respondió la sección 9 (2026-11-17): ADR [0016](adr/0016-entrega-sin-cache-y-limites.md) (sin caché, 10 min, cola 1+5, aviso por notificación, nombre Pianola) y [0017](adr/0017-reduccion-de-polifonia.md) (polifonía).
 - Hecho: C0 (andamiaje frontend y CI), C1 (modelo de notas y máquina del modo espera), A1 (trabajo, `SubmitJob`, `ProcessJob`), A2 (cola acotada, límites por IP, almacén con expiración, worker), A3 (API FastAPI con SSE, errores con código, `docs/api/openapi.json` con prueba de contrato), C2 (reloj interpolado y adaptador de YouTube), C3 (proyección y dibujo de notas; falta el componente React del canvas y el teclado en pantalla), C4 (Web MIDI y detección de navegador; falta la guía en la interfaz).
 - Hecho después (PR siguiente): B1b (`domain/polyphony.py`, ADR 0017 implementado) y C5 (cliente de la API con tipos generados de OpenAPI, `JobTracker` con seguimiento por consulta y trabajos que sobreviven a cerrar la pestaña, pantalla del enlace y la cola, notificación del navegador y título de pestaña; e2e con la API simulada). El aviso con sonido queda pendiente.
-- Pendiente de la Fase 1: C6–C9, B1–B4 (pulso, cuantización, partitura; B1b ya está), A4–A6, D1–D3; C8 cambiará el almacén de trabajos pendientes de localStorage a IndexedDB. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
+- Hecho después: B1 (tempo), B2 (cuantización y manos), B3 (MusicXML con music21 y timemap), ADR [0018](adr/0018-pulso-cuantizacion-y-partitura.md).
+- Pendiente de la Fase 1: C6–C9, B4 (reducción y partitura dentro del pipeline), A4–A6, D1–D3; C8 cambiará el almacén de trabajos pendientes de localStorage a IndexedDB. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
 - Límites conocidos: la cola y los resultados viven en memoria; un reinicio los pierde (ADR 0016).
 
 ## Siguiente paso
-Seguir con B1 (pulso), B2/B3 (cuantización y partitura) y C8 (biblioteca). En paralelo, confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
+Seguir con B4 (pipeline con partitura) y C8 (biblioteca). En paralelo, confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
 
 ## Decisiones abiertas
 - D-06 (motor de transcripción): resuelta a favor de ByteDance asíncrono (ADR 0014, aceptada).
