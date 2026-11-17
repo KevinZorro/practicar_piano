@@ -117,6 +117,79 @@
         "title": "JobStatus",
         "type": "string"
       },
+      "LevelOut": {
+        "properties": {
+          "max_polyphony_after": {
+            "title": "Max Polyphony After",
+            "type": "integer"
+          },
+          "max_polyphony_before": {
+            "title": "Max Polyphony Before",
+            "type": "integer"
+          },
+          "name": {
+            "enum": [
+              "original",
+              "playable",
+              "easy"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/NoteOut"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "notes_dropped_ratio": {
+            "title": "Notes Dropped Ratio",
+            "type": "number"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoreOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absent for the original level"
+          }
+        },
+        "required": [
+          "name",
+          "notes",
+          "notes_dropped_ratio",
+          "max_polyphony_before",
+          "max_polyphony_after"
+        ],
+        "title": "LevelOut",
+        "type": "object"
+      },
+      "MeasureOut": {
+        "properties": {
+          "measure": {
+            "description": "1-based, as in the MusicXML",
+            "minimum": 1.0,
+            "title": "Measure",
+            "type": "integer"
+          },
+          "start_s": {
+            "description": "Seconds from the start of the video",
+            "title": "Start S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "measure",
+          "start_s"
+        ],
+        "title": "MeasureOut",
+        "type": "object"
+      },
       "NoteOut": {
         "properties": {
           "end_s": {
@@ -155,36 +228,71 @@
             "title": "Duration S",
             "type": "number"
           },
-          "note_count": {
-            "title": "Note Count",
-            "type": "integer"
+          "tempo_bpm": {
+            "title": "Tempo Bpm",
+            "type": "number"
+          },
+          "tempo_confidence": {
+            "enum": [
+              "high",
+              "low"
+            ],
+            "title": "Tempo Confidence",
+            "type": "string"
           }
         },
         "required": [
           "duration_s",
-          "note_count"
+          "tempo_bpm",
+          "tempo_confidence"
         ],
         "title": "ResultMeta",
         "type": "object"
       },
       "ResultResponse": {
         "properties": {
+          "levels": {
+            "items": {
+              "$ref": "#/components/schemas/LevelOut"
+            },
+            "title": "Levels",
+            "type": "array"
+          },
           "meta": {
             "$ref": "#/components/schemas/ResultMeta"
-          },
-          "notes": {
-            "items": {
-              "$ref": "#/components/schemas/NoteOut"
-            },
-            "title": "Notes",
-            "type": "array"
           }
         },
         "required": [
           "meta",
-          "notes"
+          "levels"
         ],
         "title": "ResultResponse",
+        "type": "object"
+      },
+      "ScoreOut": {
+        "properties": {
+          "measures": {
+            "items": {
+              "$ref": "#/components/schemas/MeasureOut"
+            },
+            "title": "Measures",
+            "type": "array"
+          },
+          "musicxml": {
+            "title": "Musicxml",
+            "type": "string"
+          },
+          "tempo_bpm": {
+            "title": "Tempo Bpm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "musicxml",
+          "tempo_bpm",
+          "measures"
+        ],
+        "title": "ScoreOut",
         "type": "object"
       }
     }

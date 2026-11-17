@@ -130,6 +130,37 @@ export interface components {
          * @enum {string}
          */
         JobStatus: "queued" | "downloading" | "transcribing" | "scoring" | "done" | "failed" | "expired";
+        /** LevelOut */
+        LevelOut: {
+            /** Max Polyphony After */
+            max_polyphony_after: number;
+            /** Max Polyphony Before */
+            max_polyphony_before: number;
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "original" | "playable" | "easy";
+            /** Notes */
+            notes: components["schemas"]["NoteOut"][];
+            /** Notes Dropped Ratio */
+            notes_dropped_ratio: number;
+            /** @description Absent for the original level */
+            score?: components["schemas"]["ScoreOut"] | null;
+        };
+        /** MeasureOut */
+        MeasureOut: {
+            /**
+             * Measure
+             * @description 1-based, as in the MusicXML
+             */
+            measure: number;
+            /**
+             * Start S
+             * @description Seconds from the start of the video
+             */
+            start_s: number;
+        };
         /** NoteOut */
         NoteOut: {
             /** End S */
@@ -145,14 +176,28 @@ export interface components {
         ResultMeta: {
             /** Duration S */
             duration_s: number;
-            /** Note Count */
-            note_count: number;
+            /** Tempo Bpm */
+            tempo_bpm: number;
+            /**
+             * Tempo Confidence
+             * @enum {string}
+             */
+            tempo_confidence: "high" | "low";
         };
         /** ResultResponse */
         ResultResponse: {
+            /** Levels */
+            levels: components["schemas"]["LevelOut"][];
             meta: components["schemas"]["ResultMeta"];
-            /** Notes */
-            notes: components["schemas"]["NoteOut"][];
+        };
+        /** ScoreOut */
+        ScoreOut: {
+            /** Measures */
+            measures: components["schemas"]["MeasureOut"][];
+            /** Musicxml */
+            musicxml: string;
+            /** Tempo Bpm */
+            tempo_bpm: number;
         };
     };
     responses: never;

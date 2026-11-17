@@ -34,7 +34,10 @@ class FakeApi implements JobsApi {
     return job ? Promise.resolve(job) : Promise.reject(new ApiError('job_not_found', 404));
   }
   getResult(): Promise<ResultResponse> {
-    return Promise.resolve({ meta: { duration_s: 10, note_count: 1 }, notes: [] });
+    return Promise.resolve({
+      meta: { duration_s: 10, tempo_bpm: 120, tempo_confidence: 'high' },
+      levels: [],
+    });
   }
   deleteJob(jobId: string): Promise<void> {
     if (this.deleteFailure) return Promise.reject(this.deleteFailure);
@@ -158,7 +161,7 @@ describe('JobTracker', () => {
     const { tracker, api, store } = setup();
     await tracker.submit('x');
     const result = await tracker.collect('j1');
-    expect(result.meta.note_count).toBe(1);
+    expect(result.meta.duration_s).toBe(10);
     expect(api.deleted).toEqual(['j1']);
     expect(store.saved).toEqual([]);
   });

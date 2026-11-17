@@ -15,13 +15,17 @@ from pianola.api.errors import ERROR_RESPONSES, install_error_handlers
 from pianola.api.schemas import (
     CreateJobRequest,
     JobResponse,
+    LevelOut,
+    MeasureOut,
     NoteOut,
     ResultMeta,
     ResultResponse,
+    ScoreOut,
 )
 from pianola.application.job_service import JobView
 from pianola.domain.errors import JobNotFoundError
 from pianola.domain.job import JobStatus
+from pianola.domain.result import SongResult
 
 API_VERSION = "1"
 _TERMINAL = frozenset({JobStatus.DONE, JobStatus.FAILED, JobStatus.EXPIRED})
@@ -100,13 +104,7 @@ def create_app(container: Container) -> FastAPI:
     async def get_result(job_id: str) -> ResultResponse:
         """The transcription. Repeatable until the client calls DELETE."""
         result = container.fetch.execute(job_id)
-        return ResultResponse(
-            meta=ResultMeta(duration_s=result.duration_s, note_count=len(result.notes)),
-            notes=[
-                NoteOut(pitch=n.pitch, start_s=n.start_s, end_s=n.end_s, velocity=n.velocity)
-                for n in result.notes
-            ],
-        )
+        return _result_response(result)
 
     @app.delete("/api/v1/jobs/{job_id}", status_code=204, responses=ERROR_RESPONSES)
     async def delete_job(job_id: str) -> Response:
@@ -115,6 +113,39 @@ def create_app(container: Container) -> FastAPI:
         return Response(status_code=204)
 
     return app
+
+
+def _result_response(result: SongResult) -> ResultResponse:
+    return ResultResponse(
+        meta=ResultMeta(
+            duration_s=result.duration_s,
+            tempo_bpm=result.tempo_bpm,
+            tempo_confidence=result.tempo_confidence,
+        ),
+        levels=[
+            LevelOut(
+                name=level.name,
+                notes=[
+                    NoteOut(pitch=n.pitch, start_s=n.start_s, end_s=n.end_s, velocity=n.velocity)
+                    for n in level.notes
+                ],
+                notes_dropped_ratio=level.stats.notes_dropped_ratio,
+                max_polyphony_before=level.stats.max_polyphony_before,
+                max_polyphony_after=level.stats.max_polyphony_after,
+                score=None
+                if level.score is None
+                else ScoreOut(
+                    musicxml=level.score.musicxml,
+                    tempo_bpm=level.score.tempo_bpm,
+                    measures=[
+                        MeasureOut(measure=m.measure, start_s=m.start_s)
+                        for m in level.score.timemap
+                    ],
+                ),
+            )
+            for level in result.levels
+        ],
+    )
 
 
 async def _events(container: Container, job_id: str, request: Request) -> AsyncIterator[str]:

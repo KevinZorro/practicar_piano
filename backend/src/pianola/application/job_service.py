@@ -9,7 +9,7 @@ from pianola.application.job_queue import JobQueue
 from pianola.application.ports import Clock, JobRepository, ResultStore
 from pianola.domain.errors import JobNotFoundError, ResultNotReadyError
 from pianola.domain.job import JobStatus
-from pianola.domain.notes import Transcription
+from pianola.domain.result import SongResult
 
 TERMINAL_RETENTION = timedelta(hours=1)
 
@@ -47,7 +47,7 @@ class FetchResult:
         self._repository = repository
         self._results = results
 
-    def execute(self, job_id: str) -> Transcription:
+    def execute(self, job_id: str) -> SongResult:
         job = self._repository.get(job_id)
         if job.status is not JobStatus.DONE:
             raise ResultNotReadyError(job.status.value)

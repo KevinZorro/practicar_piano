@@ -16,7 +16,10 @@ from pianola.domain.errors import (
 )
 from pianola.domain.job import Job
 from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
-from pianola.domain.notes import NoteEvent, Transcription
+from pianola.domain.notes import NoteEvent
+from pianola.domain.quantize import QuantizedPiece
+from pianola.domain.result import SongResult
+from pianola.domain.score import Score
 from pianola.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -133,15 +136,15 @@ class DictJobRepository:
 
 class DictResultStore:
     def __init__(self, *, fails: bool = False) -> None:
-        self.items: dict[str, Transcription] = {}
+        self.items: dict[str, SongResult] = {}
         self._fails = fails
 
-    def put(self, job_id: str, result: Transcription) -> None:
+    def put(self, job_id: str, result: SongResult) -> None:
         if self._fails:
             raise OSError("disk full")
         self.items[job_id] = result
 
-    def take(self, job_id: str) -> Transcription:
+    def take(self, job_id: str) -> SongResult:
         try:
             return self.items[job_id]
         except KeyError:
@@ -152,3 +155,8 @@ class DictResultStore:
 
     def purge_expired(self) -> list[str]:
         return []
+
+
+class FakeScoreBuilder:
+    def build(self, piece: QuantizedPiece) -> Score:
+        return Score(musicxml="<score-partwise/>", timemap=(), tempo_bpm=piece.tempo_bpm)

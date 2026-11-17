@@ -31,7 +31,7 @@ Ports and adapters: downloader, transcribers, synthesizer, resource meter are po
 - Only permissive licenses (MIT/BSD/Apache/Unlicense). No GPL (PianoBooster/Neothesia are off-limits).
 - Basic Pitch 0.4.0 forces tensorflow on Linux; `override-dependencies` drops it and the ONNX runtime is used. ByteDance checkpoint is fetched/verified by `backend/scripts/fetch_bytedance_checkpoint.sh` (ADR 0013).
 - yt-dlp needs a JS runtime (Deno) since Nov 2025; keep it in the Docker image.
-- Marks: `network` (hits YouTube; excluded by default), `integration` (needs models), `slow`. CI runs offline + integration (ONNX) and builds the arm64 image under QEMU.
+- Marks: `network` (hits YouTube; excluded by default), `integration` (needs models), `slow`. CI runs offline + integration (ONNX) and builds the arm64 image on a native arm64 runner.
 - Real YouTube/ARM64 runs are verified on Kevin's VPS, not in the cloud sandbox: report as unverified until then.
 
 ## Working rules
