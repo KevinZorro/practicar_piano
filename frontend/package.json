@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run --reporter=dot",
     "e2e": "playwright test --trace off",
-    "gen:api": "openapi-typescript ../docs/api/openapi.json -o src/adapters/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../docs/api/openapi.json -o src/adapters/api/schema.d.ts",
+    "e2e:full": "playwright test --config playwright.full.config.ts --trace off"
   },
   "dependencies": {
     "opensheetmusicdisplay": "^2.3.1",
