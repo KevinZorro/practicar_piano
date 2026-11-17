@@ -41,7 +41,10 @@ class FakeApi implements JobsApi {
     return found ? Promise.resolve(found) : Promise.reject(new ApiError('job_not_found', 404));
   }
   getResult(): Promise<ResultResponse> {
-    return Promise.resolve({ meta: { duration_s: 1, note_count: 0 }, notes: [] });
+    return Promise.resolve({
+      meta: { duration_s: 1, tempo_bpm: 120, tempo_confidence: 'high' },
+      levels: [],
+    });
   }
   deleteJob(jobId: string): Promise<void> {
     this.jobs.delete(jobId);

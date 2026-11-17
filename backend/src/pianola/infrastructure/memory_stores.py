@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pianola.application.ports import Clock
 from pianola.domain.errors import JobNotFoundError, ResultNotReadyError
 from pianola.domain.job import Job
-from pianola.domain.notes import Transcription
+from pianola.domain.result import SongResult
 
 
 class InMemoryJobRepository:
@@ -39,12 +39,12 @@ class TtlResultStore:
     def __init__(self, clock: Clock, ttl_s: float = 6 * 3600) -> None:
         self._clock = clock
         self._ttl = timedelta(seconds=ttl_s)
-        self._items: dict[str, tuple[datetime, Transcription]] = {}
+        self._items: dict[str, tuple[datetime, SongResult]] = {}
 
-    def put(self, job_id: str, result: Transcription) -> None:
+    def put(self, job_id: str, result: SongResult) -> None:
         self._items[job_id] = (self._clock.now() + self._ttl, result)
 
-    def take(self, job_id: str) -> Transcription:
+    def take(self, job_id: str) -> SongResult:
         entry = self._items.get(job_id)
         if entry is None or entry[0] <= self._clock.now():
             self._items.pop(job_id, None)

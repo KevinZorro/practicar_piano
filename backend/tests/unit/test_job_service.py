@@ -10,12 +10,12 @@ from pianola.application.job_service import (
 )
 from pianola.domain.errors import JobNotFoundError, ResultNotReadyError
 from pianola.domain.job import Job, JobStatus
-from pianola.domain.notes import NoteEvent, Transcription
+from pianola.domain.result import SongResult
 from pianola.domain.video_url import VideoUrl
 from pianola.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock
 
-RESULT = Transcription((NoteEvent(60, 0, 1, 80),), 10.0)
+RESULT = SongResult(10.0, 120.0, "high", ())
 
 
 class Env:

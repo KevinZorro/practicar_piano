@@ -12,6 +12,7 @@ from tests.support.fakes import (
     FakeClock,
     FakeDownloader,
     FakeMidiReader,
+    FakeScoreBuilder,
     FakeTranscriber,
 )
 
@@ -41,6 +42,7 @@ class Setup:
             repository=self.repo,
             results=self.results,
             clock=self.clock,
+            score_builder=FakeScoreBuilder(),
             work_dir=tmp_path,
         )
 
@@ -53,7 +55,10 @@ def test_success_stores_the_result_and_deletes_the_audio(tmp_path: Path) -> None
     s.use_case.execute("j1")
     assert s.job.status is JobStatus.DONE
     result = s.results.take("j1")
-    assert [n.pitch for n in result.notes] == [60, 64]
+    assert [lv.name for lv in result.levels] == ["original", "playable", "easy"]
+    assert [n.pitch for n in result.levels[0].notes] == [60, 64]
+    assert result.levels[0].score is None
+    assert all(lv.score is not None for lv in result.levels[1:])
     assert result.duration_s == 190.0
     assert s.downloader.downloaded
     assert not s.downloader.downloaded[0].exists()

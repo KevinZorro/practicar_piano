@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from pianola.domain.job import JobStatus
@@ -31,14 +33,35 @@ class NoteOut(BaseModel):
     velocity: int = Field(ge=0, le=127)
 
 
+class MeasureOut(BaseModel):
+    measure: int = Field(ge=1, description="1-based, as in the MusicXML")
+    start_s: float = Field(description="Seconds from the start of the video")
+
+
+class ScoreOut(BaseModel):
+    musicxml: str
+    tempo_bpm: float
+    measures: list[MeasureOut]
+
+
+class LevelOut(BaseModel):
+    name: Literal["original", "playable", "easy"]
+    notes: list[NoteOut]
+    notes_dropped_ratio: float
+    max_polyphony_before: int
+    max_polyphony_after: int
+    score: ScoreOut | None = Field(default=None, description="Absent for the original level")
+
+
 class ResultMeta(BaseModel):
     duration_s: float
-    note_count: int
+    tempo_bpm: float
+    tempo_confidence: Literal["high", "low"]
 
 
 class ResultResponse(BaseModel):
     meta: ResultMeta
-    notes: list[NoteOut]
+    levels: list[LevelOut]
 
 
 class ErrorBody(BaseModel):

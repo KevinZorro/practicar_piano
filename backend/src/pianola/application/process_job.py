@@ -6,12 +6,14 @@ import logging
 import tempfile
 from pathlib import Path
 
+from pianola.application.build_result import BuildResult
 from pianola.application.ports import (
     AudioDownloader,
     Clock,
     JobRepository,
     MidiNoteReader,
     ResultStore,
+    ScoreBuilder,
     Transcriber,
 )
 from pianola.domain.errors import PianolaError
@@ -31,6 +33,7 @@ class ProcessJob:
         repository: JobRepository,
         results: ResultStore,
         clock: Clock,
+        score_builder: ScoreBuilder,
         work_dir: Path | None = None,
     ) -> None:
         self._downloader = downloader
@@ -39,6 +42,7 @@ class ProcessJob:
         self._repository = repository
         self._results = results
         self._clock = clock
+        self._build = BuildResult(score_builder)
         self._work_dir = work_dir
 
     def execute(self, job_id: str) -> None:
@@ -51,7 +55,7 @@ class ProcessJob:
             with tempfile.TemporaryDirectory(prefix="pianola-", dir=self._work_dir) as tmp:
                 transcription = self._run(job, Path(tmp))
             self._advance(job, JobStatus.SCORING)
-            self._results.put(job.id, transcription)
+            self._results.put(job.id, self._build.execute(transcription))
             self._advance(job, JobStatus.DONE)
         except PianolaError as exc:
             self._fail(job, exc.code, type(exc).__name__)

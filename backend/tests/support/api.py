@@ -23,6 +23,7 @@ from tests.support.fakes import (
     FakeDownloader,
     FakeMidiReader,
     FakeProbe,
+    FakeScoreBuilder,
     FakeTranscriber,
 )
 
@@ -62,6 +63,7 @@ def build_api(
         repository=repo,
         results=results,
         clock=clock,
+        score_builder=FakeScoreBuilder(),
         work_dir=tmp_path,
     )
     worker = Worker(queue, process, Sweep(repo, results, clock), idle_poll_s=0.01)

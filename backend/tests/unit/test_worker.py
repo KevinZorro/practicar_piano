@@ -12,7 +12,7 @@ from pianola.domain.job import Job, JobStatus
 from pianola.domain.models import AudioFile, TranscriptionOutput
 from pianola.domain.video_url import VideoUrl
 from pianola.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
-from tests.support.fakes import FakeClock, FakeDownloader, FakeMidiReader
+from tests.support.fakes import FakeClock, FakeDownloader, FakeMidiReader, FakeScoreBuilder
 
 
 class BlockingTranscriber:
@@ -43,6 +43,7 @@ def build(tmp_path: Path, transcriber: BlockingTranscriber) -> tuple[Worker, Job
         repository=repo,
         results=results,
         clock=clock,
+        score_builder=FakeScoreBuilder(),
         work_dir=tmp_path,
     )
     worker = Worker(queue, process, Sweep(repo, results, clock))

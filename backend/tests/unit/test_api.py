@@ -43,8 +43,13 @@ def test_full_flow_status_result_delete(env: ApiEnv) -> None:
     assert status["position"] is None
 
     result = env.client.get(f"/api/v1/jobs/{job_id}/result").json()
-    assert result["meta"] == {"duration_s": 180.0, "note_count": 2}
-    assert result["notes"][0] == {"pitch": 60, "start_s": 0.0, "end_s": 1.0, "velocity": 80}
+    assert result["meta"]["duration_s"] == 180.0
+    assert result["meta"]["tempo_confidence"] in {"high", "low"}
+    original, playable, easy = result["levels"]
+    assert [original["name"], playable["name"], easy["name"]] == ["original", "playable", "easy"]
+    assert original["notes"][0] == {"pitch": 60, "start_s": 0.0, "end_s": 1.0, "velocity": 80}
+    assert original["score"] is None
+    assert playable["score"]["musicxml"] and easy["score"]["measures"] == []
     # repeatable until the client confirms
     assert env.client.get(f"/api/v1/jobs/{job_id}/result").status_code == 200
 

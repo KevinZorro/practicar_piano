@@ -14,8 +14,9 @@ from typing import Generic, Protocol, TypeVar
 
 from pianola.domain.job import Job
 from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
-from pianola.domain.notes import NoteEvent, Transcription
+from pianola.domain.notes import NoteEvent
 from pianola.domain.quantize import QuantizedPiece
+from pianola.domain.result import SongResult
 from pianola.domain.score import Score
 from pianola.domain.video_url import VideoUrl
 
@@ -95,9 +96,9 @@ class JobRepository(Protocol):
 class ResultStore(Protocol):
     """Holds a finished transcription only until the client takes it (ADR 0016)."""
 
-    def put(self, job_id: str, result: Transcription) -> None: ...
+    def put(self, job_id: str, result: SongResult) -> None: ...
 
-    def take(self, job_id: str) -> Transcription:
+    def take(self, job_id: str) -> SongResult:
         """Return the result. Raises ``ResultNotReadyError`` when absent or expired."""
 
     def discard(self, job_id: str) -> None: ...
