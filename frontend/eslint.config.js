@@ -5,7 +5,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['dist', 'node_modules', 'playwright-report', 'test-results'] },
+  {
+    ignores: [
+      'src/adapters/api/schema.d.ts',
+      'dist',
+      'node_modules',
+      'playwright-report',
+      'test-results',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

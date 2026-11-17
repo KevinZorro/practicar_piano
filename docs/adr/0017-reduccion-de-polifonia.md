@@ -1,7 +1,7 @@
 # 0017. Reducción de polifonía para poder tocar
 
 - Fecha: 2026-11-17
-- Estado: Aceptada (diseño; se implementa en el incremento B1b)
+- Estado: Aceptada (implementada en `backend/src/pianola/domain/polyphony.py`, incremento B1b)
 - Relacionada con: [0014](0014-bytedance-asincrono-y-simplificacion.md), [0008](0008-visualizacion-y-practica.md)
 
 ## Contexto
@@ -33,3 +33,11 @@ Nunca se supera el límite por mano, el alcance ni el total; melodía y bajo sob
 
 ## Consecuencias
 La política se afina oyendo las canciones difíciles de Kevin (fixtures sintéticas con su forma, nunca audio protegido). Si algún nivel resulta irreconocible se ajustan los pesos, no el algoritmo.
+
+## Notas de la implementación (2026-11-17)
+- Las manos no se fijan en el do central: para cada instante se busca la partición en mano izquierda y derecha que cumpla los límites (la regla del do central de D-08 se aplica después, al separar manos en B2).
+- Solo se consideran para quitar las notas cuya eliminación acerca el conjunto a lo tocable; así no se sacrifica una nota barata del lado equivocado del teclado.
+- En cada inicio se exige que sean tocables las notas que suenan más las que empiezan dentro de los 50 ms siguientes; como quitar notas solo facilita el conjunto, una segunda pasada no cambia nada (probado con 100 piezas aleatorias por nivel).
+- Una misma tecla no puede sonar dos veces: las copias casi simultáneas se funden y una nota nueva corta a la anterior.
+- Si dos manos no alcanzan (por ejemplo tres notas separadas por más de una décima cada una), se quita la interna más barata aunque sea la tercera: el límite de alcance manda sobre el número de notas.
+- Rendimiento: 12 000 notas en ≈ 1 s.
