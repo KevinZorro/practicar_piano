@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-15 · Fase actual: **Fase 0** (compuerta 1) · Rama: `claude/project-thread-7gi51h`
+Última actualización: 2026-11-17 · Fase actual: **Fase 1** (en curso) · Rama: `claude/project-thread-tgbyej`
 
 ## Hecho
 - [x] Andamiaje: licencia MIT, NOTICE, .gitignore (bloquea medios y modelos), pre-commit, CLAUDE.md, git-guard
@@ -32,10 +32,13 @@
 - Observación: transcripciones con más de 15 notas simultáneas no se pueden tocar; la Fase 1 necesita simplificación.
 
 ## Fase 1
-- Plan en `docs/phase-1/plan.md`; Kevin respondió la sección 9 (2026-11-17): ADR 0016 (sin caché, límites, aviso, nombre) y 0017 (polifonía). Implementación en curso: C0, C1, A1–A3 primero.
+- Plan en `docs/phase-1/plan.md`; Kevin respondió la sección 9 (2026-11-17): ADR [0016](adr/0016-entrega-sin-cache-y-limites.md) (sin caché, 10 min, cola 1+5, aviso por notificación, nombre Pianola) y [0017](adr/0017-reduccion-de-polifonia.md) (polifonía).
+- Hecho: C0 (andamiaje frontend y CI), C1 (modelo de notas y máquina del modo espera), A1 (trabajo, `SubmitJob`, `ProcessJob`), A2 (cola acotada, límites por IP, almacén con expiración, worker), A3 (API FastAPI con SSE, errores con código, `docs/api/openapi.json` con prueba de contrato), C2 (reloj interpolado y adaptador de YouTube), C3 (proyección y dibujo de notas; falta el componente React del canvas y el teclado en pantalla), C4 (Web MIDI y detección de navegador; falta la guía en la interfaz).
+- Pendiente de la Fase 1: C5–C9, B1–B4 (incluida la implementación de ADR 0017), A4–A6, D1–D3. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
+- Límites conocidos: la cola y los resultados viven en memoria; un reinicio los pierde (ADR 0016).
 
 ## Siguiente paso
-Confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
+Seguir con C5 (pantalla de enlace y cola, necesita el contrato de A3, ya disponible), B1/B1b (pulso y reducción de polifonía) y C8 (biblioteca). En paralelo, confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
 
 ## Decisiones abiertas
 - D-06 (motor de transcripción): resuelta a favor de ByteDance asíncrono (ADR 0014, aceptada).
