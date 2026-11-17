@@ -123,5 +123,5 @@ def test_windows_proxy_binds_to_the_tunnel_and_is_firewalled_to_the_vps() -> Non
 
 def test_compose_probe_uses_the_same_proxy_variable_as_the_benchmark() -> None:
     compose = _read(INFRA / "docker-compose.yml")
-    assert compose.count('PIANOLA_PROXY_URL: "${PIANOLA_PROXY_URL:-}"') == 2
+    assert compose.count('PIANOLA_PROXY_URL: "${PIANOLA_PROXY_URL:-}"') == 3
     assert "check-proxy" in compose
