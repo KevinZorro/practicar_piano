@@ -1,6 +1,7 @@
 """Parsing of the local links file used by the Phase 0 command.
 
-Format: one song per line, either ``URL`` or ``label | URL``; blank lines and lines
+Format: one song per line, either ``URL`` or ``label | URL`` (the link is whatever follows
+the last ``|``); blank lines and lines
 starting with ``#`` are ignored. Errors report the line number only, never the link.
 """
 
@@ -9,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from pianola.domain.errors import InvalidVideoUrlError
+from pianola.domain.models import SongSource
 from pianola.domain.video_url import VideoUrl
 
 _MAX_LABEL_LENGTH = 80
@@ -18,7 +20,7 @@ _MAX_LABEL_LENGTH = 80
 class SongEntry:
     index: int
     label: str
-    url: VideoUrl
+    source: SongSource
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,16 +36,14 @@ def parse_links(text: str) -> tuple[list[SongEntry], list[LinkIssue]]:
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        label, separator, raw_url = line.partition("|")
-        if not separator:
-            label, raw_url = "", label
+        label, _, raw_url = line.rpartition("|")  # labels may contain "|"; without one, label is ""
         try:
             url = VideoUrl.parse(raw_url)
         except InvalidVideoUrlError as exc:
             issues.append(LinkIssue(line_number, str(exc)))
             continue
         index = len(entries) + 1
-        entries.append(SongEntry(index=index, label=_clean_label(label, index), url=url))
+        entries.append(SongEntry(index=index, label=_clean_label(label, index), source=url))
     return entries, issues
 
 

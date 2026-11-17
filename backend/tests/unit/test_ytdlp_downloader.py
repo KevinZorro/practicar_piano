@@ -131,3 +131,17 @@ def test_missing_output_file_is_reported(tmp_path: Path, monkeypatch: pytest.Mon
 
     with pytest.raises(DownloadError, match="no audio file"):
         make(tmp_path).download(URL, tmp_path)
+
+
+def test_yt_dlp_gets_a_silent_logger_so_video_ids_never_reach_stderr(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    make(tmp_path).download(URL, tmp_path)
+
+    logger = FakeYoutubeDL.instances[-1].options["logger"]
+    logger.error(f"ERROR: [youtube] {VIDEO_ID}: Sign in to confirm you're not a bot")
+    logger.warning(VIDEO_ID)
+    logger.info(VIDEO_ID)
+    logger.debug(VIDEO_ID)
+    captured = capsys.readouterr()
+    assert VIDEO_ID not in captured.out + captured.err

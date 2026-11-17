@@ -43,9 +43,12 @@ models/
 # Phase 0 run artifacts (contain copyrighted material and song titles)
 phase0-work/
 phase0-output/
+phase0-audio/
 links.txt
 
 # OS / editors
 .DS_Store
 .idea/
 .vscode/
+frontend/playwright-report/
+frontend/test-results/

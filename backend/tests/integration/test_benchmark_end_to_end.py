@@ -16,8 +16,7 @@ pytest.importorskip("basic_pitch")
 from pianola.application.benchmark import RunBenchmark
 from pianola.application.links import parse_links
 from pianola.application.report import render_report
-from pianola.domain.models import AudioFile
-from pianola.domain.video_url import VideoUrl
+from pianola.domain.models import AudioFile, SongSource
 from pianola.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
 from pianola.infrastructure.process_meter import SubprocessResourceMeter
 from pianola.infrastructure.synthesizer import AdditiveSynthesizer
@@ -34,7 +33,7 @@ class PublicDomainDownloader:
     def __init__(self) -> None:
         self.downloaded: list[Path] = []
 
-    def download(self, url: VideoUrl, dest_dir: Path) -> AudioFile:
+    def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
         write_reference_midi(dest_dir / "ref.mid")
         AdditiveSynthesizer().render(dest_dir / "ref.mid", dest_dir / "audio.wav")
         self.downloaded.append(dest_dir / "audio.wav")

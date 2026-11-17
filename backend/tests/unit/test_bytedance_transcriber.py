@@ -16,8 +16,8 @@ def install_fake_package(monkeypatch: pytest.MonkeyPatch, calls: list[Any]) -> N
     module = types.ModuleType("piano_transcription_inference")
     module.sample_rate = 16000  # type: ignore[attr-defined]
 
-    def load_audio(path: str, sr: int, mono: bool) -> tuple[list[float], int]:
-        calls.append(("load_audio", path, sr, mono))
+    def load(path: str, sr: int, mono: bool) -> tuple[list[float], int]:
+        calls.append(("load", path, sr, mono))
         return [0.0] * 16000, sr
 
     class PianoTranscription:
@@ -28,7 +28,9 @@ def install_fake_package(monkeypatch: pytest.MonkeyPatch, calls: list[Any]) -> N
             Path(midi_path).write_bytes(b"MThd")
             return {"est_note_events": [{}, {}, {}]}
 
-    module.load_audio = load_audio  # type: ignore[attr-defined]
+    librosa_module = types.ModuleType("librosa")
+    librosa_module.load = load  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "librosa", librosa_module)
     module.PianoTranscription = PianoTranscription  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "piano_transcription_inference", module)
 
@@ -67,6 +69,7 @@ def test_transcribe_passes_the_explicit_checkpoint_and_reports_notes(
     assert output.note_count == 3
     assert output.inference_seconds >= 0
     assert ("init", "cpu", str(checkpoint)) in calls
+    assert ("load", str(tmp_path / "a.wav"), 16000, True) in calls
     assert (tmp_path / "o.mid").exists()
 
 

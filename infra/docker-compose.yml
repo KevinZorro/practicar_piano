@@ -1,9 +1,16 @@
 # Phase 0 benchmark. From the repository root:
-#   mkdir -p phase0-output phase0-models
+#   mkdir -p phase0-output phase0-models phase0-audio   # phase0-audio only for --audio-dir
 #   docker compose -f infra/docker-compose.yml build
 #   docker compose -f infra/docker-compose.yml run --rm --entrypoint /app/scripts/fetch_bytedance_checkpoint.sh phase0
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run --links /data/links.txt --out /data/out
+#   (or, with audio files you already have: ... phase0 run --audio-dir /data/audio --out /data/out)
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 gate --out /data/out
+#
+# Home proxy over WireGuard (when YouTube blocks the VPS): set it once in infra/.env (git-ignored)
+#   PIANOLA_PROXY_URL=socks5h://10.8.0.2:1080
+# and check it with the exact same setting the benchmark will use:
+#   docker compose -f infra/docker-compose.yml run --rm check-proxy
+# Full steps: docs/phase-0/proxy-casa-wireguard.md
 #
 # The container runs as your user (HOST_UID/HOST_GID) so the MIDI/WAV files it writes are
 # yours. `export HOST_UID=$(id -u) HOST_GID=$(id -g)` first.
@@ -15,6 +22,9 @@ services:
       platforms:
         - linux/arm64
     image: pianola-phase0:local
+    # Default bridge network: the container reaches the tunnel (10.8.0.2) through the host's
+    # wg0 interface; Docker masquerades the source, so the home proxy sees the VPS tunnel
+    # address (10.8.0.1). No extra routes or network_mode needed.
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       # Optional proxy for yt-dlp (WireGuard-connected home proxy). Empty = direct.
@@ -22,8 +32,30 @@ services:
       PIANOLA_MAX_DURATION_SECONDS: "${PIANOLA_MAX_DURATION_SECONDS:-600}"
     volumes:
       - "${PHASE0_LINKS:-../links.txt}:/data/links.txt:ro"
+      - "${PHASE0_AUDIO:-../phase0-audio}:/data/audio:ro"
       - "${PHASE0_OUTPUT:-../phase0-output}:/data/out"
       - "${PHASE0_MODELS:-../phase0-models}:/models"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # Connectivity probe for the home proxy. Same image and same PIANOLA_PROXY_URL as phase0.
+  # Fetches YouTube's home page (never a song link) and prints only the HTTP status line.
+  check-proxy:
+    profiles: ["tools"]
+    image: pianola-phase0:local
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        test -n "$$PIANOLA_PROXY_URL" || { echo "PIANOLA_PROXY_URL is empty"; exit 2; };
+        curl -sS --max-time 20 --proxy "$$PIANOLA_PROXY_URL" -I https://www.youtube.com | head -n 1
+    environment:
+      PIANOLA_PROXY_URL: "${PIANOLA_PROXY_URL:-}"
     read_only: true
     tmpfs:
       - /tmp

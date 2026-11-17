@@ -9,13 +9,33 @@ from pathlib import Path
 from typing import Any
 
 from pianola.domain.errors import DownloadError, DurationLimitExceededError
-from pianola.domain.models import AudioFile
+from pianola.domain.models import AudioFile, SongSource
 from pianola.domain.video_url import VideoUrl
 
 logger = logging.getLogger(__name__)
 
 _AUDIO_BASENAME = "audio"
 _SAMPLE_RATE_HZ = "44100"
+
+
+class _SilentLogger:
+    """yt-dlp prints errors, with the video id in them, straight to stderr unless given a logger.
+
+    Failures still reach the caller as exceptions, which ``_scrub`` cleans before they are
+    logged or reported.
+    """
+
+    def debug(self, msg: str) -> None:
+        del msg
+
+    def info(self, msg: str) -> None:
+        del msg
+
+    def warning(self, msg: str) -> None:
+        del msg
+
+    def error(self, msg: str) -> None:
+        del msg
 
 
 def _default_factory(options: dict[str, Any]) -> Any:
@@ -38,7 +58,10 @@ class YtDlpDownloader:
         self._proxy_url = proxy_url or None
         self._ydl_factory = ydl_factory
 
-    def download(self, url: VideoUrl, dest_dir: Path) -> AudioFile:
+    def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
+        if not isinstance(source, VideoUrl):
+            raise DownloadError("this downloader only handles YouTube links")
+        url = source
         dest_dir.mkdir(parents=True, exist_ok=True)
         try:
             duration = self._probe_duration(url)
@@ -76,6 +99,7 @@ class YtDlpDownloader:
         options: dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
+            "logger": _SilentLogger(),
             "noplaylist": True,
             "socket_timeout": 30,
             "retries": 3,

@@ -14,13 +14,15 @@ from importlib import metadata
 from pathlib import Path
 
 from pianola.application.benchmark import RunBenchmark
-from pianola.application.links import parse_links
+from pianola.application.links import SongEntry, parse_links
 from pianola.application.ports import Transcriber
 from pianola.application.report import parse_verdicts, render_report, render_verdicts_template
 from pianola.application.results_store import dump_results, load_results
 from pianola.domain.gate import GateStatus, evaluate_gate
+from pianola.domain.models import LocalAudio
 from pianola.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
 from pianola.infrastructure.bytedance_transcriber import DEFAULT_CHECKPOINT, ByteDanceTranscriber
+from pianola.infrastructure.local_audio import LocalAudioImporter, discover_audio_files
 from pianola.infrastructure.process_meter import SubprocessResourceMeter
 from pianola.infrastructure.synthesizer import AdditiveSynthesizer
 from pianola.infrastructure.ytdlp_downloader import YtDlpDownloader
@@ -43,7 +45,11 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     commands = phase0.add_subparsers(dest="phase0_command", required=True)
 
     run = commands.add_parser("run", help="download, transcribe, synthesize and report")
-    run.add_argument("--links", type=Path, required=True, help="file with one link per line")
+    origin = run.add_mutually_exclusive_group(required=True)
+    origin.add_argument("--links", type=Path, help="file with one YouTube link per line")
+    origin.add_argument(
+        "--audio-dir", type=Path, help="folder with audio files you already have (no download)"
+    )
     run.add_argument("--out", type=Path, required=True, help="output directory (git-ignored)")
     run.add_argument(
         "--models", nargs="+", choices=MODEL_CHOICES, default=list(MODEL_CHOICES), help="models"
@@ -71,11 +77,16 @@ def build_benchmark(args: argparse.Namespace) -> RunBenchmark:
         transcribers.append(BasicPitchTranscriber())
     if "bytedance" in args.models:
         transcribers.append(ByteDanceTranscriber(checkpoint_path=args.bytedance_checkpoint))
-    return RunBenchmark(
-        YtDlpDownloader(
+    provider: LocalAudioImporter | YtDlpDownloader = (
+        LocalAudioImporter(max_duration_seconds=args.max_duration)
+        if args.audio_dir
+        else YtDlpDownloader(
             max_duration_seconds=args.max_duration,
             proxy_url=os.environ.get("PIANOLA_PROXY_URL") or None,
-        ),
+        )
+    )
+    return RunBenchmark(
+        provider,
         transcribers,
         AdditiveSynthesizer(),
         SubprocessResourceMeter(),
@@ -90,16 +101,12 @@ def handle(args: argparse.Namespace, benchmark_factory: BenchmarkFactory = build
 
 
 def _run(args: argparse.Namespace, benchmark_factory: BenchmarkFactory) -> int:
-    if not args.links.is_file():
-        _err(f"links file not found: {args.links}")
+    entries = _load_entries(args)
+    if entries is None:
         return EXIT_USAGE
-    entries, issues = parse_links(args.links.read_text(encoding="utf-8"))
-    for issue in issues:  # line numbers only: links never go to the terminal
-        _err(f"{args.links}:{issue.line_number}: {issue.reason}")
-    if issues or not entries:
-        _err("fix the links file and run again" if issues else "no links to process")
-        return EXIT_USAGE
-    if (missing := _missing_tools()) and benchmark_factory is build_benchmark:
+    if (missing := _missing_tools(local=bool(args.audio_dir))) and (
+        benchmark_factory is build_benchmark
+    ):
         _err(f"required tools not found on PATH: {', '.join(missing)}")
         return EXIT_USAGE
 
@@ -111,7 +118,7 @@ def _run(args: argparse.Namespace, benchmark_factory: BenchmarkFactory) -> int:
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)  # the audio never outlives the run
 
-    environment = _environment()
+    environment = _environment(local=bool(args.audio_dir))
     (out_dir / RESULTS_FILE).write_text(dump_results(songs, environment), encoding="utf-8")
     verdicts_path = out_dir / VERDICTS_FILE
     if not verdicts_path.exists():  # never overwrite the user's by-ear verdicts
@@ -150,11 +157,35 @@ def _gate(args: argparse.Namespace) -> int:
     return EXIT_USAGE if result.status is GateStatus.INCOMPLETE else EXIT_NOT_PASSED
 
 
-def _missing_tools() -> list[str]:
-    return [tool for tool in ("ffmpeg", "deno") if shutil.which(tool) is None]
+def _load_entries(args: argparse.Namespace) -> list[SongEntry] | None:
+    """Songs to process, or None after reporting a usage error (never echoing links)."""
+    if args.audio_dir:
+        if not args.audio_dir.is_dir():
+            _err(f"audio folder not found: {args.audio_dir}")
+            return None
+        files = discover_audio_files(args.audio_dir)
+        if not files:
+            _err(f"no audio files in {args.audio_dir}")
+            return None
+        return [SongEntry(i, f.stem[:80], LocalAudio(f)) for i, f in enumerate(files, start=1)]
+    if not args.links.is_file():
+        _err(f"links file not found: {args.links}")
+        return None
+    entries, issues = parse_links(args.links.read_text(encoding="utf-8"))
+    for issue in issues:  # line numbers only: links never go to the terminal
+        _err(f"{args.links}:{issue.line_number}: {issue.reason}")
+    if issues or not entries:
+        _err("fix the links file and run again" if issues else "no links to process")
+        return None
+    return entries
 
 
-def _environment() -> dict[str, str]:
+def _missing_tools(*, local: bool) -> list[str]:
+    tools = ("ffmpeg",) if local else ("ffmpeg", "deno")
+    return [tool for tool in tools if shutil.which(tool) is None]
+
+
+def _environment(*, local: bool) -> dict[str, str]:
     return {
         "date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "platform": f"{platform.system()} {platform.machine()}",
@@ -163,8 +194,14 @@ def _environment() -> dict[str, str]:
         "yt-dlp": _version("yt-dlp"),
         "basic-pitch": _version("basic-pitch"),
         "torch": _version("torch"),
-        "download": "via proxy" if os.environ.get("PIANOLA_PROXY_URL") else "direct",
+        "audio": _audio_origin(local),
     }
+
+
+def _audio_origin(local: bool) -> str:
+    if local:
+        return "local files (no download)"
+    return "YouTube via proxy" if os.environ.get("PIANOLA_PROXY_URL") else "YouTube direct"
 
 
 def _version(package: str) -> str:

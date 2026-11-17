@@ -15,3 +15,6 @@ Código bajo licencia MIT y solo dependencias permisivas: Basic Pitch y el model
 
 ## Consecuencias
 Pendiente de verificar en la Fase 0: la licencia del checkpoint preentrenado de ByteDance (el código es Apache 2.0). Si difiere, se registra un ADR antes de usarlo. Ver `docs/phase-0/model-licenses.md`.
+
+## Actualización 2026-11-16
+El checkpoint preentrenado de ByteDance está bajo CC BY 4.0 (permisiva, con atribución), no Apache 2.0. Ver [0013](0013-checkpoint-bytedance-verificado.md) y `NOTICE`.
