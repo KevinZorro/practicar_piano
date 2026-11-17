@@ -1,3 +1,4 @@
+import { extractVideoId } from '../youtube/videoId';
 import {
   ApiError,
   type JobResponse,
@@ -16,6 +17,8 @@ export interface TrackedJob {
   readonly errorCode: string | null;
   /** True once the user has been told it finished, so a reload does not notify twice. */
   readonly notified: boolean;
+  /** Id of the video the user pasted, kept only in this browser to show it while practicing. */
+  readonly videoId?: string | null;
 }
 
 export interface PendingJobsStore {
@@ -63,7 +66,7 @@ export class JobTracker {
   /** Throws `ApiError` (invalid link, queue full, rate limited, ...). */
   async submit(url: string): Promise<TrackedJob> {
     const created = await this.api.createJob(url);
-    const job = fromResponse(created, false);
+    const job = { ...fromResponse(created, false), videoId: extractVideoId(url) };
     this.replace(job);
     return job;
   }
@@ -85,10 +88,11 @@ export class JobTracker {
    */
   async collect(
     jobId: string,
-    keep?: (result: ResultResponse) => Promise<void>,
+    keep?: (result: ResultResponse, job: TrackedJob | undefined) => Promise<void>,
   ): Promise<ResultResponse> {
+    const job = this.jobs.find((j) => j.jobId === jobId);
     const result = await this.api.getResult(jobId);
-    if (keep) await keep(result);
+    if (keep) await keep(result, job);
     await this.api.deleteJob(jobId).catch((error: unknown) => {
       // The result is in hand; a failed delete only means the server expires it later.
       if (!(error instanceof ApiError)) throw error;
@@ -108,7 +112,7 @@ export class JobTracker {
   private async refreshOne(job: TrackedJob): Promise<void> {
     try {
       const response = await this.api.getJob(job.jobId);
-      const next = fromResponse(response, job.notified);
+      const next = { ...fromResponse(response, job.notified), videoId: job.videoId ?? null };
       if (next.status === 'done' && !job.notified) {
         this.notifier.jobDone();
         this.replace({ ...next, notified: true });

@@ -92,3 +92,36 @@ test('wait mode stops the song until the right key arrives from the keyboard', a
   await press(100);
   await expect(progress).toContainText('Fallos: 1');
 });
+
+test('the video is shown and follows play and pause', async ({ page }) => {
+  // The real IFrame API needs the network: a fake one records what the app asks of it.
+  await page.route('https://www.youtube.com/iframe_api', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `
+        window.calls = [];
+        window.YT = { Player: class {
+          constructor(el, o) {
+            el.setAttribute('data-video', o.videoId);
+            setTimeout(() => o.events.onReady(), 0);
+          }
+          getCurrentTime() { return 0; }
+          playVideo() { window.calls.push('play'); }
+          pauseVideo() { window.calls.push('pause'); }
+          seekTo() {}
+          setPlaybackRate() {}
+        } };
+        window.onYouTubeIframeAPIReady();`,
+    }),
+  );
+  await openPractice(page);
+  await expect(page.getByRole('region', { name: 'Vídeo' })).toBeVisible();
+  await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
+  // With the video the song's own sound plays, so the synth starts off.
+  await expect(page.getByLabel('Sonido')).not.toBeChecked();
+
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await page.getByRole('button', { name: 'Pausar' }).click();
+  const calls = await page.evaluate(() => (window as unknown as { calls: string[] }).calls);
+  expect(calls).toEqual(expect.arrayContaining(['play', 'pause']));
+});

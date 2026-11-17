@@ -10,7 +10,7 @@ import type { LibrarySong, SongLibrary } from '../core/library/library';
 import { JobList } from './JobList';
 import { LinkForm } from './LinkForm';
 import type { MidiInput } from '../adapters/midi/midiInput';
-import { PracticeScreen } from './PracticeScreen';
+import { PracticeScreen, type VideoFactory } from './PracticeScreen';
 import { useTrackedJobs } from './useTrackedJobs';
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
   openJob?: (jobId: string) => Promise<LibrarySong | null>;
   createPiano?: () => TonePiano;
   createMidi?: () => MidiInput;
+  createVideo?: VideoFactory;
 }
 
 export function App({
@@ -31,6 +32,7 @@ export function App({
   openJob,
   createPiano,
   createMidi,
+  createVideo,
 }: Props) {
   const jobs = useTrackedJobs(tracker);
   const [song, setSong] = useState<LibrarySong | null>(null);
@@ -71,6 +73,7 @@ export function App({
           song={song}
           createPiano={createPiano}
           createMidi={createMidi}
+          createVideo={createVideo}
           onBack={() => {
             setSong(null);
           }}

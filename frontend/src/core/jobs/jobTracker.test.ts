@@ -75,6 +75,21 @@ describe('JobTracker', () => {
     expect(store.saved[0]).toMatchObject({ jobId: 'j1', status: 'queued', position: 1 });
   });
 
+  it('keeps only the video id of the link and hands it over when collecting', async () => {
+    const { tracker, api, store } = setup();
+    await tracker.submit('https://youtu.be/dQw4w9WgXcQ?t=5');
+    api.jobs.set('j1', response({ status: 'done', position: null, estimated_wait_s: null }));
+    await tracker.refresh();
+    expect(store.saved[0]?.videoId).toBe('dQw4w9WgXcQ');
+    expect(JSON.stringify(store.saved)).not.toContain('youtu.be');
+    const keep = vi.fn(() => Promise.resolve());
+    await tracker.collect('j1', keep);
+    expect(keep).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ videoId: 'dQw4w9WgXcQ' }),
+    );
+  });
+
   it('propagates API errors from submit without storing anything', async () => {
     const { tracker, api, store } = setup();
     api.failure = new ApiError('queue_full', 503, 300);
