@@ -34,6 +34,8 @@ export interface LibrarySong {
   readonly id: string;
   readonly title: string;
   readonly savedAt: number;
+  /** YouTube video id, when known; kept only in this browser. */
+  readonly videoId?: string | null;
   /** The whole result, kept here because the server forgets it after delivery. */
   readonly result: ResultResponse;
   readonly progress: Partial<Record<LevelName, LevelProgress>>;

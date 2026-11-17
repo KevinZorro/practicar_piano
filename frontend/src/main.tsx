@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { TonePiano } from './adapters/audio/tonePiano';
 import { HttpJobsApi } from './adapters/api/jobsApi';
 import { BrowserNotifier, createNotificationApi } from './adapters/notifications/browserNotifier';
+import { createYouTubeVideo } from './adapters/youtube/createVideo';
 import { createWebMidiInput } from './adapters/midi/midiInput';
 import { IndexedDbLibrary, openLibraryDb } from './adapters/storage/indexedDbLibrary';
 import { createLocalPendingStore } from './adapters/storage/localPendingStore';
 import { JobTracker } from './core/jobs/jobTracker';
 import type { LibrarySong, SongLibrary } from './core/library/library';
 import { App } from './ui/App';
+import './styles.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
@@ -35,11 +37,12 @@ async function main(container: HTMLElement): Promise<void> {
   async function openJob(jobId: string): Promise<LibrarySong | null> {
     if (!library) return null;
     let saved: LibrarySong | null = null;
-    await tracker.collect(jobId, async (result) => {
+    await tracker.collect(jobId, async (result, job) => {
       const song: LibrarySong = {
         id: jobId,
         title: `Canción ${new Date().toLocaleDateString()}`,
         savedAt: Date.now(),
+        videoId: job?.videoId ?? null,
         result,
         progress: {},
       };
@@ -58,6 +61,7 @@ async function main(container: HTMLElement): Promise<void> {
         openJob={openJob}
         createPiano={() => new TonePiano()}
         createMidi={() => createWebMidiInput()}
+        createVideo={createYouTubeVideo}
       />
     </StrictMode>,
   );

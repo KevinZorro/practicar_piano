@@ -4,6 +4,8 @@ import type { MidiInput, MidiStatus } from '../adapters/midi/midiInput';
 import { NoteTrigger } from '../core/audio/noteTrigger';
 import { SynthPlayer } from '../core/audio/synthPlayer';
 import { InterpolatedClock } from '../core/clock/interpolatedClock';
+import type { PlayerPort } from '../core/clock/playbackClock';
+import { SwitchablePlayer } from '../core/clock/switchablePlayer';
 import type { LibrarySong } from '../core/library/library';
 import type { HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
@@ -13,6 +15,9 @@ import { WaitMode } from '../core/practice/waitMode';
 import { drawFrame } from '../render/drawFrame';
 import { SheetPane } from './SheetPane';
 
+/** Embeds the video in `host` and resolves when it can be controlled. */
+export type VideoFactory = (host: HTMLElement, videoId: string) => Promise<PlayerPort>;
+
 interface Props {
   song: LibrarySong;
   onBack: () => void;
@@ -20,17 +25,23 @@ interface Props {
   createPiano?: (() => TonePiano) | undefined;
   /** Creates the Web MIDI input; injected so tests can fake the keyboard. */
   createMidi?: (() => MidiInput) | undefined;
+  /** Creates the YouTube video; without it (or on failure) a synth counts the time. */
+  createVideo?: VideoFactory | undefined;
 }
 
 const AHEAD_S = 4;
 
 const wallMs = (): number => performance.now();
 
-/** Without the video, a synth counts the time; the clock smooths it the same way. */
+/** Until the video is ready (or when it cannot play), a synth counts the time. */
 function createTiming() {
-  const clock = new InterpolatedClock(new SynthPlayer(wallMs), { wallMs });
-  return { clock, speedControl: new SpeedControl(clock) };
+  const player = new SwitchablePlayer(new SynthPlayer(wallMs));
+  const clock = new InterpolatedClock(player, { wallMs });
+  return { clock, player, speedControl: new SpeedControl(clock) };
 }
+const SYNC_EVERY_MS = 250;
+// The embedded player fills its box, so the box needs a size (styles come with C9).
+const VIDEO_STYLE = { aspectRatio: '16 / 9', maxWidth: '480px' } as const;
 const HAND_LABEL: Record<HandFilter, string> = {
   both: 'Ambas manos',
   right: 'Mano derecha',
@@ -49,12 +60,15 @@ const LEVEL_LABEL: Record<LevelName, string> = {
   easy: 'Fácil',
 };
 
-export function PracticeScreen({ song, onBack, createPiano, createMidi }: Props) {
+export function PracticeScreen({ song, onBack, createPiano, createMidi, createVideo }: Props) {
   const levels = availableLevels(song.result);
   const [level, setLevel] = useState<LevelName>(levels[0] ?? 'playable');
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(false);
-  const [sound, setSound] = useState(true);
+  const videoId = song.videoId ?? null;
+  const [hasVideo, setHasVideo] = useState(false);
+  // The video carries the song's own sound; the synth is for songs without one.
+  const [sound, setSound] = useState(videoId === null || !createVideo);
   const [waitOn, setWaitOn] = useState(false);
   const [hand, setHand] = useState<HandFilter>('both');
   const [practice, setPractice] = useState<{
@@ -72,7 +86,8 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi }: Props)
     seekSheet.current = seek;
   }, []);
 
-  const [{ clock, speedControl }] = useState(createTiming);
+  const [{ clock, player, speedControl }] = useState(createTiming);
+  const videoHost = useRef<HTMLDivElement>(null);
   const piano = useRef<TonePiano | null>(null);
   const soundRef = useRef(sound);
   useEffect(() => {
@@ -151,6 +166,30 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi }: Props)
       cancelAnimationFrame(frame);
     };
   }, [view, clock, duration, speedControl]);
+
+  useEffect(() => {
+    const host = videoHost.current;
+    if (!videoId || !createVideo || !host) return;
+    const state = { cancelled: false, timer: 0 };
+    createVideo(host, videoId).then(
+      (video) => {
+        if (state.cancelled) return;
+        player.attach(video);
+        setHasVideo(true);
+        state.timer = window.setInterval(() => {
+          clock.sync();
+        }, SYNC_EVERY_MS);
+      },
+      () => {
+        // The video cannot be embedded or loaded: practice goes on with the synth.
+        if (!state.cancelled) setSound(true);
+      },
+    );
+    return () => {
+      state.cancelled = true;
+      window.clearInterval(state.timer);
+    };
+  }, [videoId, createVideo, player, clock]);
 
   useEffect(
     () => () => {
@@ -330,6 +369,16 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi }: Props)
         </p>
       )}
 
+      {videoId && createVideo && (
+        <div
+          ref={videoHost}
+          className="video"
+          role="region"
+          aria-label="Vídeo"
+          hidden={!hasVideo}
+          style={VIDEO_STYLE}
+        />
+      )}
       <canvas ref={canvas} width={960} height={320} aria-label="Notas que caen" />
       <SheetPane score={view.score} registerSeek={registerSeek} />
     </section>
