@@ -8,10 +8,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Generic, Protocol, TypeVar
 
+from pianola.domain.job import Job
 from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
+from pianola.domain.notes import NoteEvent, Transcription
+from pianola.domain.video_url import VideoUrl
 
 T = TypeVar("T")
 
@@ -55,3 +59,46 @@ class ResourceMeter(Protocol):
         ``work`` must be picklable when the meter isolates it in a subprocess.
         Raises ``TranscriptionError`` if ``work`` fails.
         """
+
+
+class Clock(Protocol):
+    def now(self) -> datetime:
+        """Current time, timezone-aware (UTC)."""
+
+
+class DurationProbe(Protocol):
+    def probe(self, video: VideoUrl) -> float:
+        """Duration in seconds, read from metadata without downloading the audio.
+
+        Raises ``DownloadError`` when the video cannot be queried.
+        """
+
+
+class MidiNoteReader(Protocol):
+    def read(self, midi_path: Path) -> tuple[NoteEvent, ...]:
+        """Parse the notes of a MIDI file written by a ``Transcriber``."""
+
+
+class JobRepository(Protocol):
+    def add(self, job: Job) -> None: ...
+
+    def get(self, job_id: str) -> Job:
+        """Raises ``JobNotFoundError``."""
+
+    def remove(self, job_id: str) -> None: ...
+
+    def all(self) -> list[Job]: ...
+
+
+class ResultStore(Protocol):
+    """Holds a finished transcription only until the client takes it (ADR 0016)."""
+
+    def put(self, job_id: str, result: Transcription) -> None: ...
+
+    def take(self, job_id: str) -> Transcription:
+        """Return the result. Raises ``ResultNotReadyError`` when absent or expired."""
+
+    def discard(self, job_id: str) -> None: ...
+
+    def purge_expired(self) -> list[str]:
+        """Drop results past their safety expiry and return their job ids."""

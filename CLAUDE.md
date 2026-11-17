@@ -1,6 +1,6 @@
 # Pianola (working name)
 
-Web app to practice piano from a YouTube cover link (falling notes, sheet music, wait mode). Public portfolio repo (Full Stack + ML). Now in **Phase 0**: backend CLI benchmark to pass gate 1. No UI yet.
+Web app to practice piano from a YouTube cover link (falling notes, sheet music, wait mode). Public portfolio repo (Full Stack + ML). Phase 0 is closed; **Phase 1** (MVP) in progress, see `docs/status.md` and `docs/phase-1/plan.md`.
 
 ## Stack
 - Backend: Python 3.11+, uv, yt-dlp (+ Deno), Basic Pitch (ONNX default), ByteDance piano model, music21 (Phase 1), FastAPI (Phase 1)
@@ -13,11 +13,13 @@ Web app to practice piano from a YouTube cover link (falling notes, sheet music,
 - Integration (real Basic Pitch, needs extras): `uv run pytest -q -m integration`
 - Network (real YouTube, set `PIANOLA_TEST_VIDEO_URL`): `uv run pytest -q -m network`
 - Lint/format/types: `uv run ruff check . && uv run ruff format --check . && uv run mypy src tests`
+- API contract: `uv run python -m pianola.api.openapi` rewrites `docs/api/openapi.json` (a test fails if stale)
+- Frontend (from `frontend/`): `npm ci`, `npm run typecheck && npm run lint && npm run format:check && npm test`; e2e: `npm run e2e` (`PW_CHROMIUM_PATH` reuses a local Chromium)
 - Phase 0: `uv run pianola phase0 run --links links.txt --out phase0-output` then `... phase0 gate`
 
 ## Structure
-- `backend/src/pianola/{domain,application,infrastructure,cli}`: hexagonal; domain imports nothing external
-- `backend/tests/{unit,integration}`; `frontend/` placeholder; `infra/` compose/proxy notes
+- `backend/src/pianola/{domain,application,infrastructure,api,cli}`: hexagonal; domain imports nothing external
+- `backend/tests/{unit,integration}`; `frontend/src/{core,adapters,render,ui}` (core is pure TS); `infra/` compose/proxy notes
 - `docs/adr/` one ADR per decision D-01..D-12; `docs/status.md` phase state; `docs/phase-0/` runbook
 
 ## Architecture

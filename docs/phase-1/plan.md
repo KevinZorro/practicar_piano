@@ -1,5 +1,7 @@
 # Plan de la Fase 1: MVP completo
 
+> **Actualización 2026-11-17:** Kevin respondió la sección 9. Resumen: sin caché en el servidor, 10 min de duración máxima, cola de 1 + 5, máx. 10 notas simultáneas, aviso por notificación del navegador y nombre Pianola. Detalle en los ADR [0016](../adr/0016-entrega-sin-cache-y-limites.md) y [0017](../adr/0017-reduccion-de-polifonia.md); donde este plan hable de caché con TTL de 24 h o de tope de 5 minutos, mandan los ADR. La numeración de ADR previstos se corrió una posición porque 0015 lo ocupa el proxy.
+
 - Fecha: 2026-11-15
 - Estado: **Propuesta (revisión 2), pendiente del visto bueno de Kevin.** No se escribe código de la Fase 1 hasta que se apruebe.
 - Revisión 2 (2026-11-15): Kevin eligió **ByteDance** como motor tras escuchar los diez covers, quiere procesamiento **asíncrono** (aviso al terminar y resultado en caché) y detectó acordes de más de 15 notas simultáneas en canciones difíciles, imposibles de tocar. Eso añade una **reducción de polifonía** a la partitura y a la práctica. Los cambios están marcados con «(rev. 2)».
