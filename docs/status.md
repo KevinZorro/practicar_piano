@@ -31,6 +31,9 @@
 - **Compuerta 1:** calidad cumplida (10/10); el criterio de tiempo original (< 2 min) no se cumple con ByteDance (≈ 6 min) y se acepta con procesado asíncrono.
 - Observación: transcripciones con más de 15 notas simultáneas no se pueden tocar; la Fase 1 necesita simplificación.
 
+## Fase 1
+- Plan redactado en `docs/phase-1/plan.md` (revisión 2: ByteDance, procesamiento asíncrono con caché y reducción de polifonía); **pendiente del visto bueno de Kevin**. No hay código de la Fase 1.
+
 ## Siguiente paso
 Confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
 
