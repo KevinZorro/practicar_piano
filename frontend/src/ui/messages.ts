@@ -1,3 +1,4 @@
+import type { LibrarySong, LevelName } from '../core/library/library';
 /** User-facing texts (Spanish) for the API's stable error codes. */
 const ERRORS: Record<string, string> = {
   invalid_url: 'Ese enlace no es un video de YouTube válido.',
@@ -23,4 +24,23 @@ export function formatDuration(seconds: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest === 0 ? `${String(hours)} h` : `${String(hours)} h ${String(rest)} min`;
+}
+
+export const LEVEL_LABEL: Record<LevelName, string> = {
+  original: 'Original',
+  playable: 'Jugable',
+  easy: 'Fácil',
+};
+
+/** One line per practiced level, e.g. "Jugable: 3 intentos, mejor 92 % · dominada". */
+export function progressLines(progress: LibrarySong['progress']): string[] {
+  return (Object.keys(LEVEL_LABEL) as LevelName[]).flatMap((name) => {
+    const p = progress[name];
+    if (!p || p.plays === 0) return [];
+    const tries = p.plays === 1 ? '1 intento' : `${String(p.plays)} intentos`;
+    const mastered = p.mastered ? ' · dominada' : '';
+    return [
+      `${LEVEL_LABEL[name]}: ${tries}, mejor ${String(Math.round(p.bestAccuracy * 100))} %${mastered}`,
+    ];
+  });
 }

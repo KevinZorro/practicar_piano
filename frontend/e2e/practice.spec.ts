@@ -125,3 +125,35 @@ test('the video is shown and follows play and pause', async ({ page }) => {
   const calls = await page.evaluate(() => (window as unknown as { calls: string[] }).calls);
   expect(calls).toEqual(expect.arrayContaining(['play', 'pause']));
 });
+
+test('a finished run played on the keyboard is kept as progress in the library', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const port = {
+      id: 'k',
+      name: 'Test keyboard',
+      state: 'connected',
+      onmidimessage: null as unknown,
+    };
+    const access = { inputs: new Map([['k', port]]), onstatechange: null };
+    Object.defineProperty(navigator, 'requestMIDIAccess', { value: () => Promise.resolve(access) });
+    (window as unknown as { press: (pitch: number) => void }).press = (pitch) => {
+      (port.onmidimessage as (e: { data: Uint8Array }) => void)({
+        data: new Uint8Array([0x90, pitch, 90]),
+      });
+    };
+  });
+  await openPractice(page);
+  await page.getByLabel('Velocidad libre').fill('150');
+  await page.getByRole('button', { name: 'Conectar teclado' }).click();
+  await expect(page.getByText('Teclado conectado.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await page.evaluate(() => {
+    (window as unknown as { press: (n: number) => void }).press(60);
+  });
+  // The 14 s exercise ends by itself (about 10 s at 150 %).
+  await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Volver' }).click();
+  await expect(page.getByText(/Jugable: 1 intento, mejor \d+ %/)).toBeVisible();
+});

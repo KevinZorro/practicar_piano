@@ -11,6 +11,8 @@ import { JobList } from './JobList';
 import { LinkForm } from './LinkForm';
 import type { MidiInput } from '../adapters/midi/midiInput';
 import { PracticeScreen, type VideoFactory } from './PracticeScreen';
+import { recordAttempt, type Attempt } from '../core/library/library';
+import { progressLines } from './messages';
 import { useTrackedJobs } from './useTrackedJobs';
 
 interface Props {
@@ -61,6 +63,17 @@ export function App({
     }
   }
 
+  async function keepAttempt(attempt: Attempt) {
+    if (!song) return;
+    const updated = recordAttempt(song, attempt);
+    setSong(updated);
+    try {
+      await library?.put(updated);
+    } catch {
+      setMessage('No se pudo guardar tu progreso en este navegador.');
+    }
+  }
+
   async function submit(url: string) {
     await tracker.submit(url);
     setPermission(await requestNotificationPermission(notifications));
@@ -74,6 +87,7 @@ export function App({
           createPiano={createPiano}
           createMidi={createMidi}
           createVideo={createVideo}
+          onAttempt={(attempt) => void keepAttempt(attempt)}
           onBack={() => {
             setSong(null);
           }}
@@ -105,7 +119,14 @@ export function App({
           <ul>
             {saved.map((s) => (
               <li key={s.id}>
-                {s.title}{' '}
+                <span>
+                  {s.title}
+                  {progressLines(s.progress).map((line) => (
+                    <small key={line} className="progress-line">
+                      {line}
+                    </small>
+                  ))}
+                </span>{' '}
                 <button
                   type="button"
                   onClick={() => {
