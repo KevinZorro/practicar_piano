@@ -310,3 +310,9 @@ canvas {
     transition: none !important;
   }
 }
+
+.progress-line {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

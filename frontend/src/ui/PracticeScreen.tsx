@@ -6,13 +6,15 @@ import { SynthPlayer } from '../core/audio/synthPlayer';
 import { InterpolatedClock } from '../core/clock/interpolatedClock';
 import type { PlayerPort } from '../core/clock/playbackClock';
 import { SwitchablePlayer } from '../core/clock/switchablePlayer';
-import type { LibrarySong } from '../core/library/library';
+import type { Attempt, LibrarySong } from '../core/library/library';
 import type { HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
 import { accuracy, type PracticeState } from '../core/practice/machine';
 import { SPEED_PRESETS, SpeedControl } from '../core/practice/speed';
+import { Judge } from '../core/practice/judge';
 import { WaitMode } from '../core/practice/waitMode';
 import { drawFrame } from '../render/drawFrame';
+import { LEVEL_LABEL } from './messages';
 import { SheetPane } from './SheetPane';
 
 /** Embeds the video in `host` and resolves when it can be controlled. */
@@ -27,6 +29,8 @@ interface Props {
   createMidi?: (() => MidiInput) | undefined;
   /** Creates the YouTube video; without it (or on failure) a synth counts the time. */
   createVideo?: VideoFactory | undefined;
+  /** Called once per finished run that was played on a keyboard, to keep the progress. */
+  onAttempt?: ((attempt: Attempt) => void) | undefined;
 }
 
 const AHEAD_S = 4;
@@ -54,13 +58,15 @@ const MIDI_MESSAGE: Record<MidiStatus, string> = {
   'no-device': 'No se detecta ningún teclado. Conéctalo por USB y enciéndelo.',
   ready: 'Teclado conectado.',
 };
-const LEVEL_LABEL: Record<LevelName, string> = {
-  original: 'Original',
-  playable: 'Jugable',
-  easy: 'Fácil',
-};
 
-export function PracticeScreen({ song, onBack, createPiano, createMidi, createVideo }: Props) {
+export function PracticeScreen({
+  song,
+  onBack,
+  createPiano,
+  createMidi,
+  createVideo,
+  onAttempt,
+}: Props) {
   const levels = availableLevels(song.result);
   const [level, setLevel] = useState<LevelName>(levels[0] ?? 'playable');
   const [speed, setSpeed] = useState(1);
@@ -93,6 +99,25 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
   useEffect(() => {
     soundRef.current = sound;
   }, [sound]);
+  const judge = useMemo(() => new Judge(view.notes), [view]);
+  const judgeRef = useRef(judge);
+  // What the frame loop and the keyboard handler need without re-subscribing.
+  const attemptInfo = useRef({ level, onAttempt, reported: false });
+  useEffect(() => {
+    judgeRef.current = judge;
+    attemptInfo.current.level = level;
+    attemptInfo.current.onAttempt = onAttempt;
+    attemptInfo.current.reported = false;
+  }, [judge, level, onAttempt]);
+  const report = useCallback(
+    (result: { accuracy: number; waitMode: boolean }) => {
+      const info = attemptInfo.current;
+      if (info.reported) return;
+      info.reported = true;
+      info.onAttempt?.({ level: info.level, speed: speedControl.speed, ...result });
+    },
+    [speedControl],
+  );
   const sessionRef = useRef(false);
   const waitRef = useRef<WaitMode | null>(null);
   useEffect(() => {
@@ -110,6 +135,7 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
   }, [waitOn, hand, view, clock]);
   useEffect(() => {
     waitRef.current = wait;
+    attemptInfo.current.reported = false;
     return () => {
       waitRef.current = null;
     };
@@ -122,14 +148,16 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
     const offNote = midi.onNote((message) => {
       if (message.type !== 'noteOn') return;
       if (soundRef.current) piano.current?.play(keyNote(message.pitch, message.velocity), 0.8);
-      if (sessionRef.current) waitRef.current?.noteOn(message.pitch);
+      if (!sessionRef.current) return;
+      if (waitRef.current) waitRef.current.noteOn(message.pitch);
+      else judgeRef.current.noteOn(message.pitch, clock.now());
     });
     return () => {
       offStatus();
       offNote();
       midi.stop();
     };
-  }, [midi]);
+  }, [midi, clock]);
 
   useEffect(() => {
     const trigger = new NoteTrigger(view.notes);
@@ -155,6 +183,12 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
         if (now >= duration) {
           clock.pause();
           setPlaying(false);
+          if (!waitRef.current && judgeRef.current.pressCount > 0) {
+            report({
+              accuracy: judgeRef.current.result(duration).accuracy,
+              waitMode: false,
+            });
+          }
         }
       } else {
         trigger.reset();
@@ -165,7 +199,7 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [view, clock, duration, speedControl]);
+  }, [view, clock, duration, speedControl, report]);
 
   useEffect(() => {
     const host = videoHost.current;
@@ -208,6 +242,13 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
     });
   }
 
+  const finished = practiceState?.status === 'finished';
+  useEffect(() => {
+    if (finished) {
+      report({ accuracy: accuracy(practiceState.stats), waitMode: true });
+    }
+  }, [finished, practiceState, report]);
+
   async function togglePlay() {
     if (playing) {
       clock.pause();
@@ -219,6 +260,8 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
     if (clock.now() >= duration) {
       clock.seek(0);
       waitRef.current?.seek(0);
+      judge.reset(0);
+      attemptInfo.current.reported = false;
     }
     // While the song waits for a key, resuming must not run past the chord.
     if (waitRef.current?.snapshot.status !== 'waiting') clock.play();
@@ -228,6 +271,8 @@ export function PracticeScreen({ song, onBack, createPiano, createMidi, createVi
   function restart() {
     clock.seek(0);
     waitRef.current?.seek(0);
+    judge.reset(0);
+    attemptInfo.current.reported = false;
     if (sessionRef.current) clock.play();
     piano.current?.stopAll();
   }
