@@ -9,6 +9,7 @@ import type { JobTracker } from '../core/jobs/jobTracker';
 import type { LibrarySong, SongLibrary } from '../core/library/library';
 import { JobList } from './JobList';
 import { LinkForm } from './LinkForm';
+import type { MidiInput } from '../adapters/midi/midiInput';
 import { PracticeScreen } from './PracticeScreen';
 import { useTrackedJobs } from './useTrackedJobs';
 
@@ -20,9 +21,17 @@ interface Props {
   /** Downloads a finished job into the library and returns the saved song. */
   openJob?: (jobId: string) => Promise<LibrarySong | null>;
   createPiano?: () => TonePiano;
+  createMidi?: () => MidiInput;
 }
 
-export function App({ tracker, notifications, library = null, openJob, createPiano }: Props) {
+export function App({
+  tracker,
+  notifications,
+  library = null,
+  openJob,
+  createPiano,
+  createMidi,
+}: Props) {
   const jobs = useTrackedJobs(tracker);
   const [song, setSong] = useState<LibrarySong | null>(null);
   const [saved, setSaved] = useState<LibrarySong[]>([]);
@@ -61,6 +70,7 @@ export function App({ tracker, notifications, library = null, openJob, createPia
         <PracticeScreen
           song={song}
           createPiano={createPiano}
+          createMidi={createMidi}
           onBack={() => {
             setSong(null);
           }}

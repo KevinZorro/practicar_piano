@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { TonePiano } from './adapters/audio/tonePiano';
 import { HttpJobsApi } from './adapters/api/jobsApi';
 import { BrowserNotifier, createNotificationApi } from './adapters/notifications/browserNotifier';
+import { createWebMidiInput } from './adapters/midi/midiInput';
 import { IndexedDbLibrary, openLibraryDb } from './adapters/storage/indexedDbLibrary';
 import { createLocalPendingStore } from './adapters/storage/localPendingStore';
 import { JobTracker } from './core/jobs/jobTracker';
@@ -56,6 +57,7 @@ async function main(container: HTMLElement): Promise<void> {
         library={library}
         openJob={openJob}
         createPiano={() => new TonePiano()}
+        createMidi={() => createWebMidiInput()}
       />
     </StrictMode>,
   );
