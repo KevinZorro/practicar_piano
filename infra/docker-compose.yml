@@ -12,6 +12,12 @@
 #   docker compose -f infra/docker-compose.yml run --rm check-proxy
 # Full steps: docs/phase-0/proxy-casa-wireguard.md
 #
+# Phase 1 service (API + worker), same image. Listens only on the host's loopback; Nginx
+# (infra/nginx/pianola.conf) publishes it. Needs the ByteDance checkpoint in phase0-models.
+#   docker compose -f infra/docker-compose.yml up -d --build api
+#   docker compose -f infra/docker-compose.yml logs -f api
+# Steps: docs/phase-1/despliegue-vps.md
+#
 # The container runs as your user (HOST_UID/HOST_GID) so the MIDI/WAV files it writes are
 # yours. `export HOST_UID=$(id -u) HOST_GID=$(id -g)` first.
 name: pianola
@@ -38,6 +44,47 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build:
+      context: ../backend
+      platforms:
+        - linux/arm64
+    image: pianola-phase0:local
+    restart: unless-stopped
+    entrypoint: ["uvicorn"]
+    command:
+      - pianola.api.wiring:create_production_app
+      - --factory
+      - --host=0.0.0.0
+      - --port=8000
+      - --no-access-log
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      PIANOLA_PROXY_URL: "${PIANOLA_PROXY_URL:-}"
+      PIANOLA_MAX_DURATION_SECONDS: "${PIANOLA_MAX_DURATION_SECONDS:-600}"
+      PIANOLA_BYTEDANCE_CHECKPOINT: /models/note_F1=0.9677_pedal_F1=0.9186.pth
+      PIANOLA_WORK_DIR: /tmp/work
+      # Nginx sets X-Real-IP; trust it only because the port is bound to loopback.
+      PIANOLA_TRUST_PROXY: "true"
+    volumes:
+      - "${PHASE0_MODELS:-../phase0-models}:/models:ro"
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 10g
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     cap_drop:
       - ALL
     security_opt:
