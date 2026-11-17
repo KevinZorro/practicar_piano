@@ -10,6 +10,7 @@ import { createLocalPendingStore } from './adapters/storage/localPendingStore';
 import { JobTracker } from './core/jobs/jobTracker';
 import type { LibrarySong, SongLibrary } from './core/library/library';
 import { App } from './ui/App';
+import './styles.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

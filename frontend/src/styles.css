@@ -1,0 +1,312 @@
+/* Pianola: one small stylesheet, tokens first. Dark by default, light when the system asks. */
+:root {
+  color-scheme: dark light;
+  --bg: #12121a;
+  --surface: #1c1c28;
+  --surface-2: #26263a;
+  --border: #3a3a52;
+  --text: #f2f2f7;
+  --muted: #b4b4c8;
+  --accent: #7c5cff;
+  --accent-text: #ffffff;
+  --left: #4cc9f0;
+  --right: #f72585;
+  --danger: #ff8a8a;
+  --focus: #ffd166;
+  --radius: 10px;
+  --gap: 1rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f6fb;
+    --surface: #ffffff;
+    --surface-2: #ececf6;
+    --border: #c9c9dc;
+    --text: #1a1a26;
+    --muted: #4d4d63;
+    --accent: #5a3df0;
+    --danger: #b3261e;
+    --focus: #8a5a00;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: grid;
+  gap: var(--gap);
+}
+
+h1,
+h2,
+p,
+ul,
+fieldset {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+p {
+  color: var(--muted);
+}
+
+a,
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Buttons */
+button {
+  min-height: 2.5rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+form button[type='submit'],
+.controls > button:first-child {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* Link form */
+form {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+form label {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+
+input[type='url'] {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+form [role='alert'] {
+  grid-column: 1 / -1;
+}
+
+[role='alert'] {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Job list and library */
+ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+li > span {
+  flex: 1 1 14rem;
+}
+
+/* Practice screen */
+.practice {
+  display: grid;
+  gap: var(--gap);
+}
+
+.practice > header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.controls,
+.wait-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+legend {
+  float: left;
+  padding: 0;
+  margin-right: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+fieldset:disabled {
+  opacity: 0.55;
+}
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+}
+
+input[type='range'] {
+  accent-color: var(--accent);
+  min-width: 8rem;
+}
+
+[role='status'],
+[role='note'] {
+  color: var(--text);
+}
+
+.wait-mode [role='status'] {
+  color: var(--muted);
+}
+
+[aria-label='Progreso del modo espera'] {
+  padding: 0.5rem 1rem;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.video {
+  width: 100%;
+  max-width: 30rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+}
+
+.video iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  /* Always dark, like a piano roll: the hit line is white. */
+  background: #1c1c28;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* The score is drawn in black: it always sits on a white page. */
+.sheet {
+  overflow-x: auto;
+  padding: 1rem;
+  background: #ffffff;
+  color: #000000;
+  border-radius: var(--radius);
+}
+
+@media (pointer: coarse) {
+  button,
+  label {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
