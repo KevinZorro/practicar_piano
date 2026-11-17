@@ -1,6 +1,6 @@
 # ADR 0019 — Licencias de dependencias transitivas fuera de la lista permisiva
 
-Estado: **Propuesta** (espera la decisión de Kevin). Complementa el ADR 0012.
+Estado: **Aceptada** por Kevin el 2026-11-17. Complementa el ADR 0012.
 
 ## Contexto
 La regla del proyecto es usar solo licencias permisivas (MIT, BSD, Apache, Unlicense). La revisión final (D3) listó las licencias de todo lo instalado (`pip-licenses` en el backend, `package-lock.json` en el frontend) y encontró cuatro casos que no están en esa lista. Ninguno es código copiado al repositorio: son paquetes que llegan como dependencias de otras.
@@ -14,7 +14,7 @@ La regla del proyecto es usar solo licencias permisivas (MIT, BSD, Apache, Unlic
 
 Además `basic-pitch` declara la licencia como «UNKNOWN» en sus metadatos; su repositorio es Apache-2.0 (ya figura en `NOTICE`).
 
-## Decisión propuesta
+## Decisión
 1. **Aceptar `certifi`, `pathspec` y `jszip`.** La MPL-2.0 solo obliga a publicar los cambios hechos a esos mismos archivos, y no los modificamos. `jszip` se usa bajo su opción MIT.
 2. **Aceptar `soxr` como excepción documentada.** La LGPL permite usar la biblioteca sin modificarla y enlazada dinámicamente (es un paquete binario de Python que se puede reemplazar). Se mantiene sin modificar y se cita en `NOTICE`. Si en el futuro se quisiera una imagen sin ninguna cláusula copyleft, el reemplazo sería `librosa` por una resampleadora permisiva, o resamplear con `ffmpeg` (ya presente).
 3. **No añadir nada con GPL o AGPL**, ni como dependencia directa ni transitiva; la regla del ADR 0012 sigue igual para ellas.

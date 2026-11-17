@@ -9,10 +9,9 @@ Fecha: 2026-11-17. Hecho en el entorno de desarrollo; lo que depende de la VPS o
   - `protobuf` 4.25.9 (aviso de denegación de servicio al leer mensajes anidados): lo fija `onnxruntime`; el servicio nunca lee protobuf que envíe un usuario, solo el modelo propio.
   - `setuptools` 80.10.2 (avisos de la herramienta de empaquetado): se mantiene por debajo de 81 porque `resampy` necesita `pkg_resources`; no se ejecuta en producción.
 - **Superficie del servicio:** límites de duración, cola, ritmo por IP, resultado sin caché y borrado tras la entrega (ADR 0016); Nginx con HTTPS, CSP restringida a YouTube y cabeceras de seguridad.
-- **Licencias:** ver el ADR 0019 (propuesta) y `NOTICE`.
+- **Licencias:** ver el ADR 0019 (aceptado) y `NOTICE`.
 
 ## Pendiente
-- Decisión de Kevin sobre el ADR 0019.
 - Memoria y tiempo con una canción real en la VPS (`docker stats` durante el procesado).
 - README con capturas (hoy sigue describiendo la Fase 0).
 - Proceso de reclamos de derechos y términos de uso (D2).
