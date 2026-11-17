@@ -18,8 +18,9 @@ La primera construcción tarda: instala torch y los modelos para arm64.
 
 ## 3. Construir el frontend
 ```bash
-cd frontend && npm ci && npm run build
-sudo mkdir -p /var/www/pianola && sudo rsync -a --delete dist/ /var/www/pianola/
+# Desde la raíz del repo. Usa Docker, así la VPS no necesita Node.
+docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD/frontend":/app -w /app node:22 sh -c "npm ci && npm run build"
+sudo mkdir -p /var/www/pianola && sudo rsync -a --delete frontend/dist/ /var/www/pianola/
 ```
 
 ## 4. Nginx y HTTPS
