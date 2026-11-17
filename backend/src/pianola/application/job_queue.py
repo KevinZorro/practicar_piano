@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections import defaultdict, deque
 from contextlib import suppress
 from dataclasses import dataclass
@@ -36,12 +37,13 @@ class QueuePosition:
 
 
 class JobQueue:
-    """Admission rules plus ordering. Used from the event loop only (not thread-safe)."""
+    """Admission rules plus ordering. Thread-safe: API threads and the worker both call it."""
 
     def __init__(self, repository: JobRepository, clock: Clock, limits: QueueLimits) -> None:
         self._repository = repository
         self._clock = clock
         self.limits = limits
+        self._lock = threading.RLock()
         self._waiting: deque[str] = deque()
         self._running: str | None = None
         self._running_since: datetime | None = None
@@ -50,6 +52,10 @@ class JobQueue:
     # --- admission -------------------------------------------------------------------------
 
     def check_admission(self, client_ip: str) -> None:
+        with self._lock:
+            self._check_admission(client_ip)
+
+    def _check_admission(self, client_ip: str) -> None:
         """Cheap pre-check, run before the expensive duration probe.
 
         Raises ``QueueFullError`` or ``RateLimitedError``.
@@ -64,6 +70,10 @@ class JobQueue:
             raise RateLimitedError("hourly limit reached for this address")
 
     def submit(self, job: Job) -> None:
+        with self._lock:
+            self._submit(job)
+
+    def _submit(self, job: Job) -> None:
         """Re-check the limits and enqueue, storing the job."""
         self.check_admission(job.client_ip)
         self._repository.add(job)
@@ -85,6 +95,10 @@ class JobQueue:
     # --- worker side -----------------------------------------------------------------------
 
     def next_job_id(self) -> str | None:
+        with self._lock:
+            return self._next_job_id()
+
+    def _next_job_id(self) -> str | None:
         """Take the next waiting job and mark it as the one being processed."""
         while self._waiting:
             job_id = self._waiting.popleft()
@@ -95,11 +109,19 @@ class JobQueue:
         return None
 
     def cancel(self, job_id: str) -> None:
+        with self._lock:
+            self._cancel(job_id)
+
+    def _cancel(self, job_id: str) -> None:
         """Free the place of a job deleted while it was still waiting."""
         with suppress(ValueError):
             self._waiting.remove(job_id)
 
     def finished(self, job_id: str) -> None:
+        with self._lock:
+            self._finished(job_id)
+
+    def _finished(self, job_id: str) -> None:
         if self._running == job_id:
             self._running = None
             self._running_since = None
@@ -113,9 +135,17 @@ class JobQueue:
     # --- queries ---------------------------------------------------------------------------
 
     def waiting_count(self) -> int:
+        with self._lock:
+            return self._waiting_count()
+
+    def _waiting_count(self) -> int:
         return len(self._waiting)
 
     def position(self, job_id: str) -> QueuePosition | None:
+        with self._lock:
+            return self._position(job_id)
+
+    def _position(self, job_id: str) -> QueuePosition | None:
         """Place in line and estimated wait; ``None`` when the job is not in the queue."""
         now = self._clock.now()
         wait = 0.0

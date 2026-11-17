@@ -11,12 +11,19 @@ from pianola.application.process_job import ProcessJob
 
 logger = logging.getLogger(__name__)
 
-_IDLE_POLL_S = 1.0
+DEFAULT_IDLE_POLL_S = 1.0
 _SWEEP_EVERY_S = 60.0
 
 
 class Worker:
-    def __init__(self, queue: JobQueue, process: ProcessJob, sweep: Sweep) -> None:
+    def __init__(
+        self,
+        queue: JobQueue,
+        process: ProcessJob,
+        sweep: Sweep,
+        idle_poll_s: float = DEFAULT_IDLE_POLL_S,
+    ) -> None:
+        self._idle_poll_s = idle_poll_s
         self._queue = queue
         self._process = process
         self._sweep = sweep
@@ -39,8 +46,8 @@ class Worker:
             worked = await self.run_next()
             if worked:
                 continue
-            await asyncio.sleep(_IDLE_POLL_S)
-            since_sweep += _IDLE_POLL_S
+            await asyncio.sleep(self._idle_poll_s)
+            since_sweep += self._idle_poll_s
             if since_sweep >= _SWEEP_EVERY_S:
                 since_sweep = 0.0
                 self._sweep.execute()
