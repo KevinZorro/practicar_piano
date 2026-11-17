@@ -49,3 +49,46 @@ test('level and speed can be changed while practicing', async ({ page }) => {
   await expect(page.getByLabel('Velocidad libre')).toHaveValue('125');
   await expect(page.getByLabel('50 %')).not.toBeChecked();
 });
+
+test('wait mode stops the song until the right key arrives from the keyboard', async ({ page }) => {
+  // A fake Web MIDI keyboard the test can press from the page.
+  await page.addInitScript(() => {
+    const port = {
+      id: 'k',
+      name: 'Test keyboard',
+      state: 'connected',
+      onmidimessage: null as unknown,
+    };
+    const access = { inputs: new Map([['k', port]]), onstatechange: null };
+    Object.defineProperty(navigator, 'requestMIDIAccess', { value: () => Promise.resolve(access) });
+    (window as unknown as { press: (pitch: number) => void }).press = (pitch) => {
+      (port.onmidimessage as (e: { data: Uint8Array }) => void)({
+        data: new Uint8Array([0x90, pitch, 90]),
+      });
+    };
+  });
+  await openPractice(page);
+  const press = (pitch: number) =>
+    page.evaluate((p) => {
+      (window as unknown as { press: (n: number) => void }).press(p);
+    }, pitch);
+  const progress = page.getByLabel('Progreso del modo espera');
+
+  await page.getByLabel('Modo espera').check();
+  await page.getByRole('button', { name: 'Conectar teclado' }).click();
+  await expect(page.getByText('Teclado conectado.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+
+  // The first chord is at t=0 (C3, G3 and C4): the song waits for all three.
+  await expect(progress).toContainText('Toca las notas indicadas');
+  await press(48);
+  await press(55);
+  await expect(progress).toContainText('Toca las notas indicadas');
+  await press(60);
+  await expect(progress).toContainText('Acordes acertados: 1');
+
+  // A wrong key while waiting for D4 counts as a mistake and rewinds.
+  await expect(progress).toContainText('Toca las notas indicadas');
+  await press(100);
+  await expect(progress).toContainText('Fallos: 1');
+});
