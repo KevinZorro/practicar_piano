@@ -78,6 +78,15 @@ class YtDlpDownloader:
             raise DownloadError("yt-dlp finished but produced no audio file")
         return AudioFile(path=path, duration_seconds=duration)
 
+    def probe(self, video: VideoUrl) -> float:
+        """Duration in seconds without downloading; raises when live or over the limit."""
+        try:
+            return self._probe_duration(video)
+        except (DownloadError, DurationLimitExceededError):
+            raise
+        except Exception as exc:
+            raise DownloadError(_scrub(str(exc), video)) from None
+
     def _probe_duration(self, url: VideoUrl) -> float:
         with contextlib.closing(self._open(self._base_options())) as ydl:
             info = ydl.extract_info(url.canonical, download=False)

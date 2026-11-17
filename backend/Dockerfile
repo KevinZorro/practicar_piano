@@ -50,7 +50,7 @@ ENV PATH="/opt/venv/bin:${PATH}" \
 USER pianola
 WORKDIR /data
 
-# A batch job, not a service: no HEALTHCHECK. Fail the build if the toolchain is broken.
+# The same image runs the Phase 0 CLI (ENTRYPOINT) and the Phase 1 API (see infra/docker-compose.yml, which sets its own healthcheck). Fail the build if the toolchain is broken.
 RUN deno --version && ffmpeg -version | head -n 1 && pianola --help > /dev/null
 
 ENTRYPOINT ["pianola"]
