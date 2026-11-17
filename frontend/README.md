@@ -1,4 +1,12 @@
 # Frontend
 
-Placeholder. The UI (React + TypeScript + Vite) is built in Phase 1, after gate 1
-of Phase 0 passes. See `docs/adr/0011-stack.md`.
+React + TypeScript (strict) + Vite. Core logic lives in `src/core` as plain TypeScript, with no React, so Vitest can cover it.
+
+```bash
+npm ci
+npm run dev          # Vite dev server, /api proxied to localhost:8000
+npm run typecheck && npm run lint && npm run format:check && npm test
+npm run e2e          # Playwright; set PW_CHROMIUM_PATH to reuse a local Chromium
+```
+
+See `docs/phase-1/plan.md` section 2.2 for the layout.

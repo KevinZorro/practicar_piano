@@ -50,3 +50,5 @@ links.txt
 .DS_Store
 .idea/
 .vscode/
+frontend/playwright-report/
+frontend/test-results/
