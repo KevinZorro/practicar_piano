@@ -22,11 +22,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project \
-        --extra synth --extra basic-pitch --extra bytedance
+        --extra synth --extra basic-pitch --extra bytedance --extra score
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable \
-        --extra synth --extra basic-pitch --extra bytedance
+        --extra synth --extra basic-pitch --extra bytedance --extra score
 
 # ---- runtime ------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime

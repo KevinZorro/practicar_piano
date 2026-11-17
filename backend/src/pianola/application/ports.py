@@ -15,6 +15,8 @@ from typing import Generic, Protocol, TypeVar
 from pianola.domain.job import Job
 from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
 from pianola.domain.notes import NoteEvent, Transcription
+from pianola.domain.quantize import QuantizedPiece
+from pianola.domain.score import Score
 from pianola.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -102,3 +104,8 @@ class ResultStore(Protocol):
 
     def purge_expired(self) -> list[str]:
         """Drop results past their safety expiry and return their job ids."""
+
+
+class ScoreBuilder(Protocol):
+    def build(self, piece: QuantizedPiece) -> Score:
+        """Render quantized notes as MusicXML with the measure-to-seconds map."""

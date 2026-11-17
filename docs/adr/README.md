@@ -21,3 +21,4 @@ Una ADR por decisión del registro del 14 de noviembre de 2026. El estado vigent
 | [0015](0015-proxy-de-casa-wireguard.md) | Proxy de casa por WireGuard: topología y herramientas (nueva, detalla D-04) | Propuesta |
 | [0016](0016-entrega-sin-cache-y-limites.md) | Entrega sin caché, límites de uso y aviso al terminar (nueva, modifica D-07) | Aceptada |
 | [0017](0017-reduccion-de-polifonia.md) | Reducción de polifonía para poder tocar (nueva) | Aceptada |
+| [0018](0018-pulso-cuantizacion-y-partitura.md) | Pulso, cuantización y partitura (nueva) | Aceptada |

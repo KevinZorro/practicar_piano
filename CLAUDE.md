@@ -8,7 +8,7 @@ Web app to practice piano from a YouTube cover link (falling notes, sheet music,
 - Infra: Docker (linux/arm64), Docker Compose, Nginx + HTTPS on Oracle Ampere A1 (2 OCPU, 12 GB)
 
 ## Commands (from `backend/`)
-- Install: `uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance`
+- Install: `uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance --extra score`
 - Offline tests (default, excludes `network`): `uv run pytest -q -x` · unit only: `-m "not integration"`
 - Integration (real Basic Pitch, needs extras): `uv run pytest -q -m integration`
 - Network (real YouTube, set `PIANOLA_TEST_VIDEO_URL`): `uv run pytest -q -m network`

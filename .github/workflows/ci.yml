@@ -24,7 +24,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
-      - run: uv sync --python ${{ matrix.python-version }} --locked --extra synth --extra basic-pitch
+      - run: uv sync --python ${{ matrix.python-version }} --locked --extra synth --extra basic-pitch --extra score
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: Types
@@ -44,7 +44,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
-      - run: uv sync --python 3.11 --locked --extra synth --extra basic-pitch
+      - run: uv sync --python 3.11 --locked --extra synth --extra basic-pitch --extra score
       - run: uv run pytest -q -m integration
 
   frontend:
