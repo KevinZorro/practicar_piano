@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import secrets
 from collections.abc import Mapping
+from typing import Protocol
 
 from fastapi import FastAPI
 
@@ -17,6 +18,7 @@ from pianola.api.log_redaction import install_log_redaction
 from pianola.api.settings import Settings
 from pianola.application.job_queue import JobQueue, QueueLimits
 from pianola.application.job_service import DeleteJob, FetchResult, GetJobStatus, Sweep
+from pianola.application.ports import AudioDownloader, DurationProbe, Transcriber
 from pianola.application.process_job import ProcessJob
 from pianola.application.submit_job import SubmitJob
 from pianola.application.worker import Worker
@@ -29,17 +31,28 @@ from pianola.infrastructure.system_clock import SystemClock
 from pianola.infrastructure.ytdlp_downloader import YtDlpDownloader
 
 
-def build_container(settings: Settings) -> Container:
+class SourceAdapter(AudioDownloader, DurationProbe, Protocol):
+    """What the service needs from the video source: a duration check and the audio."""
+
+
+def build_container(
+    settings: Settings,
+    *,
+    source: SourceAdapter | None = None,
+    transcriber: Transcriber | None = None,
+) -> Container:
+    """Wires the service. ``source`` and ``transcriber`` exist so the end-to-end test can run
+    the real pipeline offline; production leaves them out."""
     clock = SystemClock()
     repository = InMemoryJobRepository()
     results = TtlResultStore(clock)
     queue = JobQueue(repository, clock, QueueLimits())
-    downloader = YtDlpDownloader(
+    downloader = source or YtDlpDownloader(
         max_duration_seconds=settings.max_duration_s, proxy_url=settings.proxy_url
     )
     process = ProcessJob(
         downloader=downloader,
-        transcriber=ByteDanceTranscriber(settings.checkpoint_path, settings.device),
+        transcriber=transcriber or ByteDanceTranscriber(settings.checkpoint_path, settings.device),
         reader=PrettyMidiReader(),
         repository=repository,
         results=results,

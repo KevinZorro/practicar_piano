@@ -14,7 +14,7 @@ Web app to practice piano from a YouTube cover link (falling notes, sheet music,
 - Network (real YouTube, set `PIANOLA_TEST_VIDEO_URL`): `uv run pytest -q -m network`
 - Lint/format/types: `uv run ruff check . && uv run ruff format --check . && uv run mypy src tests`
 - API contract: `uv run python -m pianola.api.openapi` rewrites `docs/api/openapi.json` (a test fails if stale)
-- Frontend (from `frontend/`): `npm ci`, `npm run typecheck && npm run lint && npm run format:check && npm test`; e2e: `npm run e2e` (`PW_CHROMIUM_PATH` reuses a local Chromium)
+- Frontend (from `frontend/`): `npm ci`, `npm run typecheck && npm run lint && npm run format:check && npm test`; e2e: `npm run e2e` (`PW_CHROMIUM_PATH` reuses a local Chromium); full flow with the real backend, offline: `npm run e2e:full` (needs the `synth`, `basic-pitch`, `score` extras; server in `backend/tests/e2e_server.py`)
 - Phase 0: `uv run pianola phase0 run --links links.txt --out phase0-output` then `... phase0 gate`
 
 ## Structure
