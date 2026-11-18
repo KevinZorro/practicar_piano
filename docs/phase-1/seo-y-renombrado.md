@@ -39,11 +39,20 @@ sudo rm -f /etc/nginx/sites-enabled/*
 sudo ln -sf /etc/nginx/sites-available/teclario /etc/nginx/sites-enabled/teclario
 sudo nginx -t && sudo systemctl start nginx
 # contenedores y frontend con el nombre nuevo
-docker compose -f infra/docker-compose.yml down
+# el proyecto de Compose se llamaba como el prefijo antiguo: hay que pararlo (libera el puerto 8000)
+docker compose -p "$(echo $OLDVAR | tr A-Z a-z)" -f infra/docker-compose.yml down --remove-orphans
 bash infra/deploy.sh
 ```
 3. Comprueba: `curl -sI https://$D/robots.txt` (200, `text/plain`), `curl -s https://$D/sitemap.xml | head` y `curl -sI https://$OLD/` (301 hacia el nuevo).
 4. Si usas el despliegue automático, el secreto/variable de la ruta no cambia; solo `/var/www/teclario` es nuevo (lo crea `deploy.sh`).
+
+### Si `deploy.sh` falla con «port is already allocated» (8000)
+El contenedor del proyecto anterior sigue vivo. Desde la carpeta del repositorio:
+```bash
+docker ps --format '{{.Names}}\t{{.Ports}}' | grep 8000      # verás el contenedor viejo
+docker compose -p "$(echo PIANOLA | tr A-Z a-z)" -f infra/docker-compose.yml down --remove-orphans
+bash infra/deploy.sh
+```
 
 ## Registrar el sitio en Google Search Console
 1. Entra en https://search.google.com/search-console con la cuenta de Google de Kevin → **Añadir propiedad**.
