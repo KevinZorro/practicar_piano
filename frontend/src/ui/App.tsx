@@ -150,14 +150,11 @@ export function App({
       )}
       <section aria-label="Cómo funciona">
         <h2>Cómo funciona</h2>
-        <ol>
-          <li>Pega el enlace de un cover de piano de YouTube.</li>
-          <li>Teclario transcribe el audio y prepara las notas y la partitura.</li>
-          <li>
-            Conecta tu teclado digital por USB y practica con notas que caen, partitura sincronizada
-            y modo espera.
-          </li>
-        </ol>
+        <p>
+          Pega el enlace de un cover de piano de YouTube. Teclario transcribe el audio y prepara las
+          notas y la partitura. Conecta tu teclado digital por USB y practica con notas que caen,
+          partitura sincronizada y modo espera.
+        </p>
       </section>
       <footer className="fine-print">
         <a href="/terminos.html">Términos de uso y reclamaciones</a>
