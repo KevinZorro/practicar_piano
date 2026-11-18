@@ -5,3 +5,4 @@ playwright-report
 test-results
 src/adapters/api/schema.d.ts
 e2e/fixtures
+public/google*.html
