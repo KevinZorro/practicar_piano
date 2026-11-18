@@ -267,6 +267,15 @@ export interface operations {
                 };
             };
             /** @description Error */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -352,6 +361,15 @@ export interface operations {
                 };
             };
             /** @description Error */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -427,6 +445,15 @@ export interface operations {
             };
             /** @description Error */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Error */
+            451: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -520,6 +547,15 @@ export interface operations {
                 };
             };
             /** @description Error */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Error */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -597,6 +633,15 @@ export interface operations {
             };
             /** @description Error */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Error */
+            451: {
                 headers: {
                     [name: string]: unknown;
                 };

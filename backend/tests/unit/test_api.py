@@ -94,6 +94,14 @@ def test_too_long_video_is_rejected(tmp_path: Path) -> None:
     assert response.json()["error"]["code"] == "duration_limit"
 
 
+def test_blocked_video_is_451(tmp_path: Path) -> None:
+    env = build_api(tmp_path, blocked=frozenset({GOOD_ID}))
+    response = env.client.post("/api/v1/jobs", json={"url": GOOD_URL})
+    assert response.status_code == 451
+    assert response.json()["error"]["code"] == "video_blocked"
+    assert GOOD_URL not in response.text
+
+
 def test_probe_failure_is_502(tmp_path: Path) -> None:
     env = build_api(tmp_path, probe=FakeProbe(fails=True))
     response = env.client.post("/api/v1/jobs", json={"url": GOOD_URL})

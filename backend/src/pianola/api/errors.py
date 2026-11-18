@@ -12,6 +12,7 @@ from pianola.domain.errors import PianolaError
 # which could carry the link.
 _HTTP: dict[str, tuple[int, str]] = {
     "invalid_url": (422, "That is not a valid YouTube video link."),
+    "video_blocked": (451, "This video cannot be processed by this service."),
     "duration_limit": (422, "The video is too long (maximum 10 minutes)."),
     "download_failed": (502, "The audio could not be downloaded."),
     "transcription_failed": (500, "The song could not be transcribed."),

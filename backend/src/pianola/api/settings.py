@@ -20,6 +20,8 @@ class Settings:
     device: str = "cpu"
     #: Trust ``X-Real-IP`` from Nginx; only set it behind the proxy.
     trust_proxy: bool = False
+    #: Video ids that are refused (rights claims); comma-separated in the environment.
+    blocked_video_ids: frozenset[str] = frozenset()
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Settings:
@@ -33,4 +35,9 @@ class Settings:
             max_duration_s=float(env.get("PIANOLA_MAX_DURATION_SECONDS", defaults.max_duration_s)),
             device=env.get("PIANOLA_DEVICE", defaults.device),
             trust_proxy=env.get("PIANOLA_TRUST_PROXY", "").strip().lower() in _TRUE,
+            blocked_video_ids=frozenset(
+                item.strip()
+                for item in env.get("PIANOLA_BLOCKED_VIDEO_IDS", "").split(",")
+                if item.strip()
+            ),
         )

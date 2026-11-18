@@ -55,5 +55,8 @@ sudo nginx -t && sudo systemctl start nginx
 | El estado no se actualiza | Nginx con `proxy_buffering off` en `/api/` (ya incluido) |
 | Todos los usuarios cuentan como una IP | `PIANOLA_TRUST_PROXY=true` y Nginx con `X-Real-IP` (ya incluido) |
 
+## 7. Reclamaciones de derechos
+Los términos (`/terminos.html`) prometen bloquear un video si su titular lo reclama. Al recibir el correo: añade el id del video (lo que va tras `v=`) a `infra/.env` como `PIANOLA_BLOCKED_VIDEO_IDS=id1,id2` y ejecuta `docker compose -f infra/docker-compose.yml up -d api`. El servicio responderá 451 `video_blocked` para ese video. Los ids bloqueados no son secretos, pero no guardes enlaces completos.
+
 ## Límites conocidos
 La cola y los resultados viven en memoria: reiniciar el contenedor pierde los trabajos en curso (ADR 0016). Un proceso a la vez; el límite de memoria del contenedor es 10 GB de los 12 de la VPS.

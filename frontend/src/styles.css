@@ -316,3 +316,8 @@ canvas {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+.fine-print {
+  color: var(--muted, #5c6370);
+  font-size: 0.85rem;
+}

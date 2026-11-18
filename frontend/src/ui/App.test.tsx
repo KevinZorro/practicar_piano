@@ -130,6 +130,7 @@ describe('App', () => {
     ['duration_limit', 422, undefined, 'máximo es de 10 minutos'],
     ['queue_full', 503, 300, 'cola está llena'],
     ['rate_limited', 429, 600, 'demasiadas canciones'],
+    ['video_blocked', 451, undefined, 'reclamación de derechos'],
     ['network', 0, undefined, 'No hay conexión'],
   ])('shows a clear message for %s', async (code, status, retry, text) => {
     const { api } = setup();
