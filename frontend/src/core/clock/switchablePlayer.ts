@@ -7,6 +7,7 @@ import type { PlayerPort } from './playbackClock';
 export class SwitchablePlayer implements PlayerPort {
   private playing = false;
   private rate = 1;
+  private muted = false;
 
   constructor(private current: PlayerPort) {}
 
@@ -15,6 +16,7 @@ export class SwitchablePlayer implements PlayerPort {
     this.current.pause();
     this.current = next;
     next.setPlaybackRate(this.rate);
+    next.setMuted?.(this.muted);
     next.seekTo(timeS);
     if (this.playing) next.play();
   }
@@ -36,5 +38,9 @@ export class SwitchablePlayer implements PlayerPort {
   setPlaybackRate(rate: number): void {
     this.rate = rate;
     this.current.setPlaybackRate(rate);
+  }
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    this.current.setMuted?.(muted);
   }
 }

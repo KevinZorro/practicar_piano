@@ -9,6 +9,7 @@ import type { JobTracker } from '../core/jobs/jobTracker';
 import type { LibrarySong, SongLibrary } from '../core/library/library';
 import { JobList } from './JobList';
 import { LinkForm } from './LinkForm';
+import type { MicInput } from '../adapters/audio/micInput';
 import type { MidiInput } from '../adapters/midi/midiInput';
 import { PracticeScreen, type VideoFactory } from './PracticeScreen';
 import { recordAttempt, type Attempt } from '../core/library/library';
@@ -24,6 +25,7 @@ interface Props {
   openJob?: (jobId: string) => Promise<LibrarySong | null>;
   createPiano?: () => TonePiano;
   createMidi?: () => MidiInput;
+  createMic?: () => MicInput;
   createVideo?: VideoFactory;
 }
 
@@ -34,6 +36,7 @@ export function App({
   openJob,
   createPiano,
   createMidi,
+  createMic,
   createVideo,
 }: Props) {
   const jobs = useTrackedJobs(tracker);
@@ -86,6 +89,7 @@ export function App({
           song={song}
           createPiano={createPiano}
           createMidi={createMidi}
+          createMic={createMic}
           createVideo={createVideo}
           onAttempt={(attempt) => void keepAttempt(attempt)}
           onBack={() => {

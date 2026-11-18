@@ -80,3 +80,15 @@ describe('WaitMode', () => {
     expect(seen).toHaveLength(0);
   });
 });
+
+describe('WaitMode.expectedPitches', () => {
+  it('lists the pitches of the chord to play next and none when finished', () => {
+    const clock = new FakeClock();
+    const wait = new WaitMode([note(60, 1), note(64, 1)], 'both', clock, () => undefined);
+    expect([...wait.expectedPitches()].sort()).toEqual([60, 64]);
+    clock.time = 1;
+    wait.noteOn(60);
+    wait.noteOn(64);
+    expect(wait.expectedPitches()).toEqual([]);
+  });
+});

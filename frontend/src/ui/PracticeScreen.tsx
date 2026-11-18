@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TonePiano } from '../adapters/audio/tonePiano';
+import type { MicInput } from '../adapters/audio/micInput';
 import type { MidiInput, MidiStatus } from '../adapters/midi/midiInput';
+import type { InputStatus } from '../core/input/noteInput';
 import { NoteTrigger } from '../core/audio/noteTrigger';
 import { SynthPlayer } from '../core/audio/synthPlayer';
 import { InterpolatedClock } from '../core/clock/interpolatedClock';
@@ -9,12 +11,14 @@ import { SwitchablePlayer } from '../core/clock/switchablePlayer';
 import type { Attempt, LibrarySong } from '../core/library/library';
 import type { HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
-import { accuracy, type PracticeState } from '../core/practice/machine';
+import { accuracy, DEFAULT_CONFIG, type PracticeState } from '../core/practice/machine';
 import { SPEED_PRESETS, SpeedControl } from '../core/practice/speed';
+import { expectedNow } from '../core/practice/expected';
 import { Judge } from '../core/practice/judge';
 import { WaitMode } from '../core/practice/waitMode';
 import { drawFrame, KEYBOARD_HEIGHT } from '../render/drawFrame';
 import { LEVEL_LABEL } from './messages';
+import { MicPanel } from './MicPanel';
 import { SheetPane } from './SheetPane';
 
 /** Embeds the video in `host` and resolves when it can be controlled. */
@@ -27,6 +31,8 @@ interface Props {
   createPiano?: (() => TonePiano) | undefined;
   /** Creates the Web MIDI input; injected so tests can fake the keyboard. */
   createMidi?: (() => MidiInput) | undefined;
+  /** Creates the microphone input (plays by ear, no keyboard cable needed). */
+  createMic?: (() => MicInput) | undefined;
   /** Creates the YouTube video; without it (or on failure) a synth counts the time. */
   createVideo?: VideoFactory | undefined;
   /** Called once per finished run that was played on a keyboard, to keep the progress. */
@@ -55,7 +61,7 @@ const HAND_LABEL: Record<HandFilter, string> = {
   right: 'Mano derecha',
   left: 'Mano izquierda',
 };
-const MIDI_MESSAGE: Record<MidiStatus, string> = {
+const MIDI_MESSAGE: Record<InputStatus, string> = {
   idle: 'Teclado sin conectar.',
   unsupported: 'Este navegador no admite teclados MIDI. Usa Chrome o Edge.',
   denied: 'Permiso denegado. Permite el acceso a MIDI en el candado de la barra de direcciones.',
@@ -68,6 +74,7 @@ export function PracticeScreen({
   onBack,
   createPiano,
   createMidi,
+  createMic,
   createVideo,
   onAttempt,
 }: Props) {
@@ -85,8 +92,16 @@ export function PracticeScreen({
     source: WaitMode | null;
     state: PracticeState;
   } | null>(null);
-  const [midi, setMidi] = useState<MidiInput | null>(null);
-  const [midiStatus, setMidiStatus] = useState<MidiStatus>('idle');
+  const [source, setSource] = useState<
+    { kind: 'midi'; input: MidiInput } | { kind: 'mic'; input: MicInput } | null
+  >(null);
+  const [inputStatus, setInputStatus] = useState<MidiStatus>('idle');
+  const [headphones, setHeadphones] = useState(false);
+  const [rewindOnWrong, setRewindOnWrong] = useState(DEFAULT_CONFIG.rewindOnWrong);
+  const midi = source?.kind === 'midi' ? source.input : null;
+  const mic = source?.kind === 'mic' ? source.input : null;
+  // The microphone would hear the app's own sound and take it for the player.
+  const micSilence = mic !== null && inputStatus === 'ready' && !headphones;
   const view = useMemo(() => viewLevel(song.result, level), [song.result, level]);
   const duration = song.result.meta.duration_s;
 
@@ -102,8 +117,13 @@ export function PracticeScreen({
   const piano = useRef<TonePiano | null>(null);
   const soundRef = useRef(sound);
   useEffect(() => {
-    soundRef.current = sound;
-  }, [sound]);
+    soundRef.current = sound && !micSilence;
+    player.setMuted(micSilence);
+  }, [sound, micSilence, player]);
+  const micRef = useRef<MicInput | null>(null);
+  useEffect(() => {
+    micRef.current = mic;
+  }, [mic]);
   const judge = useMemo(() => new Judge(view.notes), [view]);
   const judgeRef = useRef(judge);
   // What the frame loop and the keyboard handler need without re-subscribing.
@@ -133,11 +153,17 @@ export function PracticeScreen({
   const wait = useMemo(() => {
     if (!waitOn) return null;
     const holder: { current: WaitMode | null } = { current: null };
-    holder.current = new WaitMode(view.notes, hand, clock, (state) => {
-      setPractice({ source: holder.current, state });
-    });
+    holder.current = new WaitMode(
+      view.notes,
+      hand,
+      clock,
+      (state) => {
+        setPractice({ source: holder.current, state });
+      },
+      { ...DEFAULT_CONFIG, rewindOnWrong },
+    );
     return holder.current;
-  }, [waitOn, hand, view, clock]);
+  }, [waitOn, hand, view, clock, rewindOnWrong]);
   useEffect(() => {
     waitRef.current = wait;
     attemptInfo.current.reported = false;
@@ -148,25 +174,34 @@ export function PracticeScreen({
   const practiceState = wait ? (practice?.source === wait ? practice.state : wait.snapshot) : null;
 
   useEffect(() => {
-    if (!midi) return;
+    if (!source) return;
+    const { kind, input } = source;
     const pressed = pressedKeys.current;
-    const offStatus = midi.onStatusChange(setMidiStatus);
-    const offNote = midi.onNote((message) => {
+    const offStatus = input.onStatusChange(setInputStatus);
+    const offNote = input.onNote((message) => {
       if (message.type === 'noteOff') pressedKeys.current.delete(message.pitch);
       if (message.type !== 'noteOn') return;
       pressedKeys.current.add(message.pitch);
-      if (soundRef.current) piano.current?.play(keyNote(message.pitch, message.velocity), 0.8);
+      // The microphone never says when a key goes up: let the key light fade by itself.
+      if (kind === 'mic') setTimeout(() => pressedKeys.current.delete(message.pitch), 300);
+      if (kind === 'midi' && soundRef.current) {
+        piano.current?.play(keyNote(message.pitch, message.velocity), 0.8);
+      }
       if (!sessionRef.current) return;
       if (waitRef.current) waitRef.current.noteOn(message.pitch);
-      else judgeRef.current.noteOn(message.pitch, clock.now());
+      else {
+        // The microphone confirms a note a little after the key went down: judge it back then.
+        const back = (message.ageS ?? 0) * speedControl.speed;
+        judgeRef.current.noteOn(message.pitch, clock.now() - back);
+      }
     });
     return () => {
       offStatus();
       offNote();
       pressed.clear();
-      midi.stop();
+      input.stop();
     };
-  }, [midi, clock]);
+  }, [source, clock, speedControl]);
 
   useEffect(() => {
     const trigger = new NoteTrigger(view.notes);
@@ -188,6 +223,14 @@ export function PracticeScreen({
       }
       seekSheet.current?.(now);
       if (sessionRef.current) waitRef.current?.tick();
+      const listening = micRef.current;
+      if (listening) {
+        listening.setExpected(
+          !sessionRef.current
+            ? []
+            : (waitRef.current?.expectedPitches() ?? expectedNow(view.notes, now)),
+        );
+      }
       if (clock.isPlaying) {
         for (const note of trigger.advance(now)) {
           if (soundRef.current)
@@ -294,8 +337,22 @@ export function PracticeScreen({
     await ensurePiano();
     if (!createMidi) return;
     const input = createMidi();
-    setMidi(input);
-    setMidiStatus(await input.start());
+    setSource({ kind: 'midi', input });
+    setInputStatus(await input.start());
+  }
+
+  async function connectMic() {
+    await ensurePiano();
+    if (!createMic) return;
+    const input = createMic();
+    setSource({ kind: 'mic', input });
+    setInputStatus(await input.start());
+  }
+
+  function pauseForCalibration() {
+    clock.pause();
+    piano.current?.stopAll();
+    setPlaying(false);
   }
 
   function chooseSpeed(next: number) {
@@ -322,7 +379,8 @@ export function PracticeScreen({
         <label>
           <input
             type="checkbox"
-            checked={sound}
+            checked={sound && !micSilence}
+            disabled={micSilence}
             onChange={(e) => {
               setSound(e.target.checked);
             }}
@@ -404,12 +462,33 @@ export function PracticeScreen({
             </label>
           ))}
         </fieldset>
+        <label>
+          <input
+            type="checkbox"
+            checked={rewindOnWrong}
+            onChange={(e) => {
+              setRewindOnWrong(e.target.checked);
+            }}
+          />{' '}
+          Retroceder al fallar
+        </label>
         <button type="button" onClick={() => void connectMidi()}>
           Conectar teclado
         </button>
-        <span role="status">{MIDI_MESSAGE[midiStatus]}</span>
+        <span role="status">{MIDI_MESSAGE[midi ? inputStatus : 'idle']}</span>
         {midi && midi.deviceNames.length > 0 && <span> {midi.deviceNames.join(', ')}</span>}
       </div>
+
+      {createMic && (
+        <MicPanel
+          mic={mic}
+          status={inputStatus}
+          headphones={headphones}
+          onHeadphones={setHeadphones}
+          onConnect={() => void connectMic()}
+          onBeforeCalibrate={pauseForCalibration}
+        />
+      )}
 
       {waitOn && practiceState && (
         <p role="status" aria-label="Progreso del modo espera">

@@ -7,6 +7,8 @@ export interface YtPlayerLike {
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   setPlaybackRate(rate: number): void;
+  mute?(): void;
+  unMute?(): void;
 }
 
 export class YouTubePlayerPort implements PlayerPort {
@@ -26,6 +28,10 @@ export class YouTubePlayerPort implements PlayerPort {
   }
   setPlaybackRate(rate: number): void {
     this.player.setPlaybackRate(rate);
+  }
+  setMuted(muted: boolean): void {
+    if (muted) this.player.mute?.();
+    else this.player.unMute?.();
   }
 }
 

@@ -19,4 +19,6 @@ export interface PlayerPort {
   pause(): void;
   seekTo(timeS: number): void;
   setPlaybackRate(rate: number): void;
+  /** Silences the player (the microphone must not hear the video). Optional: the synth is silent anyway. */
+  setMuted?(muted: boolean): void;
 }
