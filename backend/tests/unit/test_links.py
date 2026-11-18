@@ -1,5 +1,5 @@
-from pianola.application.links import parse_links
-from pianola.domain.video_url import VideoUrl
+from teclario.application.links import parse_links
+from teclario.domain.video_url import VideoUrl
 
 A = "https://youtu.be/aaaaaaaaaaa"
 B = "https://www.youtube.com/watch?v=bbbbbbbbbbb"

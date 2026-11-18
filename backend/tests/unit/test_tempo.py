@@ -2,8 +2,8 @@ import random
 
 import pytest
 
-from pianola.domain.notes import NoteEvent
-from pianola.domain.tempo import DEFAULT_BPM, estimate_tempo
+from teclario.domain.notes import NoteEvent
+from teclario.domain.tempo import DEFAULT_BPM, estimate_tempo
 
 
 def melody(

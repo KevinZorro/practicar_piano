@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pianola.application.job_queue import QueueLimits
+from teclario.application.job_queue import QueueLimits
 from tests.support.api import GOOD_ID, GOOD_URL, ApiEnv, build_api
 from tests.support.fakes import FakeDownloader, FakeProbe
 

@@ -1,5 +1,5 @@
 [project]
-name = "pianola"
+name = "teclario"
 version = "0.1.0"
 description = "Phase 0 feasibility benchmark: YouTube audio download and piano transcription models."
 license = { text = "MIT" }
@@ -23,7 +23,7 @@ score = [
 ]
 
 [project.scripts]
-pianola = "pianola.cli.main:main"
+teclario = "teclario.cli.main:main"
 
 [dependency-groups]
 dev = [
@@ -39,7 +39,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pianola"]
+packages = ["src/teclario"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -73,7 +73,7 @@ module = ["basic_pitch.*", "piano_transcription_inference.*", "pretty_midi.*", "
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["pianola.infrastructure.music21_score"]
+module = ["teclario.infrastructure.music21_score"]
 disable_error_code = ["no-untyped-call"]
 
 [tool.uv]

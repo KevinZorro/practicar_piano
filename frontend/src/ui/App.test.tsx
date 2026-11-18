@@ -99,7 +99,7 @@ async function submitLink(url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ') {
 describe('App', () => {
   it('shows the product name and an empty state', () => {
     setup();
-    expect(screen.getByRole('heading', { name: 'Pianola' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Teclario' })).toBeInTheDocument();
     expect(screen.getByText('Aún no has enviado ninguna canción.')).toBeInTheDocument();
   });
 

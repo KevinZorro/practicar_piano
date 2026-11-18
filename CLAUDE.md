@@ -1,4 +1,4 @@
-# Pianola (working name)
+# Teclario
 
 Web app to practice piano from a YouTube cover link (falling notes, sheet music, wait mode). Public portfolio repo (Full Stack + ML). Phase 0 is closed; **Phase 1** (MVP) in progress, see `docs/status.md` and `docs/phase-1/plan.md`.
 
@@ -11,14 +11,14 @@ Web app to practice piano from a YouTube cover link (falling notes, sheet music,
 - Install: `uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance --extra score`
 - Offline tests (default, excludes `network`): `uv run pytest -q -x` · unit only: `-m "not integration"`
 - Integration (real Basic Pitch, needs extras): `uv run pytest -q -m integration`
-- Network (real YouTube, set `PIANOLA_TEST_VIDEO_URL`): `uv run pytest -q -m network`
+- Network (real YouTube, set `TECLARIO_TEST_VIDEO_URL`): `uv run pytest -q -m network`
 - Lint/format/types: `uv run ruff check . && uv run ruff format --check . && uv run mypy src tests`
-- API contract: `uv run python -m pianola.api.openapi` rewrites `docs/api/openapi.json` (a test fails if stale)
+- API contract: `uv run python -m teclario.api.openapi` rewrites `docs/api/openapi.json` (a test fails if stale)
 - Frontend (from `frontend/`): `npm ci`, `npm run typecheck && npm run lint && npm run format:check && npm test`; e2e: `npm run e2e` (`PW_CHROMIUM_PATH` reuses a local Chromium); full flow with the real backend, offline: `npm run e2e:full` (needs the `synth`, `basic-pitch`, `score` extras; server in `backend/tests/e2e_server.py`)
-- Phase 0: `uv run pianola phase0 run --links links.txt --out phase0-output` then `... phase0 gate`
+- Phase 0: `uv run teclario phase0 run --links links.txt --out phase0-output` then `... phase0 gate`
 
 ## Structure
-- `backend/src/pianola/{domain,application,infrastructure,api,cli}`: hexagonal; domain imports nothing external
+- `backend/src/teclario/{domain,application,infrastructure,api,cli}`: hexagonal; domain imports nothing external
 - `backend/tests/{unit,integration}`; `frontend/src/{core,adapters,render,ui}` (core is pure TS); `infra/` compose/proxy notes
 - `docs/adr/` one ADR per decision D-01..D-12; `docs/status.md` phase state; `docs/phase-0/` runbook
 

@@ -7,20 +7,20 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TypeVar
 
-from pianola.application.ports import Measured
-from pianola.domain.errors import (
+from teclario.application.ports import Measured
+from teclario.domain.errors import (
     DownloadError,
     JobNotFoundError,
     ResultNotReadyError,
     TranscriptionError,
 )
-from pianola.domain.job import Job
-from pianola.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
-from pianola.domain.notes import NoteEvent
-from pianola.domain.quantize import QuantizedPiece
-from pianola.domain.result import SongResult
-from pianola.domain.score import Score
-from pianola.domain.video_url import VideoUrl
+from teclario.domain.job import Job
+from teclario.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
+from teclario.domain.notes import NoteEvent
+from teclario.domain.quantize import QuantizedPiece
+from teclario.domain.result import SongResult
+from teclario.domain.score import Score
+from teclario.domain.video_url import VideoUrl
 
 T = TypeVar("T")
 

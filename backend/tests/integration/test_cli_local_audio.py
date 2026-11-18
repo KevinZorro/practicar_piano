@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from pianola.cli.main import main
-from pianola.infrastructure.synthesizer import AdditiveSynthesizer
+from teclario.cli.main import main
+from teclario.infrastructure.synthesizer import AdditiveSynthesizer
 from tests.integration.test_basic_pitch_public_domain import write_reference_midi
 
 pytest.importorskip("pretty_midi")

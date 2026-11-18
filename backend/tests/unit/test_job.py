@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pianola.domain.errors import InvalidTransitionError
-from pianola.domain.job import Job, JobStatus
-from pianola.domain.video_url import VideoUrl
+from teclario.domain.errors import InvalidTransitionError
+from teclario.domain.job import Job, JobStatus
+from teclario.domain.video_url import VideoUrl
 
 T0 = datetime(2026, 11, 17, tzinfo=UTC)
 HAPPY_PATH = [

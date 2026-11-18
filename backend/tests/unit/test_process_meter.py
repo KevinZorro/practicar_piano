@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from pianola.domain.errors import TranscriptionError
-from pianola.domain.models import TranscriptionOutput
-from pianola.infrastructure.process_meter import SubprocessResourceMeter
+from teclario.domain.errors import TranscriptionError
+from teclario.domain.models import TranscriptionOutput
+from teclario.infrastructure.process_meter import SubprocessResourceMeter
 from tests.support import workers
 
 

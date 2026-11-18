@@ -48,7 +48,7 @@ describe('IndexedDbLibrary', () => {
   it('migrates a version 1 database, keeping its songs and adding progress', async () => {
     const factory = new IDBFactory();
     await new Promise<void>((resolve, reject) => {
-      const open = factory.open('pianola', 1);
+      const open = factory.open('teclario', 1);
       open.onupgradeneeded = () => {
         open.result.createObjectStore('songs', { keyPath: 'id' });
       };

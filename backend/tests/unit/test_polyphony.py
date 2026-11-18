@@ -2,8 +2,8 @@ import random
 
 import pytest
 
-from pianola.domain.notes import NoteEvent
-from pianola.domain.polyphony import (
+from teclario.domain.notes import NoteEvent
+from teclario.domain.polyphony import (
     EASY,
     PLAYABLE,
     PlayabilityPolicy,

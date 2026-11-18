@@ -13,13 +13,13 @@ import pytest
 pytest.importorskip("pretty_midi")
 pytest.importorskip("basic_pitch")
 
-from pianola.application.benchmark import RunBenchmark
-from pianola.application.links import parse_links
-from pianola.application.report import render_report
-from pianola.domain.models import AudioFile, SongSource
-from pianola.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
-from pianola.infrastructure.process_meter import SubprocessResourceMeter
-from pianola.infrastructure.synthesizer import AdditiveSynthesizer
+from teclario.application.benchmark import RunBenchmark
+from teclario.application.links import parse_links
+from teclario.application.report import render_report
+from teclario.domain.models import AudioFile, SongSource
+from teclario.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
+from teclario.infrastructure.process_meter import SubprocessResourceMeter
+from teclario.infrastructure.synthesizer import AdditiveSynthesizer
 from tests.integration.test_basic_pitch_public_domain import (
     NOTE_SECONDS,
     ODE_TO_JOY,

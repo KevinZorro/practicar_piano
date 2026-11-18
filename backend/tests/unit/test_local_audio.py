@@ -8,10 +8,10 @@ from typing import Any
 
 import pytest
 
-from pianola.domain.errors import DownloadError, DurationLimitExceededError
-from pianola.domain.models import LocalAudio
-from pianola.domain.video_url import VideoUrl
-from pianola.infrastructure.local_audio import LocalAudioImporter, discover_audio_files
+from teclario.domain.errors import DownloadError, DurationLimitExceededError
+from teclario.domain.models import LocalAudio
+from teclario.domain.video_url import VideoUrl
+from teclario.infrastructure.local_audio import LocalAudioImporter, discover_audio_files
 
 
 def write_wav(path: Path, seconds: float) -> None:

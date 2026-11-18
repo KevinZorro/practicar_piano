@@ -1,9 +1,9 @@
 import pytest
 
-from pianola.application.job_queue import JobQueue, QueueLimits
-from pianola.domain.errors import QueueFullError, RateLimitedError
-from pianola.domain.job import Job, JobStatus
-from pianola.domain.video_url import VideoUrl
+from teclario.application.job_queue import JobQueue, QueueLimits
+from teclario.domain.errors import QueueFullError, RateLimitedError
+from teclario.domain.job import Job, JobStatus
+from teclario.domain.video_url import VideoUrl
 from tests.support.fakes import DictJobRepository, FakeClock
 
 LIMITS = QueueLimits(

@@ -298,7 +298,7 @@
     }
   },
   "info": {
-    "title": "Pianola API",
+    "title": "Teclario API",
     "version": "1"
   },
   "openapi": "3.1.0",

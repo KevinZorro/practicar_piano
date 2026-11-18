@@ -1,4 +1,4 @@
-# Arquitectura de Pianola (nombre provisional)
+# Arquitectura de Teclario (nombre provisional)
 
 ## Contexto
 Aplicación web gratuita para practicar piano con un teclado USB a partir del enlace de YouTube de un cover. Hoy se construye solo la **Fase 0**: un comando de backend que decide la compuerta 1 (¿baja el audio la VPS y transcriben bien y rápido los modelos?).
@@ -24,14 +24,14 @@ Hexagonal: `cli` → `application` → `domain`; `infrastructure` implementa los
 | `domain` | `VideoUrl` (valida enlaces de YouTube), errores, `TranscriptionRun`, `ResourceUsage`, regla de la compuerta |
 | `application` | Puertos `AudioDownloader`, `Transcriber`, `Synthesizer`, `ResourceMeter`; caso de uso `RunBenchmark`; generador de informe |
 | `infrastructure` | Adaptadores de yt-dlp (proxy opcional), Basic Pitch, ByteDance, sintetizador y medidor de recursos |
-| `cli` | `pianola phase0 run` y `pianola phase0 gate` |
+| `cli` | `teclario phase0 run` y `teclario phase0 gate` |
 
 ## Flujo de la Fase 0
 1. Lee los enlaces (archivo local ignorado por git) y valida cada uno con `VideoUrl`.
-2. Baja solo el audio (yt-dlp), con proxy si `PIANOLA_PROXY_URL` está definido.
+2. Baja solo el audio (yt-dlp), con proxy si `TECLARIO_PROXY_URL` está definido.
 3. Para cada modelo: transcribe en un subproceso (pico de memoria limpio), guarda el MIDI y un WAV sintetizado.
 4. Borra el audio descargado, siempre (también ante errores).
-5. Genera `report.md` con tiempo, factor de tiempo real y memoria por modelo, y una plantilla `verdicts.csv` para anotar de oído si la canción es reconocible. `pianola phase0 gate` lee ese archivo y aplica el criterio.
+5. Genera `report.md` con tiempo, factor de tiempo real y memoria por modelo, y una plantilla `verdicts.csv` para anotar de oído si la canción es reconocible. `teclario phase0 gate` lee ese archivo y aplica el criterio.
 
 ## Atributos de calidad
 Privacidad (sin URLs en logs, sin medios en git), testabilidad (puertos con dobles), portabilidad (linux/arm64, modelos intercambiables), mantenibilidad (Ruff, mypy estricto).

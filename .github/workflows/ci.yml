@@ -30,7 +30,7 @@ jobs:
       - name: Types
         run: uv run mypy
       - name: Unit tests (offline)
-        run: uv run pytest -q -m "not network and not integration and not slow" --cov=pianola --cov-report=term-missing:skip-covered
+        run: uv run pytest -q -m "not network and not integration and not slow" --cov=teclario --cov-report=term-missing:skip-covered
 
   integration:
     # Basic Pitch on ONNX is light (no TensorFlow), so the public-domain end-to-end test runs here.

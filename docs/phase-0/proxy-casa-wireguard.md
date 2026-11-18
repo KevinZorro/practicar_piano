@@ -64,7 +64,7 @@ El script se niega a seguir si el hash no coincide. Crea: reglas de firewall (TC
 
 ## 6. VPS: configurar la variable
 ```bash
-echo 'PIANOLA_PROXY_URL=socks5h://10.8.0.2:1080' > infra/.env   # .env está en .gitignore
+echo 'TECLARIO_PROXY_URL=socks5h://10.8.0.2:1080' > infra/.env   # .env está en .gitignore
 ```
 `socks5h` resuelve el DNS en el proxy (en tu casa), que es lo que quieres.
 

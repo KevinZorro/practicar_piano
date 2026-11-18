@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pianola.domain.errors import JobNotFoundError, ResultNotReadyError
-from pianola.domain.job import Job
-from pianola.domain.result import SongResult
-from pianola.domain.video_url import VideoUrl
-from pianola.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from teclario.domain.errors import JobNotFoundError, ResultNotReadyError
+from teclario.domain.job import Job
+from teclario.domain.result import SongResult
+from teclario.domain.video_url import VideoUrl
+from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock
 
 RESULT = SongResult(10.0, 120.0, "high", ())

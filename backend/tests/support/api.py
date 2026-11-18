@@ -9,15 +9,15 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from pianola.api.app import create_app
-from pianola.api.container import Container
-from pianola.application.job_queue import JobQueue, QueueLimits
-from pianola.application.job_service import DeleteJob, FetchResult, GetJobStatus, Sweep
-from pianola.application.process_job import ProcessJob
-from pianola.application.submit_job import SubmitJob
-from pianola.application.worker import Worker
-from pianola.domain.notes import NoteEvent
-from pianola.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from teclario.api.app import create_app
+from teclario.api.container import Container
+from teclario.application.job_queue import JobQueue, QueueLimits
+from teclario.application.job_service import DeleteJob, FetchResult, GetJobStatus, Sweep
+from teclario.application.process_job import ProcessJob
+from teclario.application.submit_job import SubmitJob
+from teclario.application.worker import Worker
+from teclario.domain.notes import NoteEvent
+from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import (
     FakeClock,
     FakeDownloader,
