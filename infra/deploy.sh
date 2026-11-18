@@ -9,6 +9,11 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
+# The VPS disk is small and image builds leave layers behind: free what nothing uses first.
+docker image prune -f >/dev/null
+docker builder prune -f --filter until=24h >/dev/null
+df -h / | tail -1
+
 export HOST_UID="$(id -u)" HOST_GID="$(id -g)"
 docker compose -f infra/docker-compose.yml up -d --build api
 
@@ -20,6 +25,7 @@ sudo rsync -a --delete frontend/dist/ /var/www/pianola/
 # wait for the API to answer (the container reports healthy after the models load)
 for _ in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:8000/healthz >/dev/null; then
+    docker image prune -f >/dev/null
     echo "Deploy OK: $(git rev-parse --short HEAD)"
     exit 0
   fi
