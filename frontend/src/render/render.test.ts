@@ -93,8 +93,7 @@ describe('drawFrame', () => {
       font: '',
       textAlign: 'start',
       textBaseline: 'alphabetic',
-      shadowColor: '',
-      shadowBlur: 0,
+      globalAlpha: 1,
       clearRect: () => undefined,
       fillRect(x, y, w, h) {
         fills.push({ style: this.fillStyle, rect: [x, y, w, h] });

@@ -10,8 +10,7 @@ export interface Drawing {
   font: string;
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
-  shadowColor: string;
-  shadowBlur: number;
+  globalAlpha: number;
   clearRect(x: number, y: number, w: number, h: number): void;
   fillRect(x: number, y: number, w: number, h: number): void;
   fillText(text: string, x: number, y: number): void;
@@ -95,12 +94,13 @@ function drawNote(
   const x = rect.x + inset;
   const width = Math.max(rect.width - inset * 2, 1);
   if (active) {
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 18;
+    // A halo and a white border instead of a blur: blurs are very slow without a GPU.
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(x - 3, rect.y - 3, width + 6, rect.height + 6);
+    ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, rect.y, width, rect.height);
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
     ctx.fillStyle = color;
     ctx.fillRect(x + 2, rect.y + 2, Math.max(width - 4, 1), Math.max(rect.height - 4, 1));
   } else {
