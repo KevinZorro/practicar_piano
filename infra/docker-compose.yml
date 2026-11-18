@@ -69,6 +69,8 @@ services:
     environment:
       PIANOLA_PROXY_URL: "${PIANOLA_PROXY_URL:-}"
       PIANOLA_MAX_DURATION_SECONDS: "${PIANOLA_MAX_DURATION_SECONDS:-600}"
+      # Comma-separated YouTube video ids refused after a rights claim (see terminos.html).
+      PIANOLA_BLOCKED_VIDEO_IDS: "${PIANOLA_BLOCKED_VIDEO_IDS:-}"
       PIANOLA_BYTEDANCE_CHECKPOINT: /models/note_F1=0.9677_pedal_F1=0.9186.pth
       PIANOLA_WORK_DIR: /tmp/work
       # Nginx sets X-Real-IP; trust it only because the port is bound to loopback.

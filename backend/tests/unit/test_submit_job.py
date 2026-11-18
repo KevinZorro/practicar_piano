@@ -4,7 +4,12 @@ import pytest
 
 from pianola.application.job_queue import JobQueue, QueueLimits
 from pianola.application.submit_job import SubmitJob
-from pianola.domain.errors import DownloadError, DurationLimitExceededError, InvalidVideoUrlError
+from pianola.domain.errors import (
+    DownloadError,
+    DurationLimitExceededError,
+    InvalidVideoUrlError,
+    VideoBlockedError,
+)
 from pianola.domain.job import JobStatus
 from pianola.domain.notes import DurationPolicy
 from tests.support.fakes import DictJobRepository, FakeClock, FakeProbe
@@ -12,7 +17,9 @@ from tests.support.fakes import DictJobRepository, FakeClock, FakeProbe
 URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 
-def make(probe: FakeProbe | None = None) -> tuple[SubmitJob, DictJobRepository]:
+def make(
+    probe: FakeProbe | None = None, blocked: frozenset[str] = frozenset()
+) -> tuple[SubmitJob, DictJobRepository]:
     repo = DictJobRepository()
     clock = FakeClock()
     queue = JobQueue(repo, clock, QueueLimits())
@@ -23,6 +30,7 @@ def make(probe: FakeProbe | None = None) -> tuple[SubmitJob, DictJobRepository]:
         clock=clock,
         new_id=lambda: f"job-{next(ids)}",
         policy=DurationPolicy(max_seconds=600),
+        blocked_video_ids=blocked,
     )
     return use_case, repo
 
@@ -60,3 +68,13 @@ def test_probe_failure_stores_nothing() -> None:
     with pytest.raises(DownloadError):
         use_case.execute(URL, "ip")
     assert repo.all() == []
+
+
+def test_a_blocked_video_is_refused_before_anything_else() -> None:
+    probe = FakeProbe(200.0)
+    use_case, repo = make(probe, frozenset({"dQw4w9WgXcQ"}))
+    with pytest.raises(VideoBlockedError):
+        use_case.execute("https://youtu.be/dQw4w9WgXcQ", "ip")
+    assert repo.all() == []
+    other, _ = make(probe, frozenset({"dQw4w9WgXcQ"}))
+    assert other.execute("https://youtu.be/AAAAAAAAAAA", "ip").duration_s == 200.0

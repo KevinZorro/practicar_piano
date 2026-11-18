@@ -33,6 +33,12 @@ def test_settings_read_the_environment() -> None:
     assert settings.trust_proxy is True
 
 
+def test_blocked_video_ids_are_parsed_from_a_comma_list() -> None:
+    assert Settings.from_env({}).blocked_video_ids == frozenset()
+    settings = Settings.from_env({"PIANOLA_BLOCKED_VIDEO_IDS": " abc , def,,"})
+    assert settings.blocked_video_ids == frozenset({"abc", "def"})
+
+
 def test_empty_proxy_means_no_proxy() -> None:
     assert Settings.from_env({"PIANOLA_PROXY_URL": ""}).proxy_url is None
 

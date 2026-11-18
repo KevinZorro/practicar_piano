@@ -17,6 +17,12 @@ class InvalidVideoUrlError(PianolaError):
     code = "invalid_url"
 
 
+class VideoBlockedError(PianolaError):
+    """The video is on the block list (for example after a rights claim)."""
+
+    code = "video_blocked"
+
+
 class DurationLimitExceededError(PianolaError):
     """The audio is longer than the configured limit."""
 

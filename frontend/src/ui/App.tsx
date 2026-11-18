@@ -101,6 +101,10 @@ export function App({
       <h1>Pianola</h1>
       <p>Practica piano con tu teclado a partir de un cover de YouTube.</p>
       <LinkForm onSubmit={submit} />
+      <p className="fine-print">
+        Usa solo enlaces de audio que tengas derecho a usar. La partitura es una transcripción
+        automática aproximada.
+      </p>
       {permission === 'denied' && (
         <p role="status">
           Las notificaciones están bloqueadas: no te avisaremos al terminar. Vuelve a esta página
@@ -140,6 +144,9 @@ export function App({
           </ul>
         </section>
       )}
+      <footer className="fine-print">
+        <a href="/terminos.html">Términos de uso y reclamaciones</a>
+      </footer>
     </main>
   );
 }

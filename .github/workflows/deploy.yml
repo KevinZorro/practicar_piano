@@ -1,0 +1,39 @@
+name: deploy
+
+# Deploys to the VPS over SSH after a merge to main. The key is restricted on the VPS to
+# run only infra/deploy.sh (see docs/phase-1/despliegue-vps.md, "Despliegue automático").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    # Without the secrets (forks, or before the setup) the job is skipped instead of failing.
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    steps:
+      - name: Prepare SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Run deploy on the VPS
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER_NAME: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "$USER_NAME@$HOST" deploy

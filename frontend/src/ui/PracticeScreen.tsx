@@ -296,6 +296,7 @@ export function PracticeScreen({
           Volver
         </button>
         <h2>{song.title}</h2>
+        <small className="fine-print">Transcripción automática: puede contener errores.</small>
       </header>
 
       <div className="controls">

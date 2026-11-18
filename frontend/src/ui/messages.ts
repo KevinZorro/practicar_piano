@@ -7,6 +7,8 @@ const ERRORS: Record<string, string> = {
   transcription_failed: 'No se pudo transcribir la canción.',
   queue_full: 'La cola está llena. Vuelve a intentarlo en un rato.',
   rate_limited: 'Has enviado demasiadas canciones seguidas. Espera un poco antes de enviar otra.',
+  video_blocked:
+    'Este video no se puede procesar en este servicio por una reclamación de derechos.',
   network: 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.',
   internal_error: 'Algo salió mal en el servidor. Inténtalo de nuevo.',
 };

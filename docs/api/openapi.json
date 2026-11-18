@@ -368,6 +368,16 @@
             },
             "description": "Error"
           },
+          "451": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -452,6 +462,16 @@
             "description": "Error"
           },
           "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          },
+          "451": {
             "content": {
               "application/json": {
                 "schema": {
@@ -549,6 +569,16 @@
             "description": "Error"
           },
           "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          },
+          "451": {
             "content": {
               "application/json": {
                 "schema": {
@@ -656,6 +686,16 @@
             },
             "description": "Error"
           },
+          "451": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -747,6 +787,16 @@
             "description": "Error"
           },
           "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          },
+          "451": {
             "content": {
               "application/json": {
                 "schema": {

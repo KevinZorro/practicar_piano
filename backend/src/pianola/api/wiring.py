@@ -67,6 +67,7 @@ def build_container(
             clock=clock,
             new_id=lambda: secrets.token_urlsafe(16),
             policy=DurationPolicy(settings.max_duration_s),
+            blocked_video_ids=settings.blocked_video_ids,
         ),
         status=GetJobStatus(repository, queue),
         fetch=FetchResult(repository, results),

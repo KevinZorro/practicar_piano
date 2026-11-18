@@ -17,5 +17,8 @@ texts ship with each package and are kept up to date in docs/adr/0012-licencias.
 - OpenSheetMusicDisplay ............. BSD-3-Clause
 - Tone.js ........................... MIT
 - yt-dlp ............................ Unlicense (public domain)
+- soxr (via librosa) ................ LGPL-2.1-or-later; used unmodified as a separate
+                                      binary package (see docs/adr/0019)
+- certifi (via httpx, requests) .... MPL-2.0; used unmodified
 
 No audio or MIDI of copyrighted songs is stored in this repository.

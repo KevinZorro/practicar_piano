@@ -50,6 +50,7 @@ def build_api(
     downloader: FakeDownloader | None = None,
     run_worker: bool = False,
     trust_proxy: bool = False,
+    blocked: frozenset[str] = frozenset(),
 ) -> ApiEnv:
     clock = FakeClock()
     repo = InMemoryJobRepository()
@@ -73,6 +74,7 @@ def build_api(
             queue=queue,
             clock=clock,
             new_id=lambda: f"job{next(ids)}",
+            blocked_video_ids=blocked,
         ),
         status=GetJobStatus(repo, queue),
         fetch=FetchResult(repo, results),
