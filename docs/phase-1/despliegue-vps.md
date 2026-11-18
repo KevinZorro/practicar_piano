@@ -9,6 +9,23 @@ Pasos para publicar la API y el frontend en la VPS de Oracle (Ubuntu, arm64). To
 ## Actualizar con un solo comando
 Una vez instalado todo (secciones 2 a 4), cada versión nueva se despliega con `bash ~/practicar_piano/infra/deploy.sh` (hace `git pull`, reconstruye la API, construye el frontend con Docker y lo publica). No cambia Nginx ni el certificado.
 
+## Despliegue automático (GitHub Actions)
+Cada fusión a `main` ejecuta `.github/workflows/deploy.yml`, que entra por SSH a la VPS y corre `infra/deploy.sh`. La llave queda restringida: solo puede ejecutar ese script. Configuración única:
+
+1. **En la VPS** (como el usuario que despliega; cambia `RUTA` si el repo no está en `~/practicar_piano`):
+```bash
+ssh-keygen -t ed25519 -N "" -C pianola-deploy -f ~/deploy_key
+echo "command=\"bash $HOME/practicar_piano/infra/deploy.sh\",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding $(cat ~/deploy_key.pub)" >> ~/.ssh/authorized_keys
+cat ~/deploy_key                                  # copia TODO el bloque (es el secreto VPS_SSH_KEY)
+ssh-keyscan -t ed25519 localhost 2>/dev/null | sed 's/^localhost/IP_PUBLICA/'   # es VPS_KNOWN_HOSTS
+shred -u ~/deploy_key ~/deploy_key.pub            # bórralas tras copiar el secreto
+sudo -n true && echo "sudo sin contraseña OK"     # deploy.sh necesita sudo para rsync
+```
+   Reemplaza `IP_PUBLICA` por la IP pública de la VPS (`curl -4 ifconfig.me`).
+2. **Oracle**: en la lista de seguridad permite el puerto 22 de entrada (GitHub usa IPs variables, así que debe ser desde cualquier origen; por eso la llave está restringida y no hay contraseñas).
+3. **En GitHub** → Settings → Secrets and variables → Actions: secretos `VPS_HOST` (IP o dominio), `VPS_USER`, `VPS_SSH_KEY` (la llave privada completa), `VPS_KNOWN_HOSTS` (la línea de `ssh-keyscan`); y en la pestaña Variables, `DEPLOY_ENABLED` = `true`.
+4. Prueba: Actions → deploy → Run workflow. Mientras `DEPLOY_ENABLED` no exista el trabajo se omite.
+
 ## 2. Levantar la API
 ```bash
 cd ~/practicar_piano && git pull
