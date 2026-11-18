@@ -1,14 +1,14 @@
 import random
 
-from pianola.domain.notes import NoteEvent
-from pianola.domain.quantize import (
+from teclario.domain.notes import NoteEvent
+from teclario.domain.quantize import (
     CELLS_PER_BEAT,
     CELLS_PER_MEASURE,
     Hand,
     assign_hand,
     quantize,
 )
-from pianola.domain.tempo import TempoEstimate, estimate_tempo
+from teclario.domain.tempo import TempoEstimate, estimate_tempo
 
 BPM = 120.0
 BEAT = 60 / BPM

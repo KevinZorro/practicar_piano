@@ -1,7 +1,7 @@
 import pytest
 
-from pianola.domain.errors import InvalidVideoUrlError
-from pianola.domain.video_url import VideoUrl
+from teclario.domain.errors import InvalidVideoUrlError
+from teclario.domain.video_url import VideoUrl
 
 VID = "dQw4w9WgXcQ"
 

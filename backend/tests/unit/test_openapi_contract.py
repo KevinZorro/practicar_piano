@@ -1,9 +1,9 @@
-from pianola.api.openapi import SCHEMA_PATH, build_schema, render
+from teclario.api.openapi import SCHEMA_PATH, build_schema, render
 
 
 def test_committed_openapi_is_up_to_date() -> None:
     assert SCHEMA_PATH.read_text(encoding="utf-8") == render(), (
-        "docs/api/openapi.json is stale: run `uv run python -m pianola.api.openapi`"
+        "docs/api/openapi.json is stale: run `uv run python -m teclario.api.openapi`"
     )
 
 

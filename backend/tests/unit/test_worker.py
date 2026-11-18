@@ -4,14 +4,14 @@ import asyncio
 import threading
 from pathlib import Path
 
-from pianola.application.job_queue import JobQueue, QueueLimits
-from pianola.application.job_service import GetJobStatus, Sweep
-from pianola.application.process_job import ProcessJob
-from pianola.application.worker import Worker
-from pianola.domain.job import Job, JobStatus
-from pianola.domain.models import AudioFile, TranscriptionOutput
-from pianola.domain.video_url import VideoUrl
-from pianola.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from teclario.application.job_queue import JobQueue, QueueLimits
+from teclario.application.job_service import GetJobStatus, Sweep
+from teclario.application.process_job import ProcessJob
+from teclario.application.worker import Worker
+from teclario.domain.job import Job, JobStatus
+from teclario.domain.models import AudioFile, TranscriptionOutput
+from teclario.domain.video_url import VideoUrl
+from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock, FakeDownloader, FakeMidiReader, FakeScoreBuilder
 
 

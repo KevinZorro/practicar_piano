@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import time
 
-from pianola.domain.models import TranscriptionOutput
+from teclario.domain.models import TranscriptionOutput
 
 
 def succeed() -> TranscriptionOutput:

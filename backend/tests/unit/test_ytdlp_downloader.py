@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from pianola.domain.errors import DownloadError, DurationLimitExceededError
-from pianola.domain.video_url import VideoUrl
-from pianola.infrastructure.ytdlp_downloader import YtDlpDownloader
+from teclario.domain.errors import DownloadError, DurationLimitExceededError
+from teclario.domain.video_url import VideoUrl
+from teclario.infrastructure.ytdlp_downloader import YtDlpDownloader
 
 VIDEO_ID = "dQw4w9WgXcQ"
 URL = VideoUrl.parse(f"https://youtu.be/{VIDEO_ID}")

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from pianola.application.benchmark import RunBenchmark
-from pianola.cli import phase0
-from pianola.cli.main import main
+from teclario.application.benchmark import RunBenchmark
+from teclario.cli import phase0
+from teclario.cli.main import main
 from tests.support.fakes import FakeDownloader, FakeSynthesizer, FakeTranscriber, InlineMeter
 
 IDS = [f"{c}{c}{c}{c}{c}{c}{c}{c}{c}{c}{c}" for c in "abcdefghij"]

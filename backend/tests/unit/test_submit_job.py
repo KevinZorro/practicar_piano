@@ -2,16 +2,16 @@ import itertools
 
 import pytest
 
-from pianola.application.job_queue import JobQueue, QueueLimits
-from pianola.application.submit_job import SubmitJob
-from pianola.domain.errors import (
+from teclario.application.job_queue import JobQueue, QueueLimits
+from teclario.application.submit_job import SubmitJob
+from teclario.domain.errors import (
     DownloadError,
     DurationLimitExceededError,
     InvalidVideoUrlError,
     VideoBlockedError,
 )
-from pianola.domain.job import JobStatus
-from pianola.domain.notes import DurationPolicy
+from teclario.domain.job import JobStatus
+from teclario.domain.notes import DurationPolicy
 from tests.support.fakes import DictJobRepository, FakeClock, FakeProbe
 
 URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"

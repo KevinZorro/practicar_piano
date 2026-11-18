@@ -1,6 +1,6 @@
 import { isLibrarySong, type LibrarySong, type SongLibrary } from '../../core/library/library';
 
-export const DB_NAME = 'pianola';
+export const DB_NAME = 'teclario';
 export const DB_VERSION = 2;
 const STORE = 'songs';
 

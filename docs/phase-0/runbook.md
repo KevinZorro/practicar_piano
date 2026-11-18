@@ -10,7 +10,7 @@ Objetivo: decidir con diez covers reales si (1) la VPS puede bajar el audio de Y
 | **Menos de 2 min** de proceso por canción de 3 min | Automático: tiempo de inferencia ÷ duración < 0,67 en todas las canciones |
 | La descarga funciona, directa o por la casa | Automático: el informe cuenta las descargas correctas |
 
-Resultado de `pianola phase0 gate`:
+Resultado de `teclario phase0 gate`:
 
 | Estado | Significa | Qué hacer |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ El error típico es `Sign in to confirm you're not a bot` en el informe. Plan B 
 Sigue el paso a paso en [`proxy-casa-wireguard.md`](proxy-casa-wireguard.md): WireGuard con la VPS como servidor, proxy SOCKS5 en tu PC de casa y verificación con `check-tunnel.sh`. Con el túnel arriba, corre con la variable (el valor nunca se imprime ni se guarda):
 
 ```bash
-PIANOLA_PROXY_URL=socks5h://10.8.0.2:1080 \
+TECLARIO_PROXY_URL=socks5h://10.8.0.2:1080 \
 docker compose -f infra/docker-compose.yml run --rm phase0 phase0 run \
   --links /data/links.txt --out /data/out
 ```
@@ -153,7 +153,7 @@ Esto reescribe `report.md` con el resultado.
 
 ```bash
 cd backend && uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance
-uv run pianola phase0 run --links ../links.txt --out ../phase0-output
+uv run teclario phase0 run --links ../links.txt --out ../phase0-output
 ```
 
 Necesita `ffmpeg` y `deno` en el `PATH`.

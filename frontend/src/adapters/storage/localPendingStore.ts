@@ -1,6 +1,6 @@
 import type { PendingJobsStore, TrackedJob } from '../../core/jobs/jobTracker';
 
-const KEY = 'pianola.pendingJobs.v1';
+const KEY = 'teclario.pendingJobs.v1';
 
 function isTrackedJob(value: unknown): value is TrackedJob {
   if (typeof value !== 'object' || value === null) return false;

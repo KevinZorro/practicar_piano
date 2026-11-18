@@ -102,7 +102,7 @@ export function App({
 
   return (
     <main>
-      <h1>Pianola</h1>
+      <h1>Teclario</h1>
       <p>Practica piano con tu teclado a partir de un cover de YouTube.</p>
       <LinkForm onSubmit={submit} />
       <p className="fine-print">
@@ -148,6 +148,14 @@ export function App({
           </ul>
         </section>
       )}
+      <section aria-label="Cómo funciona">
+        <h2>Cómo funciona</h2>
+        <p>
+          Pega el enlace de un cover de piano de YouTube. Teclario transcribe el audio y prepara las
+          notas y la partitura. Conecta tu teclado digital por USB y practica con notas que caen,
+          partitura sincronizada y modo espera.
+        </p>
+      </section>
       <footer className="fine-print">
         <a href="/terminos.html">Términos de uso y reclamaciones</a>
       </footer>

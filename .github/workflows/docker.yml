@@ -31,14 +31,14 @@ jobs:
           platforms: linux/arm64
           load: true
           push: false
-          tags: pianola-phase0:ci
+          tags: teclario-phase0:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke test (arm64)
         run: |
-          docker run --rm --platform linux/arm64 --entrypoint uname pianola-phase0:ci -m
-          docker run --rm --platform linux/arm64 --entrypoint deno pianola-phase0:ci --version
-          docker run --rm --platform linux/arm64 --entrypoint ffmpeg pianola-phase0:ci -version
-          docker run --rm --platform linux/arm64 pianola-phase0:ci phase0 --help
-          docker run --rm --platform linux/arm64 --entrypoint python pianola-phase0:ci \
+          docker run --rm --platform linux/arm64 --entrypoint uname teclario-phase0:ci -m
+          docker run --rm --platform linux/arm64 --entrypoint deno teclario-phase0:ci --version
+          docker run --rm --platform linux/arm64 --entrypoint ffmpeg teclario-phase0:ci -version
+          docker run --rm --platform linux/arm64 teclario-phase0:ci phase0 --help
+          docker run --rm --platform linux/arm64 --entrypoint python teclario-phase0:ci \
             -c "import onnxruntime, torch, pretty_midi, piano_transcription_inference; print('imports ok')"
