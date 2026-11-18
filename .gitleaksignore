@@ -1,0 +1,2 @@
+# Falso positivo: el nombre de una clave de localStorage, no un secreto.
+e0c06a58d01fbffe44db717874d9778e2390d9c2:frontend/src/adapters/audio/micInput.ts:generic-api-key:251

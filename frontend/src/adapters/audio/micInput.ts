@@ -248,7 +248,7 @@ export function openBrowserMic(
   };
 }
 
-const STORAGE_KEY = 'pianola.mic.calibration.v1';
+const CALIBRATION_ITEM = 'pianola.mic.calibration.v1';
 
 /** Calibration in localStorage: tiny, per browser; every access may throw (private mode). */
 export function localCalibrationStore(
@@ -257,7 +257,7 @@ export function localCalibrationStore(
   return {
     load() {
       try {
-        const raw = storage?.getItem(STORAGE_KEY);
+        const raw = storage?.getItem(CALIBRATION_ITEM);
         if (!raw) return null;
         const value = JSON.parse(raw) as Partial<Calibration>;
         return typeof value.tuningCents === 'number' && typeof value.latencyS === 'number'
@@ -269,7 +269,7 @@ export function localCalibrationStore(
     },
     save(calibration) {
       try {
-        storage?.setItem(STORAGE_KEY, JSON.stringify(calibration));
+        storage?.setItem(CALIBRATION_ITEM, JSON.stringify(calibration));
       } catch {
         // Not saving only means calibrating again next time.
       }
