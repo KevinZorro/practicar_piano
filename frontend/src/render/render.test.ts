@@ -1,5 +1,6 @@
 import { note } from '../core/notes/fixtures';
-import { drawFrame, HAND_COLORS, type Drawing } from './drawFrame';
+import { drawFrame, HAND_COLORS, KEYBOARD_HEIGHT, PRESSED_COLOR, type Drawing } from './drawFrame';
+import { noteName, noteNameWithOctave } from './noteNames';
 import { WHITE_KEY_COUNT, isBlackKey, keyBox } from './keyboardLayout';
 import { noteRect, timeToY, type View } from './projection';
 
@@ -73,20 +74,39 @@ describe('projection', () => {
   });
 });
 
+describe('note names', () => {
+  it('names pitches by letter and octave', () => {
+    expect(noteName(60)).toBe('C');
+    expect(noteName(61)).toBe('C#');
+    expect(noteNameWithOctave(60)).toBe('C4');
+    expect(noteNameWithOctave(21)).toBe('A0');
+    expect(noteNameWithOctave(108)).toBe('C8');
+  });
+});
+
 describe('drawFrame', () => {
   function recorder() {
     const fills: { style: unknown; rect: number[] }[] = [];
+    const texts: { text: string; x: number }[] = [];
     const ctx: Drawing = {
       fillStyle: '',
+      font: '',
+      textAlign: 'start',
+      textBaseline: 'alphabetic',
+      shadowColor: '',
+      shadowBlur: 0,
       clearRect: () => undefined,
       fillRect(x, y, w, h) {
         fills.push({ style: this.fillStyle, rect: [x, y, w, h] });
       },
+      fillText(text, x) {
+        texts.push({ text, x });
+      },
     };
-    return { ctx, fills };
+    return { ctx, fills, texts };
   }
 
-  it('draws visible notes by hand colour and then the hit line', () => {
+  it('counts visible notes and draws the hit line above the keyboard', () => {
     const { ctx, fills } = recorder();
     const drawn = drawFrame(
       ctx,
@@ -95,7 +115,44 @@ describe('drawFrame', () => {
       view,
     );
     expect(drawn).toBe(2);
-    expect(fills.map((f) => f.style)).toEqual([HAND_COLORS.right, HAND_COLORS.left, '#ffffff']);
-    expect(fills.at(-1)?.rect).toEqual([0, 400, 1040, 2]);
+    expect(fills.some((f) => f.style === HAND_COLORS.right)).toBe(true);
+    expect(fills.some((f) => f.style === HAND_COLORS.left)).toBe(true);
+    expect(fills.some((f) => f.rect.join() === [0, 400, 1040, 2].join())).toBe(true);
+  });
+
+  it('keeps each note inside the lane of its key', () => {
+    const { ctx, fills } = recorder();
+    drawFrame(ctx, [note(60, 11, 12, 'right')], 10, view);
+    const key = keyBox(60, view.width);
+    const body = fills.find((f) => f.style === HAND_COLORS.right && (f.rect[1] ?? 0) < view.height);
+    expect(body?.rect[0]).toBeGreaterThanOrEqual(key.x);
+    expect((body?.rect[0] ?? 0) + (body?.rect[2] ?? 0)).toBeLessThanOrEqual(key.x + key.width);
+  });
+
+  it('draws 52 white key labels, with the octave only on each C', () => {
+    const { ctx, texts } = recorder();
+    drawFrame(ctx, [], 0, view);
+    expect(texts).toHaveLength(WHITE_KEY_COUNT);
+    expect(texts.filter((t) => /\d/.test(t.text)).map((t) => t.text)).toContain('C4');
+    expect(texts.every((t) => !t.text.includes('#'))).toBe(true);
+  });
+
+  it('lights the key of a sounding note with the hand colour', () => {
+    const { ctx, fills } = recorder();
+    const keyTop = view.height + 2;
+    const lit = (fs: typeof fills) =>
+      fs.filter((f) => f.rect[1] === keyTop && f.rect[3] === KEYBOARD_HEIGHT);
+    drawFrame(ctx, [note(60, 9, 11, 'left')], 10, view);
+    expect(lit(fills).some((f) => f.style === HAND_COLORS.left)).toBe(true);
+
+    const idle = recorder();
+    drawFrame(idle.ctx, [note(60, 11, 12, 'left')], 10, view);
+    expect(lit(idle.fills).some((f) => f.style === HAND_COLORS.left)).toBe(false);
+  });
+
+  it('lights keys the player is pressing', () => {
+    const { ctx, fills } = recorder();
+    drawFrame(ctx, [], 0, view, { pressed: new Set([61]) });
+    expect(fills.some((f) => f.style === PRESSED_COLOR)).toBe(true);
   });
 });

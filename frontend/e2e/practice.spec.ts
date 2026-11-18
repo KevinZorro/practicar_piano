@@ -17,12 +17,15 @@ async function openPractice(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByLabel('Enlace de YouTube').fill('https://youtu.be/dQw4w9WgXcQ');
   await page.getByRole('button', { name: 'Procesar canción' }).click();
-  await page.getByRole('button', { name: 'Practicar' }).first().click();
+  await page.getByRole('button', { name: 'Practicar' }).last().click();
   await expect(page.getByRole('region', { name: 'Práctica' })).toBeVisible();
 }
 
 const cursorLeft = (page: Page) =>
-  page.locator('img[id^="cursorImg"]').evaluate((el) => parseFloat((el as HTMLElement).style.left));
+  page
+    .locator('img[id^="cursorImg"]')
+    .last()
+    .evaluate((el) => parseFloat((el as HTMLElement).style.left));
 
 test('the score cursor follows playback and the song is kept in the library', async ({ page }) => {
   await openPractice(page);
@@ -30,7 +33,7 @@ test('the score cursor follows playback and the song is kept in the library', as
 
   await page.getByRole('button', { name: 'Reproducir' }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
-  await expect(page.locator('img[id^="cursorImg"]')).toBeVisible();
+  await expect(page.locator('img[id^="cursorImg"]').last()).toBeVisible();
   const first = await cursorLeft(page);
   await expect.poll(() => cursorLeft(page), { timeout: 8_000 }).toBeGreaterThan(first);
 
