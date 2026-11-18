@@ -1,5 +1,5 @@
-from teclario.application.links import parse_links
-from teclario.domain.video_url import VideoUrl
+from notacaida.application.links import parse_links
+from notacaida.domain.video_url import VideoUrl
 
 A = "https://youtu.be/aaaaaaaaaaa"
 B = "https://www.youtube.com/watch?v=bbbbbbbbbbb"

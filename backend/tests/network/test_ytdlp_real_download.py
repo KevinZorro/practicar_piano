@@ -1,6 +1,6 @@
 """Hits YouTube for real. Excluded from CI; run on the VPS with:
 
-    TECLARIO_TEST_VIDEO_URL=<a short video you may use> uv run pytest -m network
+    NOTACAIDA_TEST_VIDEO_URL=<a short video you may use> uv run pytest -m network
 
 Use a short public-domain or your own video: the URL is read from the environment so no
 link to a protected song is ever committed.
@@ -15,15 +15,15 @@ from pathlib import Path
 
 import pytest
 
-from teclario.domain.video_url import VideoUrl
-from teclario.infrastructure.ytdlp_downloader import YtDlpDownloader
+from notacaida.domain.video_url import VideoUrl
+from notacaida.infrastructure.ytdlp_downloader import YtDlpDownloader
 
 pytestmark = pytest.mark.network
 
-RAW_URL = os.environ.get("TECLARIO_TEST_VIDEO_URL")
+RAW_URL = os.environ.get("NOTACAIDA_TEST_VIDEO_URL")
 
 
-@pytest.mark.skipif(not RAW_URL, reason="set TECLARIO_TEST_VIDEO_URL to run")
+@pytest.mark.skipif(not RAW_URL, reason="set NOTACAIDA_TEST_VIDEO_URL to run")
 @pytest.mark.skipif(
     shutil.which("ffmpeg") is None or shutil.which("deno") is None,
     reason="needs ffmpeg and deno on PATH",
@@ -31,7 +31,7 @@ RAW_URL = os.environ.get("TECLARIO_TEST_VIDEO_URL")
 def test_real_download_produces_a_mono_wav(tmp_path: Path) -> None:
     assert RAW_URL is not None
     downloader = YtDlpDownloader(
-        max_duration_seconds=600.0, proxy_url=os.environ.get("TECLARIO_PROXY_URL")
+        max_duration_seconds=600.0, proxy_url=os.environ.get("NOTACAIDA_PROXY_URL")
     )
 
     audio = downloader.download(VideoUrl.parse(RAW_URL), tmp_path)

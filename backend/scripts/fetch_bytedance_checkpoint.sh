@@ -3,11 +3,11 @@
 # The upstream package does this with `wget` and no checksum (see docs/adr/0013-*.md).
 #
 # Usage: backend/scripts/fetch_bytedance_checkpoint.sh
-# Env:   TECLARIO_BYTEDANCE_CHECKPOINT  destination file (default: the package's own path)
+# Env:   NOTACAIDA_BYTEDANCE_CHECKPOINT  destination file (default: the package's own path)
 set -euo pipefail
 
 URL='https://zenodo.org/record/4034264/files/CRNN_note_F1%3D0.9677_pedal_F1%3D0.9186.pth?download=1'
-DEST="${TECLARIO_BYTEDANCE_CHECKPOINT:-$HOME/piano_transcription_inference_data/note_F1=0.9677_pedal_F1=0.9186.pth}"
+DEST="${NOTACAIDA_BYTEDANCE_CHECKPOINT:-$HOME/piano_transcription_inference_data/note_F1=0.9677_pedal_F1=0.9186.pth}"
 HASH_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bytedance_checkpoint.sha256"
 MIN_BYTES=160000000
 

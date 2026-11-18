@@ -2,8 +2,8 @@ import random
 
 import pytest
 
-from teclario.domain.notes import NoteEvent
-from teclario.domain.polyphony import (
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.polyphony import (
     EASY,
     PLAYABLE,
     PlayabilityPolicy,

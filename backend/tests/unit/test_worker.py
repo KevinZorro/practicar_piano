@@ -4,14 +4,14 @@ import asyncio
 import threading
 from pathlib import Path
 
-from teclario.application.job_queue import JobQueue, QueueLimits
-from teclario.application.job_service import GetJobStatus, Sweep
-from teclario.application.process_job import ProcessJob
-from teclario.application.worker import Worker
-from teclario.domain.job import Job, JobStatus
-from teclario.domain.models import AudioFile, TranscriptionOutput
-from teclario.domain.video_url import VideoUrl
-from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from notacaida.application.job_queue import JobQueue, QueueLimits
+from notacaida.application.job_service import GetJobStatus, Sweep
+from notacaida.application.process_job import ProcessJob
+from notacaida.application.worker import Worker
+from notacaida.domain.job import Job, JobStatus
+from notacaida.domain.models import AudioFile, TranscriptionOutput
+from notacaida.domain.video_url import VideoUrl
+from notacaida.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock, FakeDownloader, FakeMidiReader, FakeScoreBuilder
 
 

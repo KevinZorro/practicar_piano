@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from teclario.application.benchmark import RunBenchmark
-from teclario.application.links import SongEntry
-from teclario.domain.video_url import VideoUrl
+from notacaida.application.benchmark import RunBenchmark
+from notacaida.application.links import SongEntry
+from notacaida.domain.video_url import VideoUrl
 from tests.support.fakes import FakeDownloader, FakeSynthesizer, FakeTranscriber, InlineMeter
 
 IDS = ["aaaaaaaaaaa", "bbbbbbbbbbb", "ccccccccccc"]

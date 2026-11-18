@@ -14,10 +14,10 @@ import pytest
 pretty_midi = pytest.importorskip("pretty_midi")
 pytest.importorskip("basic_pitch")
 
-from teclario.domain.models import AudioFile  # noqa: E402
-from teclario.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber  # noqa: E402
-from teclario.infrastructure.process_meter import SubprocessResourceMeter  # noqa: E402
-from teclario.infrastructure.synthesizer import AdditiveSynthesizer  # noqa: E402
+from notacaida.domain.models import AudioFile  # noqa: E402
+from notacaida.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber  # noqa: E402
+from notacaida.infrastructure.process_meter import SubprocessResourceMeter  # noqa: E402
+from notacaida.infrastructure.synthesizer import AdditiveSynthesizer  # noqa: E402
 
 pytestmark = pytest.mark.integration
 

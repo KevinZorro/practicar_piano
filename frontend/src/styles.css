@@ -1,4 +1,4 @@
-/* Teclario: one small stylesheet, tokens first. Dark by default, light when the system asks. */
+/* Notacaida: one small stylesheet, tokens first. Dark by default, light when the system asks. */
 :root {
   color-scheme: dark light;
   --bg: #12121a;

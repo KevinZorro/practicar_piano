@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from teclario.domain.notes import NoteEvent
-from teclario.domain.quantize import (
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.quantize import (
     CELLS_PER_BEAT,
     CELLS_PER_MEASURE,
     Hand,
@@ -11,15 +11,15 @@ from teclario.domain.quantize import (
     QuantNote,
     quantize,
 )
-from teclario.domain.score import build_timemap
-from teclario.domain.tempo import TempoEstimate
+from notacaida.domain.score import build_timemap
+from notacaida.domain.tempo import TempoEstimate
 
 if TYPE_CHECKING:
     import music21.stream
 
 music21 = pytest.importorskip("music21", reason="needs the 'score' extra")
 
-from teclario.infrastructure.music21_score import Music21ScoreBuilder, _writable_parts  # noqa: E402
+from notacaida.infrastructure.music21_score import Music21ScoreBuilder, _writable_parts  # noqa: E402
 
 
 def first_of(stream_: object, cls: str) -> Any:

@@ -6,7 +6,7 @@
 set -euo pipefail
 
 port="${WG_PORT:-51820}"
-rule=(INPUT -p udp --dport "$port" -m comment --comment teclario-wireguard -j ACCEPT)
+rule=(INPUT -p udp --dport "$port" -m comment --comment notacaida-wireguard -j ACCEPT)
 
 if iptables -C "${rule[@]}" 2>/dev/null; then
   echo "firewall: UDP ${port} already open"

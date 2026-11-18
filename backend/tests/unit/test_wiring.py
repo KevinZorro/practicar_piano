@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from teclario.api.settings import Settings
-from teclario.api.wiring import create_production_app
+from notacaida.api.settings import Settings
+from notacaida.api.wiring import create_production_app
 
 
 def test_settings_defaults_are_safe() -> None:
@@ -18,12 +18,12 @@ def test_settings_defaults_are_safe() -> None:
 def test_settings_read_the_environment() -> None:
     settings = Settings.from_env(
         {
-            "TECLARIO_BYTEDANCE_CHECKPOINT": "/m/c.pth",
-            "TECLARIO_WORK_DIR": "/data/work",
-            "TECLARIO_PROXY_URL": "socks5h://10.8.0.2:1080",
-            "TECLARIO_MAX_DURATION_SECONDS": "300",
-            "TECLARIO_DEVICE": "cpu",
-            "TECLARIO_TRUST_PROXY": "True",
+            "NOTACAIDA_BYTEDANCE_CHECKPOINT": "/m/c.pth",
+            "NOTACAIDA_WORK_DIR": "/data/work",
+            "NOTACAIDA_PROXY_URL": "socks5h://10.8.0.2:1080",
+            "NOTACAIDA_MAX_DURATION_SECONDS": "300",
+            "NOTACAIDA_DEVICE": "cpu",
+            "NOTACAIDA_TRUST_PROXY": "True",
         }
     )
     assert settings.checkpoint_path == Path("/m/c.pth")
@@ -35,16 +35,16 @@ def test_settings_read_the_environment() -> None:
 
 def test_blocked_video_ids_are_parsed_from_a_comma_list() -> None:
     assert Settings.from_env({}).blocked_video_ids == frozenset()
-    settings = Settings.from_env({"TECLARIO_BLOCKED_VIDEO_IDS": " abc , def,,"})
+    settings = Settings.from_env({"NOTACAIDA_BLOCKED_VIDEO_IDS": " abc , def,,"})
     assert settings.blocked_video_ids == frozenset({"abc", "def"})
 
 
 def test_empty_proxy_means_no_proxy() -> None:
-    assert Settings.from_env({"TECLARIO_PROXY_URL": ""}).proxy_url is None
+    assert Settings.from_env({"NOTACAIDA_PROXY_URL": ""}).proxy_url is None
 
 
 def test_the_production_app_assembles_and_rejects_a_bad_link(tmp_path: Path) -> None:
-    app = create_production_app({"TECLARIO_WORK_DIR": str(tmp_path / "work")})
+    app = create_production_app({"NOTACAIDA_WORK_DIR": str(tmp_path / "work")})
     assert (tmp_path / "work").is_dir()
     # no lifespan: the worker (and its models) is not started, and the link is refused first
     client = TestClient(app, raise_server_exceptions=False)
@@ -55,7 +55,7 @@ def test_the_production_app_assembles_and_rejects_a_bad_link(tmp_path: Path) -> 
 
 def test_midi_reader_returns_sorted_notes(tmp_path: Path) -> None:
     pretty_midi = pytest.importorskip("pretty_midi")
-    from teclario.infrastructure.midi_reader import PrettyMidiReader
+    from notacaida.infrastructure.midi_reader import PrettyMidiReader
 
     midi = pretty_midi.PrettyMIDI()
     piano = pretty_midi.Instrument(program=0)
@@ -71,7 +71,7 @@ def test_midi_reader_returns_sorted_notes(tmp_path: Path) -> None:
 
 
 def test_healthz_is_up_without_the_worker(tmp_path: Path) -> None:
-    app = create_production_app({"TECLARIO_WORK_DIR": str(tmp_path)})
+    app = create_production_app({"NOTACAIDA_WORK_DIR": str(tmp_path)})
     response = TestClient(app).get("/healthz")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

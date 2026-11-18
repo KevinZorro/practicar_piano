@@ -1,6 +1,6 @@
 # Plan de la Fase 1: MVP completo
 
-> **Actualización 2026-11-17:** Kevin respondió la sección 9. Resumen: sin caché en el servidor, 10 min de duración máxima, cola de 1 + 5, máx. 10 notas simultáneas, aviso por notificación del navegador y nombre Teclario. Detalle en los ADR [0016](../adr/0016-entrega-sin-cache-y-limites.md) y [0017](../adr/0017-reduccion-de-polifonia.md); donde este plan hable de caché con TTL de 24 h o de tope de 5 minutos, mandan los ADR. La numeración de ADR previstos se corrió una posición porque 0015 lo ocupa el proxy.
+> **Actualización 2026-11-17:** Kevin respondió la sección 9. Resumen: sin caché en el servidor, 10 min de duración máxima, cola de 1 + 5, máx. 10 notas simultáneas, aviso por notificación del navegador y nombre Notacaida. Detalle en los ADR [0016](../adr/0016-entrega-sin-cache-y-limites.md) y [0017](../adr/0017-reduccion-de-polifonia.md); donde este plan hable de caché con TTL de 24 h o de tope de 5 minutos, mandan los ADR. La numeración de ADR previstos se corrió una posición porque 0015 lo ocupa el proxy.
 
 - Fecha: 2026-11-15
 - Estado: **Propuesta (revisión 2), pendiente del visto bueno de Kevin.** No se escribe código de la Fase 1 hasta que se apruebe.
@@ -44,7 +44,7 @@ sequenceDiagram
   Note over A,W: el audio se borra siempre; solo el resultado queda en caché con TTL (rev. 2)
 ```
 
-### 2.1 Backend (`backend/src/teclario/`)
+### 2.1 Backend (`backend/src/notacaida/`)
 
 Se mantiene la regla `cli/api → application → domain`; `infrastructure` implementa los puertos.
 
@@ -254,4 +254,4 @@ La compuerta de calidad ya se resolvió por oído a favor de ByteDance. Estos so
 4. **Tope de cola y de uso:** ¿10 trabajos en cola y 2 activos por IP? Con ≈ 6 minutos por canción, 10 trabajos son una hora de espera.
 5. **Aviso al terminar:** ¿basta con notificación del navegador, título y sonido con la pestaña abierta, y marca de «lista» al volver? Web Push queda fuera del MVP.
 6. **Reducción de polifonía:** ¿te sirven los límites propuestos (5 notas por mano, décima de alcance, 10 en total; `easy` con 4, octava y 8) y los dos niveles? Los afinamos con tus canciones difíciles; ¿puedes pasarme cuáles son (sin audio) para armar fixtures sintéticas con esa forma?
-7. **Nombre del proyecto:** `teclario` sigue provisional; hace falta antes de D2 y del dominio.
+7. **Nombre del proyecto:** `notacaida` sigue provisional; hace falta antes de D2 y del dominio.

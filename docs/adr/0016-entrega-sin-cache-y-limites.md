@@ -17,7 +17,7 @@ Capacidad de la VPS (medida por Kevin): ARM Neoverse-N1, 2 núcleos, 12 GiB de R
 4. **Cola: 1 trabajo en proceso + 5 en espera como máximo.** Un trabajo de 10 min ocupa la VPS ≈ 20 min; uno típico de 3–4 min, ≈ 6–8. Con 5 en espera la espera típica es ≈ 35–45 min y la peor, ≈ 2 h; más allá deja de ser un servicio utilizable y solo acumula trabajo que el usuario ya no esperará. Con la cola llena la API responde 503 con `Retry-After`. Cabe en memoria de sobra (un solo worker); el límite lo impone el tiempo, no la RAM.
 5. **Por IP: máximo 2 trabajos activos** (en espera o procesando) y 6 por hora, para que una persona no ocupe todos los puestos.
 6. **Aviso al terminar:** Notificaciones del navegador (permiso pedido al enviar el enlace), título de la pestaña y sonido. Con la pestaña cerrada, el aviso llega al reabrir. Correo gratuito: mejora posterior, sin decidir proveedor todavía.
-7. **Nombre:** se mantiene **Teclario**, que ya está en el código, el paquete y la CLI. Antes de publicar (D2) hay que comprobar que el dominio esté libre; si no, se cambia entonces con una ADR.
+7. **Nombre:** se mantiene **Notacaida**, que ya está en el código, el paquete y la CLI. Antes de publicar (D2) hay que comprobar que el dominio esté libre; si no, se cambia entonces con una ADR.
 8. **Numeración:** el ADR 0015 lo tomó el proxy de casa, así que los ADR previstos en el plan se renumeran: 0016 (este), 0017 reducción de polifonía, y a partir de 0018 reloj de reproducción, pulso y partitura, biblioteca local.
 
 ## Alternativas consideradas

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from teclario.domain.errors import TranscriptionError
-from teclario.domain.models import TranscriptionOutput
-from teclario.infrastructure.process_meter import SubprocessResourceMeter
+from notacaida.domain.errors import TranscriptionError
+from notacaida.domain.models import TranscriptionOutput
+from notacaida.infrastructure.process_meter import SubprocessResourceMeter
 from tests.support import workers
 
 

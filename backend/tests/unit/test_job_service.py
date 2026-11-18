@@ -1,18 +1,18 @@
 import pytest
 
-from teclario.application.job_queue import JobQueue, QueueLimits
-from teclario.application.job_service import (
+from notacaida.application.job_queue import JobQueue, QueueLimits
+from notacaida.application.job_service import (
     TERMINAL_RETENTION,
     DeleteJob,
     FetchResult,
     GetJobStatus,
     Sweep,
 )
-from teclario.domain.errors import JobNotFoundError, ResultNotReadyError
-from teclario.domain.job import Job, JobStatus
-from teclario.domain.result import SongResult
-from teclario.domain.video_url import VideoUrl
-from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from notacaida.domain.errors import JobNotFoundError, ResultNotReadyError
+from notacaida.domain.job import Job, JobStatus
+from notacaida.domain.result import SongResult
+from notacaida.domain.video_url import VideoUrl
+from notacaida.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock
 
 RESULT = SongResult(10.0, 120.0, "high", ())

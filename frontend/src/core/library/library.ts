@@ -60,14 +60,14 @@ export function recordAttempt(song: LibrarySong, attempt: Attempt): LibrarySong 
   return { ...song, progress: { ...song.progress, [attempt.level]: next } };
 }
 
-const EXPORT_FORMAT = 'teclario-library';
+const EXPORT_FORMAT = 'notacaida-library';
 const EXPORT_VERSION = 1;
 
 export function exportLibrary(songs: readonly LibrarySong[]): string {
   return JSON.stringify({ format: EXPORT_FORMAT, version: EXPORT_VERSION, songs });
 }
 
-/** Throws `Error` with a stable message when the text is not a Teclario export. */
+/** Throws `Error` with a stable message when the text is not a Notacaida export. */
 export function parseLibrary(text: string): LibrarySong[] {
   let data: unknown;
   try {

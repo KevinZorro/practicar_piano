@@ -9,15 +9,15 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from teclario.api.app import create_app
-from teclario.api.container import Container
-from teclario.application.job_queue import JobQueue, QueueLimits
-from teclario.application.job_service import DeleteJob, FetchResult, GetJobStatus, Sweep
-from teclario.application.process_job import ProcessJob
-from teclario.application.submit_job import SubmitJob
-from teclario.application.worker import Worker
-from teclario.domain.notes import NoteEvent
-from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from notacaida.api.app import create_app
+from notacaida.api.container import Container
+from notacaida.application.job_queue import JobQueue, QueueLimits
+from notacaida.application.job_service import DeleteJob, FetchResult, GetJobStatus, Sweep
+from notacaida.application.process_job import ProcessJob
+from notacaida.application.submit_job import SubmitJob
+from notacaida.application.worker import Worker
+from notacaida.domain.notes import NoteEvent
+from notacaida.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import (
     FakeClock,
     FakeDownloader,

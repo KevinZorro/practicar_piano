@@ -248,7 +248,7 @@ export function openBrowserMic(
   };
 }
 
-const CALIBRATION_ITEM = 'teclario.mic.calibration.v1';
+const CALIBRATION_ITEM = 'notacaida.mic.calibration.v1';
 
 /** Calibration in localStorage: tiny, per browser; every access may throw (private mode). */
 export function localCalibrationStore(

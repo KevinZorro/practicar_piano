@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from teclario.application.benchmark import RunBenchmark
-from teclario.cli import phase0
-from teclario.cli.main import main
+from notacaida.application.benchmark import RunBenchmark
+from notacaida.cli import phase0
+from notacaida.cli.main import main
 from tests.support.fakes import FakeDownloader, FakeSynthesizer, FakeTranscriber, InlineMeter
 
 IDS = [f"{c}{c}{c}{c}{c}{c}{c}{c}{c}{c}{c}" for c in "abcdefghij"]

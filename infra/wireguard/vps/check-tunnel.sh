@@ -22,7 +22,7 @@ step "3. SOCKS5 proxy reaches YouTube (host)"
 if curl -sS -o /dev/null --max-time 20 --proxy "$proxy" -I https://www.youtube.com; then ok; else ko; fi
 
 step "4. Same, from a container (compose path)"
-if docker run --rm --entrypoint curl "${TECLARIO_IMAGE:-teclario-phase0:local}" \
+if docker run --rm --entrypoint curl "${NOTACAIDA_IMAGE:-notacaida-phase0:local}" \
   -sS -o /dev/null --max-time 20 --proxy "$proxy" -I https://www.youtube.com 2>/dev/null; then ok; else ko; fi
 
 step "5. Exit IP is the home IP, not the VPS IP"

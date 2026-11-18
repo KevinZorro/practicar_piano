@@ -14,13 +14,13 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from teclario.api.app import create_app as create_service_app
-from teclario.api.settings import Settings
-from teclario.api.wiring import build_container
-from teclario.domain.models import AudioFile, SongSource
-from teclario.domain.video_url import VideoUrl
-from teclario.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
-from teclario.infrastructure.synthesizer import AdditiveSynthesizer
+from notacaida.api.app import create_app as create_service_app
+from notacaida.api.settings import Settings
+from notacaida.api.wiring import build_container
+from notacaida.domain.models import AudioFile, SongSource
+from notacaida.domain.video_url import VideoUrl
+from notacaida.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
+from notacaida.infrastructure.synthesizer import AdditiveSynthesizer
 
 ODE_TO_JOY = [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62]
 NOTE_SECONDS = 0.5
@@ -60,10 +60,10 @@ class SyntheticSource:
 
 
 def create_app() -> FastAPI:
-    work = Path(tempfile.mkdtemp(prefix="teclario-e2e-"))
+    work = Path(tempfile.mkdtemp(prefix="notacaida-e2e-"))
     wav = work / "ode.wav"
     render_melody(wav)
-    settings = Settings.from_env({"TECLARIO_WORK_DIR": str(work / "jobs")})
+    settings = Settings.from_env({"NOTACAIDA_WORK_DIR": str(work / "jobs")})
     (work / "jobs").mkdir()
     container = build_container(
         settings, source=SyntheticSource(wav), transcriber=BasicPitchTranscriber()

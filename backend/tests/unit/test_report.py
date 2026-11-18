@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from teclario.application.report import parse_verdicts, render_report, render_verdicts_template
-from teclario.application.results_store import dump_results, load_results
-from teclario.domain.models import SongResult
+from notacaida.application.report import parse_verdicts, render_report, render_verdicts_template
+from notacaida.application.results_store import dump_results, load_results
+from notacaida.domain.models import SongResult
 from tests.unit.test_gate import run, song, ten_songs
 
 ENV = {"platform": "linux-aarch64", "cpus": "2"}

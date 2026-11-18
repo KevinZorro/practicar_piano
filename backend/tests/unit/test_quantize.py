@@ -1,14 +1,14 @@
 import random
 
-from teclario.domain.notes import NoteEvent
-from teclario.domain.quantize import (
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.quantize import (
     CELLS_PER_BEAT,
     CELLS_PER_MEASURE,
     Hand,
     assign_hand,
     quantize,
 )
-from teclario.domain.tempo import TempoEstimate, estimate_tempo
+from notacaida.domain.tempo import TempoEstimate, estimate_tempo
 
 BPM = 120.0
 BEAT = 60 / BPM
