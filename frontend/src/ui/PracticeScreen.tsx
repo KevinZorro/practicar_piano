@@ -13,7 +13,7 @@ import { accuracy, type PracticeState } from '../core/practice/machine';
 import { SPEED_PRESETS, SpeedControl } from '../core/practice/speed';
 import { Judge } from '../core/practice/judge';
 import { WaitMode } from '../core/practice/waitMode';
-import { drawFrame } from '../render/drawFrame';
+import { drawFrame, KEYBOARD_HEIGHT } from '../render/drawFrame';
 import { LEVEL_LABEL } from './messages';
 import { SheetPane } from './SheetPane';
 
@@ -34,6 +34,10 @@ interface Props {
 }
 
 const AHEAD_S = 4;
+// Logical canvas size: 20 px per white key; the bitmap is scaled by the pixel ratio for crisp text.
+const CANVAS_WIDTH = 1040;
+const FALL_HEIGHT = 340;
+const CANVAS_HEIGHT = FALL_HEIGHT + KEYBOARD_HEIGHT + 2;
 
 const wallMs = (): number => performance.now();
 
@@ -87,6 +91,7 @@ export function PracticeScreen({
   const duration = song.result.meta.duration_s;
 
   const canvas = useRef<HTMLCanvasElement>(null);
+  const pressedKeys = useRef(new Set<number>());
   const seekSheet = useRef<((timeS: number) => void) | null>(null);
   const registerSeek = useCallback((seek: ((timeS: number) => void) | null) => {
     seekSheet.current = seek;
@@ -144,9 +149,12 @@ export function PracticeScreen({
 
   useEffect(() => {
     if (!midi) return;
+    const pressed = pressedKeys.current;
     const offStatus = midi.onStatusChange(setMidiStatus);
     const offNote = midi.onNote((message) => {
+      if (message.type === 'noteOff') pressedKeys.current.delete(message.pitch);
       if (message.type !== 'noteOn') return;
+      pressedKeys.current.add(message.pitch);
       if (soundRef.current) piano.current?.play(keyNote(message.pitch, message.velocity), 0.8);
       if (!sessionRef.current) return;
       if (waitRef.current) waitRef.current.noteOn(message.pitch);
@@ -155,6 +163,7 @@ export function PracticeScreen({
     return () => {
       offStatus();
       offNote();
+      pressed.clear();
       midi.stop();
     };
   }, [midi, clock]);
@@ -167,11 +176,15 @@ export function PracticeScreen({
       const ctx = canvas.current?.getContext('2d');
       const el = canvas.current;
       if (ctx && el) {
-        drawFrame(ctx, view.notes, now, {
-          width: el.width,
-          height: el.height - 2,
-          aheadS: AHEAD_S,
-        });
+        const ratio = el.width / CANVAS_WIDTH;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        drawFrame(
+          ctx,
+          view.notes,
+          now,
+          { width: CANVAS_WIDTH, height: FALL_HEIGHT, aheadS: AHEAD_S },
+          { pressed: pressedKeys.current },
+        );
       }
       seekSheet.current?.(now);
       if (sessionRef.current) waitRef.current?.tick();
@@ -425,10 +438,20 @@ export function PracticeScreen({
           style={VIDEO_STYLE}
         />
       )}
-      <canvas ref={canvas} width={960} height={320} aria-label="Notas que caen" />
+      <canvas
+        ref={canvas}
+        width={CANVAS_WIDTH * canvasScale()}
+        height={CANVAS_HEIGHT * canvasScale()}
+        aria-label="Notas que caen"
+      />
       <SheetPane score={view.score} registerSeek={registerSeek} />
     </section>
   );
+}
+
+/** Bitmap scale: the device pixel ratio, at least 1 and at most 2 to keep frames cheap. */
+function canvasScale(): number {
+  return Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
 }
 
 /** A synthetic note for a key the player pressed (not part of the song). */

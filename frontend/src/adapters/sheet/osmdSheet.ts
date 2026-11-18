@@ -1,4 +1,4 @@
-import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
+import { CursorType, OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { stepIndexAt, stepStartsFromNotation } from '../../core/sheet/cursor';
 
 /**
@@ -16,6 +16,11 @@ export class OsmdSheet {
       backend: 'svg',
       drawTitle: false,
       followCursor: true,
+      // First: the current measure as a soft band; second: a bright line at the current notes.
+      cursorsOptions: [
+        { type: CursorType.CurrentArea, color: '#7c5cff', alpha: 0.16, follow: true },
+        { type: CursorType.ThinLeft, color: '#f72585', alpha: 1, follow: true },
+      ],
     });
   }
 
@@ -30,20 +35,20 @@ export class OsmdSheet {
   seek(timeS: number): void {
     const index = stepIndexAt(this.stepStartsS, timeS);
     if (index === this.shown) return;
-    const cursor = this.osmd.cursor;
+    const cursors = this.osmd.cursors;
     if (index < 0) {
-      cursor.hide();
+      for (const cursor of cursors) cursor.hide();
     } else {
       // Moving forward costs one step each; going back restarts from the beginning.
       if (index < this.shown || this.shown < 0) {
-        cursor.reset();
+        for (const cursor of cursors) cursor.reset();
         this.shown = 0;
       }
       while (this.shown < index) {
-        cursor.next();
+        for (const cursor of cursors) cursor.next();
         this.shown += 1;
       }
-      cursor.show();
+      for (const cursor of cursors) cursor.show();
     }
     this.shown = index;
   }
@@ -67,8 +72,10 @@ export class OsmdSheet {
       steps.push(cursor.Iterator.currentTimeStamp.RealValue);
       cursor.next();
     }
-    cursor.reset();
-    cursor.hide();
+    for (const each of this.osmd.cursors) {
+      each.reset();
+      each.hide();
+    }
     return steps;
   }
 }

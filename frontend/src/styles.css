@@ -275,7 +275,7 @@ input[type='range'] {
 canvas {
   width: 100%;
   height: auto;
-  aspect-ratio: 3 / 1;
+  aspect-ratio: 1040 / 452;
   /* Always dark, like a piano roll: the hit line is white. */
   background: #1c1c28;
   border: 1px solid var(--border);
