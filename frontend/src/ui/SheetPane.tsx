@@ -10,18 +10,23 @@ interface Props {
 /** The sheet music with a cursor that follows the song. Layout needs a real browser. */
 export function SheetPane({ score, registerSeek }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const container = host.current;
     if (!score || !container) return;
-    const state = { cancelled: false };
+    const state: { cancelled: boolean; sheet: { clear(): void } | null } = {
+      cancelled: false,
+      sheet: null,
+    };
     setFailed(false);
     void (async () => {
       try {
         // Loaded on demand: the renderer is large and only the practice screen needs it.
         const { OsmdSheet } = await import('../adapters/sheet/osmdSheet');
-        const sheet = new OsmdSheet(container);
+        const sheet = new OsmdSheet(container, scroller.current);
+        state.sheet = sheet;
         const first = score.measures[0]?.start_s ?? 0;
         await sheet.load(score.musicxml, score.tempo_bpm, first);
         if (state.cancelled) {
@@ -38,6 +43,7 @@ export function SheetPane({ score, registerSeek }: Props) {
     return () => {
       state.cancelled = true;
       registerSeek(null);
+      state.sheet?.clear();
       container.replaceChildren();
     };
   }, [score, registerSeek]);
@@ -46,7 +52,9 @@ export function SheetPane({ score, registerSeek }: Props) {
   return (
     <>
       {failed && <p role="alert">No se pudo dibujar la partitura.</p>}
-      <div ref={host} className="sheet" aria-label="Partitura" />
+      <div ref={scroller} className="sheet-scroll">
+        <div ref={host} className="sheet" aria-label="Partitura" />
+      </div>
     </>
   );
 }

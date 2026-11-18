@@ -2,6 +2,7 @@ import type { PlayerPort } from './playbackClock';
 import { SwitchablePlayer } from './switchablePlayer';
 
 class FakePlayer implements PlayerPort {
+  listener: ((playing: boolean) => void) | null = null;
   played = 0;
   paused = 0;
   rate = 1;
@@ -18,6 +19,12 @@ class FakePlayer implements PlayerPort {
   };
   setPlaybackRate = (r: number) => {
     this.rate = r;
+  };
+  onExternalChange = (listener: (playing: boolean) => void) => {
+    this.listener = listener;
+    return () => {
+      this.listener = null;
+    };
   };
 }
 
@@ -42,5 +49,20 @@ describe('SwitchablePlayer', () => {
     player.attach(video);
     expect(video.played).toBe(0);
     expect(video.time).toBe(3);
+  });
+
+  it('passes on clicks made on the current player and forgets the previous one', () => {
+    const stand = new FakePlayer();
+    const video = new FakePlayer();
+    const player = new SwitchablePlayer(stand);
+    const seen: boolean[] = [];
+    player.onExternalChange((playing) => seen.push(playing));
+    player.attach(video);
+    expect(stand.listener).toBeNull();
+    video.listener?.(true);
+    expect(seen).toEqual([true]);
+    // The new state is carried over when switching back to the stand-in.
+    player.attach(stand);
+    expect(stand.played).toBe(1);
   });
 });

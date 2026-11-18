@@ -11,16 +11,27 @@ export interface YtPlayerLike {
   unMute?(): void;
 }
 
+/** `YT.PlayerState` values the port reacts to. */
+const YT_ENDED = 0;
+const YT_PLAYING = 1;
+const YT_PAUSED = 2;
+
 export class YouTubePlayerPort implements PlayerPort {
+  /** What the app last asked for, to tell its own changes from the player's clicks. */
+  private commanded: 'play' | 'pause' = 'pause';
+  private readonly listeners = new Set<(playing: boolean) => void>();
+
   constructor(private readonly player: YtPlayerLike) {}
 
   getCurrentTime(): number {
     return this.player.getCurrentTime();
   }
   play(): void {
+    this.commanded = 'play';
     this.player.playVideo();
   }
   pause(): void {
+    this.commanded = 'pause';
     this.player.pauseVideo();
   }
   seekTo(timeS: number): void {
@@ -32,6 +43,24 @@ export class YouTubePlayerPort implements PlayerPort {
   setMuted(muted: boolean): void {
     if (muted) this.player.mute?.();
     else this.player.unMute?.();
+  }
+
+  onExternalChange(listener: (playing: boolean) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  /**
+   * Feed `onStateChange` here. A click on the video starts or stops it without the app
+   * knowing; the app then follows instead of drawing a song that runs on its own.
+   */
+  handleState(state: number): void {
+    if (state !== YT_PLAYING && state !== YT_PAUSED && state !== YT_ENDED) return;
+    const playing = state === YT_PLAYING;
+    if (playing === (this.commanded === 'play')) return;
+    for (const listener of this.listeners) listener(playing);
   }
 }
 

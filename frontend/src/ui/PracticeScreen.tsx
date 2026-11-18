@@ -305,14 +305,13 @@ export function PracticeScreen({
     }
   }, [finished, practiceState, report]);
 
-  async function togglePlay() {
-    if (playing) {
-      clock.pause();
-      piano.current?.stopAll();
-      setPlaying(false);
-      return;
-    }
-    await ensurePiano();
+  function stop() {
+    clock.pause();
+    piano.current?.stopAll();
+    setPlaying(false);
+  }
+
+  function start() {
     if (clock.now() >= duration) {
       clock.seek(0);
       waitRef.current?.seek(0);
@@ -321,8 +320,33 @@ export function PracticeScreen({
     }
     // While the song waits for a key, resuming must not run past the chord.
     if (waitRef.current?.snapshot.status !== 'waiting') clock.play();
+    else player.pause();
     setPlaying(true);
   }
+
+  async function togglePlay() {
+    if (playing) {
+      stop();
+      return;
+    }
+    await ensurePiano();
+    start();
+  }
+
+  // A click on the video itself starts or stops it: the practice follows it.
+  const followVideo = useRef({ start, stop });
+  useEffect(() => {
+    followVideo.current = { start, stop };
+  });
+  useEffect(
+    () =>
+      player.onExternalChange((videoPlaying) => {
+        if (videoPlaying === sessionRef.current) return;
+        if (videoPlaying) followVideo.current.start();
+        else followVideo.current.stop();
+      }),
+    [player],
+  );
 
   function restart() {
     clock.seek(0);

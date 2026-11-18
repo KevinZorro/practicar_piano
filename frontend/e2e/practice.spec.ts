@@ -96,8 +96,9 @@ test('wait mode stops the song until the right key arrives from the keyboard', a
   await expect(progress).toContainText('Fallos: 1');
 });
 
-test('the video is shown and follows play and pause', async ({ page }) => {
-  // The real IFrame API needs the network: a fake one records what the app asks of it.
+// The real IFrame API needs the network: a fake one records what the app asks of it and lets
+// the test click the video itself (`ytEmit` sends a YT.PlayerState to the app).
+async function fakeYouTube(page: Page): Promise<void> {
   await page.route('https://www.youtube.com/iframe_api', (route) =>
     route.fulfill({
       contentType: 'application/javascript',
@@ -106,6 +107,7 @@ test('the video is shown and follows play and pause', async ({ page }) => {
         window.YT = { Player: class {
           constructor(el, o) {
             el.setAttribute('data-video', o.videoId);
+            window.ytEmit = (state) => o.events.onStateChange && o.events.onStateChange({ data: state });
             setTimeout(() => o.events.onReady(), 0);
           }
           getCurrentTime() { return 0; }
@@ -117,6 +119,15 @@ test('the video is shown and follows play and pause', async ({ page }) => {
         window.onYouTubeIframeAPIReady();`,
     }),
   );
+}
+
+const clickVideo = (page: Page, state: number) =>
+  page.evaluate((s) => {
+    (window as unknown as { ytEmit: (n: number) => void }).ytEmit(s);
+  }, state);
+
+test('the video is shown and follows play and pause', async ({ page }) => {
+  await fakeYouTube(page);
   await openPractice(page);
   await expect(page.getByRole('region', { name: 'Vídeo' })).toBeVisible();
   await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
@@ -127,6 +138,30 @@ test('the video is shown and follows play and pause', async ({ page }) => {
   await page.getByRole('button', { name: 'Pausar' }).click();
   const calls = await page.evaluate(() => (window as unknown as { calls: string[] }).calls);
   expect(calls).toEqual(expect.arrayContaining(['play', 'pause']));
+});
+
+test('a click on the video itself starts and stops the practice', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Vídeo' })).toBeVisible();
+
+  await clickVideo(page, 1); // YT.PlayerState.PLAYING, not asked for by the app
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+  await clickVideo(page, 2); // PAUSED
+  await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
+});
+
+test('playing never scrolls the page away from where the player is looking', async ({ page }) => {
+  await openPractice(page);
+  await expect(page.locator('.sheet svg')).toBeVisible({ timeout: 20_000 });
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  // The cursor moves through several notes in this time; the page must not follow it.
+  await page.waitForTimeout(2_500);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
 test('a finished run played on the keyboard is kept as progress in the library', async ({
