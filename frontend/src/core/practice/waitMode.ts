@@ -33,6 +33,12 @@ export class WaitMode {
     return this.state;
   }
 
+  /** Pitches of the chord the player has to play next (empty when finished). */
+  expectedPitches(): readonly number[] {
+    const chord = this.chords[this.state.pointer];
+    return chord && this.state.status !== 'finished' ? chord.notes.map((n) => n.pitch) : [];
+  }
+
   /** Call every frame while the player is practicing. */
   tick(): void {
     this.dispatch({ type: 'tick', timeS: this.clock.now() });

@@ -4,6 +4,7 @@ import { TonePiano } from './adapters/audio/tonePiano';
 import { HttpJobsApi } from './adapters/api/jobsApi';
 import { BrowserNotifier, createNotificationApi } from './adapters/notifications/browserNotifier';
 import { createYouTubeVideo } from './adapters/youtube/createVideo';
+import { createWebMicInput } from './adapters/audio/micInput';
 import { createWebMidiInput } from './adapters/midi/midiInput';
 import { IndexedDbLibrary, openLibraryDb } from './adapters/storage/indexedDbLibrary';
 import { createLocalPendingStore } from './adapters/storage/localPendingStore';
@@ -61,6 +62,7 @@ async function main(container: HTMLElement): Promise<void> {
         openJob={openJob}
         createPiano={() => new TonePiano()}
         createMidi={() => createWebMidiInput()}
+        createMic={() => createWebMicInput()}
         createVideo={createYouTubeVideo}
       />
     </StrictMode>,

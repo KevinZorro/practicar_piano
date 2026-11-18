@@ -12,9 +12,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "title": "CreateJobRequest",
         "type": "object"
       },
@@ -29,10 +27,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "title": "ErrorBody",
         "type": "object"
       },
@@ -42,9 +37,7 @@
             "$ref": "#/components/schemas/ErrorBody"
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "title": "ErrorResponse",
         "type": "object"
       },
@@ -96,11 +89,7 @@
             "$ref": "#/components/schemas/JobStatus"
           }
         },
-        "required": [
-          "job_id",
-          "status",
-          "duration_s"
-        ],
+        "required": ["job_id", "status", "duration_s"],
         "title": "JobResponse",
         "type": "object"
       },
@@ -128,11 +117,7 @@
             "type": "integer"
           },
           "name": {
-            "enum": [
-              "original",
-              "playable",
-              "easy"
-            ],
+            "enum": ["original", "playable", "easy"],
             "title": "Name",
             "type": "string"
           },
@@ -183,10 +168,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "measure",
-          "start_s"
-        ],
+        "required": ["measure", "start_s"],
         "title": "MeasureOut",
         "type": "object"
       },
@@ -213,12 +195,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "pitch",
-          "start_s",
-          "end_s",
-          "velocity"
-        ],
+        "required": ["pitch", "start_s", "end_s", "velocity"],
         "title": "NoteOut",
         "type": "object"
       },
@@ -233,19 +210,12 @@
             "type": "number"
           },
           "tempo_confidence": {
-            "enum": [
-              "high",
-              "low"
-            ],
+            "enum": ["high", "low"],
             "title": "Tempo Confidence",
             "type": "string"
           }
         },
-        "required": [
-          "duration_s",
-          "tempo_bpm",
-          "tempo_confidence"
-        ],
+        "required": ["duration_s", "tempo_bpm", "tempo_confidence"],
         "title": "ResultMeta",
         "type": "object"
       },
@@ -262,10 +232,7 @@
             "$ref": "#/components/schemas/ResultMeta"
           }
         },
-        "required": [
-          "meta",
-          "levels"
-        ],
+        "required": ["meta", "levels"],
         "title": "ResultResponse",
         "type": "object"
       },
@@ -287,11 +254,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "musicxml",
-          "tempo_bpm",
-          "measures"
-        ],
+        "required": ["musicxml", "tempo_bpm", "measures"],
         "title": "ScoreOut",
         "type": "object"
       }

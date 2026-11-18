@@ -4,20 +4,20 @@ Objetivo: decidir con diez covers reales si (1) la VPS puede bajar el audio de Y
 
 ## Criterios de la compuerta
 
-| Criterio | Cómo se mide |
-| --- | --- |
-| Al menos **8 de 10** canciones reconocibles | De oído, por modelo: escuchas el WAV y anotas `si` o `no` en `verdicts.csv` |
-| **Menos de 2 min** de proceso por canción de 3 min | Automático: tiempo de inferencia ÷ duración < 0,67 en todas las canciones |
-| La descarga funciona, directa o por la casa | Automático: el informe cuenta las descargas correctas |
+| Criterio                                           | Cómo se mide                                                                |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| Al menos **8 de 10** canciones reconocibles        | De oído, por modelo: escuchas el WAV y anotas `si` o `no` en `verdicts.csv` |
+| **Menos de 2 min** de proceso por canción de 3 min | Automático: tiempo de inferencia ÷ duración < 0,67 en todas las canciones   |
+| La descarga funciona, directa o por la casa        | Automático: el informe cuenta las descargas correctas                       |
 
 Resultado de `pianola phase0 gate`:
 
-| Estado | Significa | Qué hacer |
-| --- | --- | --- |
-| `PASS` | Un mismo modelo cumple reconocimiento y tiempo | Seguir a la Fase 1 con ese modelo; actualizar ADR 0006 |
-| `PARTIAL` | Hay 8 canciones reconocibles pero ningún modelo cumple ambas cosas | Avisar: se decide entre más hardware, un modelo más rápido o bajar el alcance |
-| `FAIL` | Menos de 8 reconocibles | Plan del estudio: si falla la descarga, la entrada vuelve a ser un archivo; si falla el modelo, herramienta de práctica con MIDI y retroceso |
-| `INCOMPLETE` | Faltan canciones o veredictos | Completar y volver a correr `gate` |
+| Estado       | Significa                                                          | Qué hacer                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PASS`       | Un mismo modelo cumple reconocimiento y tiempo                     | Seguir a la Fase 1 con ese modelo; actualizar ADR 0006                                                                                       |
+| `PARTIAL`    | Hay 8 canciones reconocibles pero ningún modelo cumple ambas cosas | Avisar: se decide entre más hardware, un modelo más rápido o bajar el alcance                                                                |
+| `FAIL`       | Menos de 8 reconocibles                                            | Plan del estudio: si falla la descarga, la entrada vuelve a ser un archivo; si falla el modelo, herramienta de práctica con MIDI y retroceso |
+| `INCOMPLETE` | Faltan canciones o veredictos                                      | Completar y volver a correr `gate`                                                                                                           |
 
 Código de salida: 0 = PASS, 1 = PARTIAL o FAIL, 2 = INCOMPLETE o error de uso.
 
@@ -141,13 +141,13 @@ Esto reescribe `report.md` con el resultado.
 
 ## Problemas frecuentes
 
-| Síntoma | Causa probable | Solución |
-| --- | --- | --- |
-| `required tools not found on PATH: deno` | Se corrió fuera de Docker sin Deno | Usar la imagen o instalar Deno |
-| `Sign in to confirm you're not a bot` | YouTube bloquea la IP de la VPS | Proxy por WireGuard (sección 4) |
-| `checkpoint not found or incomplete` | Falta el paso 3 | Descargar el checkpoint |
-| `worker died with exit code -9` | Sin memoria (OOM) | Revisar el pico de memoria del otro modelo; canción demasiado larga |
-| Fallos de extracción repentinos | yt-dlp desactualizado frente a YouTube | `cd backend && uv lock --upgrade-package yt-dlp`, reconstruir la imagen |
+| Síntoma                                  | Causa probable                         | Solución                                                                |
+| ---------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| `required tools not found on PATH: deno` | Se corrió fuera de Docker sin Deno     | Usar la imagen o instalar Deno                                          |
+| `Sign in to confirm you're not a bot`    | YouTube bloquea la IP de la VPS        | Proxy por WireGuard (sección 4)                                         |
+| `checkpoint not found or incomplete`     | Falta el paso 3                        | Descargar el checkpoint                                                 |
+| `worker died with exit code -9`          | Sin memoria (OOM)                      | Revisar el pico de memoria del otro modelo; canción demasiado larga     |
+| Fallos de extracción repentinos          | yt-dlp desactualizado frente a YouTube | `cd backend && uv lock --upgrade-package yt-dlp`, reconstruir la imagen |
 
 ## Sin Docker (alternativa)
 

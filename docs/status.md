@@ -3,6 +3,7 @@
 Última actualización: 2026-11-17 · Fase actual: **Fase 1** (en curso) · Rama: `claude/project-thread-tgbyej`
 
 ## Hecho
+
 - [x] Andamiaje: licencia MIT, NOTICE, .gitignore (bloquea medios y modelos), pre-commit, CLAUDE.md, git-guard
 - [x] ADR 0001–0012 (D-01 a D-12), ADR 0013 (checkpoint de ByteDance verificado) y arquitectura
 - [x] Backend hexagonal: validación de enlaces, puertos, orquestador, regla de la compuerta, informe y `verdicts.csv`
@@ -14,9 +15,11 @@
 - [x] Proxy de casa por WireGuard: configuración de la VPS y del PC (Windows), proxy `gost`, sonda `check-proxy` en compose y runbook (ADR 0015)
 
 ## Verificado en el entorno de desarrollo (x86_64, Python 3.11 y 3.12)
+
 - 98 pruebas en verde, Ruff y mypy limpios; Basic Pitch ONNX transcribe una melodía sintetizada de dominio público.
 
 ## No verificado (requiere la VPS o la CI)
+
 - Descarga real desde YouTube (sin red a YouTube ni Deno en el entorno de desarrollo).
 - Modelo de ByteDance real (PyTorch y checkpoint no se instalaron; el adaptador se probó con un doble).
 - Construcción y ejecución de la imagen en ARM64 (no había daemon de Docker; lo cubre el flujo `docker-arm64` de la CI).
@@ -24,6 +27,7 @@
 - Licencia del checkpoint de ByteDance (Zenodo inaccesible desde el entorno): ver `docs/phase-0/model-licenses.md`.
 
 ## Resultado en la VPS (2026-11-14)
+
 - Descarga directa: **bloqueada por YouTube** en las 10 canciones (`Sign in to confirm you're not a bot`). Plan B con proxy de casa (ADR 0004, 0015): ver la línea siguiente y `docs/phase-0/proxy-casa-wireguard.md`.
 - Proxy de casa por WireGuard (2026-11-16, Kevin): túnel y proxy `gost` en Windows operativos; `check-tunnel.sh` 5/5 OK y `check-proxy` devuelve `HTTP/2 200` desde un contenedor. La descarga real de la primera canción por el proxy funcionó (se generó el audio, sin `Sign in to confirm you're not a bot`). **Verificado en 1 de 10 canciones**: se cortó la corrida con Ctrl+C durante ByteDance, sin `report.md`; las otras 9 siguen sin probar. Gotcha: `gost` lo marca Windows Defender/VirusTotal como PUA (herramienta de doble uso, hash verificado); exclusión solo de `C:\ProgramData\pianola-proxy`.
 - Audio local con `--audio-dir`, 10 canciones: Basic Pitch factor 0,04 (mediana) y 0,12 (peor), 505 MB; ByteDance factor ≈ 2,0 (≈ 6 min por canción de 3), 1,5 GB. Corregido un fallo de carga de audio con librosa 0.11.
@@ -32,6 +36,7 @@
 - Observación: transcripciones con más de 15 notas simultáneas no se pueden tocar; la Fase 1 necesita simplificación.
 
 ## Fase 1
+
 - Plan en `docs/phase-1/plan.md`; Kevin respondió la sección 9 (2026-11-17): ADR [0016](adr/0016-entrega-sin-cache-y-limites.md) (sin caché, 10 min, cola 1+5, aviso por notificación, nombre Pianola) y [0017](adr/0017-reduccion-de-polifonia.md) (polifonía).
 - Hecho: C0 (andamiaje frontend y CI), C1 (modelo de notas y máquina del modo espera), A1 (trabajo, `SubmitJob`, `ProcessJob`), A2 (cola acotada, límites por IP, almacén con expiración, worker), A3 (API FastAPI con SSE, errores con código, `docs/api/openapi.json` con prueba de contrato), C2 (reloj interpolado y adaptador de YouTube), C3 (proyección y dibujo de notas; falta el componente React del canvas y el teclado en pantalla), C4 (Web MIDI y detección de navegador; falta la guía en la interfaz).
 - Hecho después (PR siguiente): B1b (`domain/polyphony.py`, ADR 0017 implementado) y C5 (cliente de la API con tipos generados de OpenAPI, `JobTracker` con seguimiento por consulta y trabajos que sobreviven a cerrar la pestaña, pantalla del enlace y la cola, notificación del navegador y título de pestaña; e2e con la API simulada). El aviso con sonido queda pendiente.
@@ -47,14 +52,17 @@
 - Hecho después: C9 en parte: hoja de estilos única con tokens (tema oscuro y claro según el sistema, foco visible, objetivos táctiles de 44 px, movimiento reducido, móvil), partitura siempre sobre fondo blanco y rollo de notas siempre oscuro. Revisado con capturas en escritorio, móvil y los dos temas; sin auditoría automática (axe es MPL-2.0, fuera de la lista de licencias permitidas), se revisó el contraste a mano.
 - Hecho después: progreso en la biblioteca. Al terminar una pasada tocada con teclado se guarda el intento (nivel, precisión, velocidad, modo espera) y la biblioteca muestra intentos, mejor precisión y «dominada» por nivel. En modo espera la precisión sale de la máquina; en juego libre la calcula `Judge` (una tecla cuenta si la nota está a ±0,3 s; las teclas que no coinciden con nada restan, así que aporrear no puntúa). Sin teclado no hay intento. Probado con un teclado simulado; falta probarlo con uno real y ajustar la ventana de ±0,3 s.
 - Hecho después: D1. `npm run e2e:full` y el trabajo `e2e-full` de la CI recorren el flujo principal con el backend real y sin red: pegar enlace, cola, cerrar y reabrir, esperar a «¡Lista!», practicar en modo espera tocando las 15 notas con un teclado simulado (sin fallos), guardar y ver el progreso tras recargar. En lugar de YouTube se usa una melodía de dominio público («Oda a la alegría») generada al arrancar el servidor (`backend/tests/e2e_server.py`); transcribe Basic Pitch (ONNX). `build_container` acepta `source` y `transcriber` para esto; producción no los pasa. Con ByteDance real no corre en cada PR.
+- Hecho después: entrada por micrófono (ADR [0020](adr/0020-entrada-por-microfono.md), propuesta). El Vangoa de Kevin no envía MIDI, así que el micrófono es otra entrada tras el mismo puerto (`core/input/noteInput.ts`): detector de notas esperadas y de notas incorrectas con Web Audio (nada se sube), calibración tocando Do central cinco veces (latencia, ruido, afinación, timbre), vídeo y sonido de la app silenciados salvo con audífonos. Medido solo con un piano simulado (0 de 70 sustituciones aceptadas, 0 notas inventadas al tocar bien, ≈ 150 ms de latencia; `docs/phase-1/microfono-mediciones.md`); comprobado el camino del navegador en Chromium con un micrófono falso. **Sin verificar con el teclado real.**
 - Decisión: los trabajos pendientes siguen en `localStorage`. Son datos diminutos, su API síncrona mantiene simple el seguimiento y funcionan; moverlos a IndexedDB exigiría arranque asíncrono y una migración sin beneficio para quien usa la app.
 - Pendiente de la Fase 1: pulido de C9 con Kevin, D2–D3. Sin verificar: Playwright de CI, YouTube y ARM64 reales, modelos reales en la API (la composición con adaptadores reales llega con A4/A5).
 - Límites conocidos: la cola y los resultados viven en memoria; un reinicio los pierde (ADR 0016).
 
 ## Siguiente paso
+
 Conectar el modo espera con el teclado MIDI y el vídeo de YouTube a la pantalla de práctica; luego C9 y A4–A6. En paralelo, confirmar la descarga por el proxy en las 10 canciones (`phase0 run --links ... --models basic-pitch`, rápido) y decidir si el PC de casa sirve en la Fase 1 o se usa el proxy residencial de pago (ADR 0004).
 
 ## Decisiones abiertas
+
 - D-06 (motor de transcripción): resuelta a favor de ByteDance asíncrono (ADR 0014, aceptada).
 - Nombre definitivo del proyecto (`pianola` es provisional).
 - Checkpoint de ByteDance: licencia CC BY 4.0 verificada (atribución en `NOTICE`); falta contrastar MD5 y fijar SHA-256 (ADR 0013).

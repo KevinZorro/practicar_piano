@@ -1,8 +1,6 @@
-export interface NoteMessage {
-  readonly type: 'noteOn' | 'noteOff';
-  readonly pitch: number;
-  readonly velocity: number;
-}
+import type { InputStatus, NoteInput, NoteMessage } from '../../core/input/noteInput';
+
+export type { NoteMessage };
 
 /** Parses a raw MIDI message. Note-on with velocity 0 is a note-off, as the spec says. */
 export function parseMidiMessage(data: ArrayLike<number>): NoteMessage | null {
@@ -15,21 +13,14 @@ export function parseMidiMessage(data: ArrayLike<number>): NoteMessage | null {
   return null;
 }
 
-export type MidiStatus =
-  | 'idle'
-  | 'unsupported' // the browser has no Web MIDI (Firefox, Safari)
-  | 'denied' // the user refused the permission prompt
-  | 'no-device' // permission granted but no keyboard connected
-  | 'ready';
+/** Same states for every input; for MIDI, `no-device` means no keyboard is connected. */
+export type MidiStatus = InputStatus;
 
-export interface MidiInput {
+export interface MidiInput extends NoteInput {
   readonly status: MidiStatus;
   readonly deviceNames: readonly string[];
-  /** Asks for permission and starts listening. Never rejects: failures set `status`. */
   start(): Promise<MidiStatus>;
-  onNote(listener: (message: NoteMessage) => void): () => void;
   onStatusChange(listener: (status: MidiStatus) => void): () => void;
-  stop(): void;
 }
 
 // --- Minimal Web MIDI typings (lib.dom has them, but a narrow port keeps tests easy) --------
