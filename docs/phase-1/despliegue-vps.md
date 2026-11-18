@@ -6,6 +6,9 @@ Pasos para publicar la API y el frontend en la VPS de Oracle (Ubuntu, arm64). To
 - Docker con el plugin de compose, el repositorio clonado y `phase0-models/` con el checkpoint de ByteDance (`backend/scripts/fetch_bytedance_checkpoint.sh`).
 - Proxy de casa por WireGuard funcionando si YouTube bloquea la VPS (`docs/phase-0/proxy-casa-wireguard.md`). El valor va en `infra/.env`: `PIANOLA_PROXY_URL=socks5h://10.8.0.2:1080`.
 
+## Actualizar con un solo comando
+Una vez instalado todo (secciones 2 a 4), cada versión nueva se despliega con `bash ~/practicar_piano/infra/deploy.sh` (hace `git pull`, reconstruye la API, construye el frontend con Docker y lo publica). No cambia Nginx ni el certificado.
+
 ## 2. Levantar la API
 ```bash
 cd ~/practicar_piano && git pull
