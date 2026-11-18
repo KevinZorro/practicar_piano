@@ -1,5 +1,5 @@
-import teclario
+import notacaida
 
 
 def test_package_exposes_version() -> None:
-    assert teclario.__version__ == "0.1.0"
+    assert notacaida.__version__ == "0.1.0"

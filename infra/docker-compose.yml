@@ -7,35 +7,35 @@
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 gate --out /data/out
 #
 # Home proxy over WireGuard (when YouTube blocks the VPS): set it once in infra/.env (git-ignored)
-#   TECLARIO_PROXY_URL=socks5h://10.8.0.2:1080
+#   NOTACAIDA_PROXY_URL=socks5h://10.8.0.2:1080
 # and check it with the exact same setting the benchmark will use:
 #   docker compose -f infra/docker-compose.yml run --rm check-proxy
 # Full steps: docs/phase-0/proxy-casa-wireguard.md
 #
 # Phase 1 service (API + worker), same image. Listens only on the host's loopback; Nginx
-# (infra/nginx/teclario.conf) publishes it. Needs the ByteDance checkpoint in phase0-models.
+# (infra/nginx/notacaida.conf) publishes it. Needs the ByteDance checkpoint in phase0-models.
 #   docker compose -f infra/docker-compose.yml up -d --build api
 #   docker compose -f infra/docker-compose.yml logs -f api
 # Steps: docs/phase-1/despliegue-vps.md
 #
 # The container runs as your user (HOST_UID/HOST_GID) so the MIDI/WAV files it writes are
 # yours. `export HOST_UID=$(id -u) HOST_GID=$(id -g)` first.
-name: teclario
+name: notacaida
 services:
   phase0:
     build:
       context: ../backend
       platforms:
         - linux/arm64
-    image: teclario-phase0:local
+    image: notacaida-phase0:local
     # Default bridge network: the container reaches the tunnel (10.8.0.2) through the host's
     # wg0 interface; Docker masquerades the source, so the home proxy sees the VPS tunnel
     # address (10.8.0.1). No extra routes or network_mode needed.
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       # Optional proxy for yt-dlp (WireGuard-connected home proxy). Empty = direct.
-      TECLARIO_PROXY_URL: "${TECLARIO_PROXY_URL:-}"
-      TECLARIO_MAX_DURATION_SECONDS: "${TECLARIO_MAX_DURATION_SECONDS:-600}"
+      NOTACAIDA_PROXY_URL: "${NOTACAIDA_PROXY_URL:-}"
+      NOTACAIDA_MAX_DURATION_SECONDS: "${NOTACAIDA_MAX_DURATION_SECONDS:-600}"
     volumes:
       - "${PHASE0_LINKS:-../links.txt}:/data/links.txt:ro"
       - "${PHASE0_AUDIO:-../phase0-audio}:/data/audio:ro"
@@ -54,11 +54,11 @@ services:
       context: ../backend
       platforms:
         - linux/arm64
-    image: teclario-phase0:local
+    image: notacaida-phase0:local
     restart: unless-stopped
     entrypoint: ["uvicorn"]
     command:
-      - teclario.api.wiring:create_production_app
+      - notacaida.api.wiring:create_production_app
       - --factory
       - --host=0.0.0.0
       - --port=8000
@@ -67,14 +67,14 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      TECLARIO_PROXY_URL: "${TECLARIO_PROXY_URL:-}"
-      TECLARIO_MAX_DURATION_SECONDS: "${TECLARIO_MAX_DURATION_SECONDS:-600}"
+      NOTACAIDA_PROXY_URL: "${NOTACAIDA_PROXY_URL:-}"
+      NOTACAIDA_MAX_DURATION_SECONDS: "${NOTACAIDA_MAX_DURATION_SECONDS:-600}"
       # Comma-separated YouTube video ids refused after a rights claim (see terminos.html).
-      TECLARIO_BLOCKED_VIDEO_IDS: "${TECLARIO_BLOCKED_VIDEO_IDS:-}"
-      TECLARIO_BYTEDANCE_CHECKPOINT: /models/note_F1=0.9677_pedal_F1=0.9186.pth
-      TECLARIO_WORK_DIR: /tmp/work
+      NOTACAIDA_BLOCKED_VIDEO_IDS: "${NOTACAIDA_BLOCKED_VIDEO_IDS:-}"
+      NOTACAIDA_BYTEDANCE_CHECKPOINT: /models/note_F1=0.9677_pedal_F1=0.9186.pth
+      NOTACAIDA_WORK_DIR: /tmp/work
       # Nginx sets X-Real-IP; trust it only because the port is bound to loopback.
-      TECLARIO_TRUST_PROXY: "true"
+      NOTACAIDA_TRUST_PROXY: "true"
     volumes:
       - "${PHASE0_MODELS:-../phase0-models}:/models:ro"
     read_only: true
@@ -92,19 +92,19 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Connectivity probe for the home proxy. Same image and same TECLARIO_PROXY_URL as phase0.
+  # Connectivity probe for the home proxy. Same image and same NOTACAIDA_PROXY_URL as phase0.
   # Fetches YouTube's home page (never a song link) and prints only the HTTP status line.
   check-proxy:
     profiles: ["tools"]
-    image: teclario-phase0:local
+    image: notacaida-phase0:local
     entrypoint:
       - /bin/sh
       - -c
       - >-
-        test -n "$$TECLARIO_PROXY_URL" || { echo "TECLARIO_PROXY_URL is empty"; exit 2; };
-        curl -sS --max-time 20 --proxy "$$TECLARIO_PROXY_URL" -I https://www.youtube.com | head -n 1
+        test -n "$$NOTACAIDA_PROXY_URL" || { echo "NOTACAIDA_PROXY_URL is empty"; exit 2; };
+        curl -sS --max-time 20 --proxy "$$NOTACAIDA_PROXY_URL" -I https://www.youtube.com | head -n 1
     environment:
-      TECLARIO_PROXY_URL: "${TECLARIO_PROXY_URL:-}"
+      NOTACAIDA_PROXY_URL: "${NOTACAIDA_PROXY_URL:-}"
     read_only: true
     tmpfs:
       - /tmp

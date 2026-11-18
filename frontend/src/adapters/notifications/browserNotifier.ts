@@ -25,8 +25,8 @@ export async function requestNotificationPermission(
   }
 }
 
-const TITLE = 'Teclario';
-const READY_TITLE = '✓ Lista · Teclario';
+const TITLE = 'Notacaida';
+const READY_TITLE = '✓ Lista · Notacaida';
 
 /** Browser notification plus a title change, so the tab shows it even without permission. */
 export class BrowserNotifier implements Notifier {

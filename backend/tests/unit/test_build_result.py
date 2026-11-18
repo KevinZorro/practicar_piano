@@ -1,6 +1,6 @@
-from teclario.application.build_result import BuildResult
-from teclario.domain.notes import NoteEvent, Transcription
-from teclario.domain.polyphony import max_polyphony
+from notacaida.application.build_result import BuildResult
+from notacaida.domain.notes import NoteEvent, Transcription
+from notacaida.domain.polyphony import max_polyphony
 from tests.support.fakes import FakeScoreBuilder
 
 

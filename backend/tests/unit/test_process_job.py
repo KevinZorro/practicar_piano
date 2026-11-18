@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from teclario.application.process_job import ProcessJob
-from teclario.domain.job import Job, JobStatus
-from teclario.domain.notes import NoteEvent
-from teclario.domain.video_url import VideoUrl
+from notacaida.application.process_job import ProcessJob
+from notacaida.domain.job import Job, JobStatus
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.video_url import VideoUrl
 from tests.support.fakes import (
     DictJobRepository,
     DictResultStore,

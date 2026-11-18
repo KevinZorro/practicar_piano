@@ -83,7 +83,7 @@ describe('export and import', () => {
   );
 
   it('rejects songs with a wrong shape', () => {
-    const text = JSON.stringify({ format: 'teclario-library', version: 1, songs: [{ id: 1 }] });
+    const text = JSON.stringify({ format: 'notacaida-library', version: 1, songs: [{ id: 1 }] });
     expect(() => parseLibrary(text)).toThrow('invalid_export');
   });
 

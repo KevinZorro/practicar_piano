@@ -7,20 +7,20 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TypeVar
 
-from teclario.application.ports import Measured
-from teclario.domain.errors import (
+from notacaida.application.ports import Measured
+from notacaida.domain.errors import (
     DownloadError,
     JobNotFoundError,
     ResultNotReadyError,
     TranscriptionError,
 )
-from teclario.domain.job import Job
-from teclario.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
-from teclario.domain.notes import NoteEvent
-from teclario.domain.quantize import QuantizedPiece
-from teclario.domain.result import SongResult
-from teclario.domain.score import Score
-from teclario.domain.video_url import VideoUrl
+from notacaida.domain.job import Job
+from notacaida.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.quantize import QuantizedPiece
+from notacaida.domain.result import SongResult
+from notacaida.domain.score import Score
+from notacaida.domain.video_url import VideoUrl
 
 T = TypeVar("T")
 

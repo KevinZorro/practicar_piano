@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from teclario.domain.errors import TranscriptionError
-from teclario.domain.models import AudioFile
-from teclario.infrastructure.bytedance_transcriber import ByteDanceTranscriber
+from notacaida.domain.errors import TranscriptionError
+from notacaida.domain.models import AudioFile
+from notacaida.infrastructure.bytedance_transcriber import ByteDanceTranscriber
 
 
 def install_fake_package(monkeypatch: pytest.MonkeyPatch, calls: list[Any]) -> None:

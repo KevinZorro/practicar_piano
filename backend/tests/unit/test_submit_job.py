@@ -2,16 +2,16 @@ import itertools
 
 import pytest
 
-from teclario.application.job_queue import JobQueue, QueueLimits
-from teclario.application.submit_job import SubmitJob
-from teclario.domain.errors import (
+from notacaida.application.job_queue import JobQueue, QueueLimits
+from notacaida.application.submit_job import SubmitJob
+from notacaida.domain.errors import (
     DownloadError,
     DurationLimitExceededError,
     InvalidVideoUrlError,
     VideoBlockedError,
 )
-from teclario.domain.job import JobStatus
-from teclario.domain.notes import DurationPolicy
+from notacaida.domain.job import JobStatus
+from notacaida.domain.notes import DurationPolicy
 from tests.support.fakes import DictJobRepository, FakeClock, FakeProbe
 
 URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"

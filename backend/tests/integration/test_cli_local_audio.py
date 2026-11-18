@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from teclario.cli.main import main
-from teclario.infrastructure.synthesizer import AdditiveSynthesizer
+from notacaida.cli.main import main
+from notacaida.infrastructure.synthesizer import AdditiveSynthesizer
 from tests.integration.test_basic_pitch_public_domain import write_reference_midi
 
 pytest.importorskip("pretty_midi")

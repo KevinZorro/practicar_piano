@@ -1,7 +1,7 @@
 # 0017. Reducción de polifonía para poder tocar
 
 - Fecha: 2026-11-17
-- Estado: Aceptada (implementada en `backend/src/teclario/domain/polyphony.py`, incremento B1b)
+- Estado: Aceptada (implementada en `backend/src/notacaida/domain/polyphony.py`, incremento B1b)
 - Relacionada con: [0014](0014-bytedance-asincrono-y-simplificacion.md), [0008](0008-visualizacion-y-practica.md)
 
 ## Contexto

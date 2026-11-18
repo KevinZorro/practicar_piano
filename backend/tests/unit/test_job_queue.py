@@ -1,9 +1,9 @@
 import pytest
 
-from teclario.application.job_queue import JobQueue, QueueLimits
-from teclario.domain.errors import QueueFullError, RateLimitedError
-from teclario.domain.job import Job, JobStatus
-from teclario.domain.video_url import VideoUrl
+from notacaida.application.job_queue import JobQueue, QueueLimits
+from notacaida.domain.errors import QueueFullError, RateLimitedError
+from notacaida.domain.job import Job, JobStatus
+from notacaida.domain.video_url import VideoUrl
 from tests.support.fakes import DictJobRepository, FakeClock
 
 LIMITS = QueueLimits(

@@ -4,7 +4,7 @@ Pasos para publicar la API y el frontend en la VPS de Oracle (Ubuntu, arm64). To
 
 ## 1. Requisitos (ya cumplidos en la Fase 0)
 - Docker con el plugin de compose, el repositorio clonado y `phase0-models/` con el checkpoint de ByteDance (`backend/scripts/fetch_bytedance_checkpoint.sh`).
-- Proxy de casa por WireGuard funcionando si YouTube bloquea la VPS (`docs/phase-0/proxy-casa-wireguard.md`). El valor va en `infra/.env`: `TECLARIO_PROXY_URL=socks5h://10.8.0.2:1080`.
+- Proxy de casa por WireGuard funcionando si YouTube bloquea la VPS (`docs/phase-0/proxy-casa-wireguard.md`). El valor va en `infra/.env`: `NOTACAIDA_PROXY_URL=socks5h://10.8.0.2:1080`.
 
 ## Actualizar con un solo comando
 Una vez instalado todo (secciones 2 a 4), cada versión nueva se despliega con `bash ~/practicar_piano/infra/deploy.sh` (hace `git pull`, reconstruye la API, construye el frontend con Docker y lo publica). No cambia Nginx ni el certificado.
@@ -14,7 +14,7 @@ Cada fusión a `main` ejecuta `.github/workflows/deploy.yml`, que entra por SSH 
 
 1. **En la VPS** (como el usuario que despliega; cambia `RUTA` si el repo no está en `~/practicar_piano`):
 ```bash
-ssh-keygen -t ed25519 -N "" -C teclario-deploy -f ~/deploy_key
+ssh-keygen -t ed25519 -N "" -C notacaida-deploy -f ~/deploy_key
 echo "command=\"bash $HOME/practicar_piano/infra/deploy.sh\",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding $(cat ~/deploy_key.pub)" >> ~/.ssh/authorized_keys
 cat ~/deploy_key                                  # copia TODO el bloque (es el secreto VPS_SSH_KEY)
 ssh-keyscan -t ed25519 localhost 2>/dev/null | sed 's/^localhost/IP_PUBLICA/'   # es VPS_KNOWN_HOSTS
@@ -40,7 +40,7 @@ La primera construcción tarda: instala torch y los modelos para arm64.
 ```bash
 # Desde la raíz del repo. Usa Docker, así la VPS no necesita Node.
 docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD/frontend":/app -w /app node:22 sh -c "npm ci && npm run build"
-sudo mkdir -p /var/www/teclario && sudo rsync -a --delete frontend/dist/ /var/www/teclario/
+sudo mkdir -p /var/www/notacaida && sudo rsync -a --delete frontend/dist/ /var/www/notacaida/
 ```
 
 ## 4. Dominio, Nginx y HTTPS
@@ -53,9 +53,9 @@ D=TU.duckdns.org
 sudo apt-get install -y nginx certbot
 sudo systemctl stop nginx
 sudo certbot certonly --standalone -d $D
-sudo cp infra/nginx/teclario.conf /etc/nginx/sites-available/teclario
-sudo sed -i "s/teclario.example.duckdns.org/$D/g" /etc/nginx/sites-available/teclario
-sudo ln -sf /etc/nginx/sites-available/teclario /etc/nginx/sites-enabled/teclario
+sudo cp infra/nginx/notacaida.conf /etc/nginx/sites-available/notacaida
+sudo sed -i "s/notacaida.example.duckdns.org/$D/g" /etc/nginx/sites-available/notacaida
+sudo ln -sf /etc/nginx/sites-available/notacaida /etc/nginx/sites-enabled/notacaida
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl start nginx
 ```
@@ -73,10 +73,10 @@ sudo nginx -t && sudo systemctl start nginx
 | `internal_error` | `logs api`: solo se registra el tipo de excepción; suele ser el checkpoint ausente o poca memoria |
 | La página carga pero `/api` da 502 | `docker compose ps` (¿api healthy?) y `curl 127.0.0.1:8000/healthz` |
 | El estado no se actualiza | Nginx con `proxy_buffering off` en `/api/` (ya incluido) |
-| Todos los usuarios cuentan como una IP | `TECLARIO_TRUST_PROXY=true` y Nginx con `X-Real-IP` (ya incluido) |
+| Todos los usuarios cuentan como una IP | `NOTACAIDA_TRUST_PROXY=true` y Nginx con `X-Real-IP` (ya incluido) |
 
 ## 7. Reclamaciones de derechos
-Los términos (`/terminos.html`) prometen bloquear un video si su titular lo reclama. Al recibir el correo: añade el id del video (lo que va tras `v=`) a `infra/.env` como `TECLARIO_BLOCKED_VIDEO_IDS=id1,id2` y ejecuta `docker compose -f infra/docker-compose.yml up -d api`. El servicio responderá 451 `video_blocked` para ese video. Los ids bloqueados no son secretos, pero no guardes enlaces completos.
+Los términos (`/terminos.html`) prometen bloquear un video si su titular lo reclama. Al recibir el correo: añade el id del video (lo que va tras `v=`) a `infra/.env` como `NOTACAIDA_BLOCKED_VIDEO_IDS=id1,id2` y ejecuta `docker compose -f infra/docker-compose.yml up -d api`. El servicio responderá 451 `video_blocked` para ese video. Los ids bloqueados no son secretos, pero no guardes enlaces completos.
 
 ## Límites conocidos
 La cola y los resultados viven en memoria: reiniciar el contenedor pierde los trabajos en curso (ADR 0016). Un proceso a la vez; el límite de memoria del contenedor es 10 GB de los 12 de la VPS.

@@ -2,8 +2,8 @@ import random
 
 import pytest
 
-from teclario.domain.notes import NoteEvent
-from teclario.domain.tempo import DEFAULT_BPM, estimate_tempo
+from notacaida.domain.notes import NoteEvent
+from notacaida.domain.tempo import DEFAULT_BPM, estimate_tempo
 
 
 def melody(

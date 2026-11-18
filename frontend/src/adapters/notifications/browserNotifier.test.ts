@@ -36,18 +36,18 @@ describe('notification permission', () => {
 describe('BrowserNotifier', () => {
   it('notifies and marks the tab title when permission is granted', () => {
     const { fake, created } = api('granted');
-    const doc = { title: 'Teclario' };
+    const doc = { title: 'Notacaida' };
     const notifier = new BrowserNotifier(fake, doc);
     notifier.jobDone();
     expect(created).toHaveLength(1);
     expect(doc.title).toContain('Lista');
     notifier.clearBadge();
-    expect(doc.title).toBe('Teclario');
+    expect(doc.title).toBe('Notacaida');
   });
 
   it('still changes the title when notifications are denied or missing', () => {
     for (const source of [api('denied').fake, null]) {
-      const doc = { title: 'Teclario' };
+      const doc = { title: 'Notacaida' };
       new BrowserNotifier(source, doc).jobDone();
       expect(doc.title).toContain('Lista');
     }

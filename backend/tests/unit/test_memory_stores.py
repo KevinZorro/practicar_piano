@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from teclario.domain.errors import JobNotFoundError, ResultNotReadyError
-from teclario.domain.job import Job
-from teclario.domain.result import SongResult
-from teclario.domain.video_url import VideoUrl
-from teclario.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
+from notacaida.domain.errors import JobNotFoundError, ResultNotReadyError
+from notacaida.domain.job import Job
+from notacaida.domain.result import SongResult
+from notacaida.domain.video_url import VideoUrl
+from notacaida.infrastructure.memory_stores import InMemoryJobRepository, TtlResultStore
 from tests.support.fakes import FakeClock
 
 RESULT = SongResult(10.0, 120.0, "high", ())

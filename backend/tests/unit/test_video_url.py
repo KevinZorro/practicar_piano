@@ -1,7 +1,7 @@
 import pytest
 
-from teclario.domain.errors import InvalidVideoUrlError
-from teclario.domain.video_url import VideoUrl
+from notacaida.domain.errors import InvalidVideoUrlError
+from notacaida.domain.video_url import VideoUrl
 
 VID = "dQw4w9WgXcQ"
 

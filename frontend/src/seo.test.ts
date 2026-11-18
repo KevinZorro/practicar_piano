@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
-const ORIGIN = 'https://teclario.duckdns.org';
+const ORIGIN = 'https://notacaida.duckdns.org';
 
 describe('search engine basics', () => {
   const html = read('index.html');
@@ -32,7 +32,7 @@ describe('search engine basics', () => {
   });
 
   it('ships crawlable content inside the root element', () => {
-    expect(html).toMatch(/<div id="root">[\s\S]*<h1>Teclario<\/h1>[\s\S]*<\/div>/);
+    expect(html).toMatch(/<div id="root">[\s\S]*<h1>Notacaida<\/h1>[\s\S]*<\/div>/);
   });
 
   it('lists the pages in robots.txt and the sitemap, and blocks the API', () => {

@@ -19,8 +19,8 @@ docker compose -f infra/docker-compose.yml up -d --build api
 
 docker run --rm --user "$HOST_UID:$HOST_GID" -e HOME=/tmp \
   -v "$PWD/frontend":/app -w /app node:22 sh -c "npm ci && npm run build"
-sudo mkdir -p /var/www/teclario
-sudo rsync -a --delete frontend/dist/ /var/www/teclario/
+sudo mkdir -p /var/www/notacaida
+sudo rsync -a --delete frontend/dist/ /var/www/notacaida/
 
 # wait for the API to answer (the container reports healthy after the models load)
 for _ in $(seq 1 30); do

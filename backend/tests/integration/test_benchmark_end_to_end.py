@@ -13,13 +13,13 @@ import pytest
 pytest.importorskip("pretty_midi")
 pytest.importorskip("basic_pitch")
 
-from teclario.application.benchmark import RunBenchmark
-from teclario.application.links import parse_links
-from teclario.application.report import render_report
-from teclario.domain.models import AudioFile, SongSource
-from teclario.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
-from teclario.infrastructure.process_meter import SubprocessResourceMeter
-from teclario.infrastructure.synthesizer import AdditiveSynthesizer
+from notacaida.application.benchmark import RunBenchmark
+from notacaida.application.links import parse_links
+from notacaida.application.report import render_report
+from notacaida.domain.models import AudioFile, SongSource
+from notacaida.infrastructure.basic_pitch_transcriber import BasicPitchTranscriber
+from notacaida.infrastructure.process_meter import SubprocessResourceMeter
+from notacaida.infrastructure.synthesizer import AdditiveSynthesizer
 from tests.integration.test_basic_pitch_public_domain import (
     NOTE_SECONDS,
     ODE_TO_JOY,

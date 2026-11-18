@@ -1,6 +1,6 @@
-# Teclario
+# Notacaida
 
-**Live: <https://teclario.duckdns.org>**
+**Live: <https://notacaida.duckdns.org>**
 
 Free web app to practice piano with a digital keyboard over USB: paste the YouTube
 link of a piano cover, and the app transcribes it and lets you practice with falling
@@ -82,16 +82,16 @@ Without Docker (needs Python 3.11+, [uv](https://docs.astral.sh/uv/), ffmpeg and
 cd backend
 uv sync --python 3.11 --extra synth --extra basic-pitch --extra bytedance
 uv run pytest -q -m "not network"          # offline tests (+ integration with Basic Pitch)
-uv run teclario phase0 run --links ../links.txt --out ../phase0-output
-uv run teclario phase0 gate --out ../phase0-output
+uv run notacaida phase0 run --links ../links.txt --out ../phase0-output
+uv run notacaida phase0 gate --out ../phase0-output
 ```
 
 Step-by-step guide for the VPS with ten covers: [`docs/phase-0/runbook.md`](docs/phase-0/runbook.md).
 
 ## Configuration
 
-Environment variables (see `.env.example`): `TECLARIO_PROXY_URL` (optional proxy for
-yt-dlp) and `TECLARIO_MAX_DURATION_SECONDS`. Secrets never go in the repository.
+Environment variables (see `.env.example`): `NOTACAIDA_PROXY_URL` (optional proxy for
+yt-dlp) and `NOTACAIDA_MAX_DURATION_SECONDS`. Secrets never go in the repository.
 
 ## Legal notes
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from teclario.domain.gate import GateCriteria, GateStatus, evaluate_gate
-from teclario.domain.models import ModelRun, ResourceUsage, SongResult
+from notacaida.domain.gate import GateCriteria, GateStatus, evaluate_gate
+from notacaida.domain.models import ModelRun, ResourceUsage, SongResult
 
 FAST = 60.0  # 180 s song in 60 s -> real-time factor 0.33
 SLOW = 130.0  # 180 s song in 130 s -> 0.72, over budget

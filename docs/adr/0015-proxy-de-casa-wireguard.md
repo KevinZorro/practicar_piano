@@ -11,7 +11,7 @@ La descarga directa desde la VPS quedó bloqueada por YouTube en las 10 cancione
 - **Topología:** la VPS es el servidor WireGuard (IP pública estable, UDP 51820) y el PC de casa es el cliente que marca hacia afuera con `PersistentKeepalive = 25`. Así funciona detrás de NAT doméstico o CGNAT sin abrir puertos en el router.
 - **Túnel dividido:** subred `10.8.0.0/24`, VPS `10.8.0.1`, casa `10.8.0.2`, y `AllowedIPs` de un solo `/32` por lado. Solo viaja el tráfico del proxy; el tráfico normal del PC y de la VPS no cambia.
 - **Proxy:** `gost` (MIT, un solo ejecutable) en **Windows nativo**, como SOCKS5 escuchando solo en `10.8.0.2`, con regla de firewall que admite únicamente a `10.8.0.1`, y tarea programada al arrancar. yt-dlp lo usa con `socks5h://` (DNS resuelto en casa).
-- **VPS → contenedor:** sin cambios de red en Docker. El contenedor sale por la red puente, el host lo enruta por `wg0` y Docker enmascara el origen como `10.8.0.1`, que es justo lo que el firewall del PC admite. `TECLARIO_PROXY_URL` sigue siendo la única interfaz con la aplicación.
+- **VPS → contenedor:** sin cambios de red en Docker. El contenedor sale por la red puente, el host lo enruta por `wg0` y Docker enmascara el origen como `10.8.0.1`, que es justo lo que el firewall del PC admite. `NOTACAIDA_PROXY_URL` sigue siendo la única interfaz con la aplicación.
 - **Secretos:** cada extremo genera su clave; en el repositorio solo hay plantillas con marcadores. El renderizador valida el formato de las claves antes de escribirlas.
 - **Firewall de Oracle:** doble capa, security list de OCI (UDP 51820 de entrada) más una regla de `iptables` insertada antes del `REJECT` por defecto de las imágenes de Oracle.
 
@@ -20,7 +20,7 @@ La descarga directa desde la VPS quedó bloqueada por YouTube en las 10 cancione
 - **Servidor WireGuard en casa:** exige abrir un puerto en el router y falla con CGNAT o IP dinámica.
 - **`AllowedIPs = 0.0.0.0/0` en el PC:** mandaría todo su tráfico por la VPS.
 - **Otros proxies en Windows:** 3proxy (licencias duales con GPL, descartado por la regla de licencias), Dante (solo Linux).
-- **Autenticación usuario/contraseña en el proxy:** innecesaria con el túnel autenticado por clave y el firewall por dirección; añadiría un secreto dentro de `TECLARIO_PROXY_URL`.
+- **Autenticación usuario/contraseña en el proxy:** innecesaria con el túnel autenticado por clave y el firewall por dirección; añadiría un secreto dentro de `NOTACAIDA_PROXY_URL`.
 
 ## Consecuencias
 - La prueba depende de que el PC de casa esté encendido y con el túnel activo; es aceptable en la Fase 0. Para la Fase 1 habrá que decidir entre un equipo siempre activo o el proxy residencial de pago.

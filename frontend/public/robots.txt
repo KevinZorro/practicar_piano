@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://teclario.duckdns.org/sitemap.xml
+Sitemap: https://notacaida.duckdns.org/sitemap.xml

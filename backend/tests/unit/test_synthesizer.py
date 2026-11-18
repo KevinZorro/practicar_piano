@@ -7,7 +7,7 @@ import pytest
 
 pretty_midi = pytest.importorskip("pretty_midi")
 
-from teclario.infrastructure.synthesizer import AdditiveSynthesizer, SynthesisError  # noqa: E402
+from notacaida.infrastructure.synthesizer import AdditiveSynthesizer, SynthesisError  # noqa: E402
 
 
 def write_midi(path: Path, notes: list[tuple[int, float, float]]) -> None:

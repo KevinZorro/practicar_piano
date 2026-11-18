@@ -1,6 +1,6 @@
 import logging
 
-from teclario.api.log_redaction import RedactVideoLinks, install_log_redaction, redact
+from notacaida.api.log_redaction import RedactVideoLinks, install_log_redaction, redact
 
 
 def test_redacts_youtube_links_in_any_form() -> None:
