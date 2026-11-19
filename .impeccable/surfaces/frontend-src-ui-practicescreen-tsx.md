@@ -50,5 +50,4 @@ colour lights the key: the translation Kevin asked for, live.
 
 ## Unresolved
 
-- OFL font licence needs Kevin's acceptance (ADR 0021, proposed).
 - Real YouTube and microphone behaviour verified only on Kevin's machine.

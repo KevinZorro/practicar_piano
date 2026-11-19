@@ -28,7 +28,7 @@ Ports and adapters: downloader, transcribers, synthesizer, resource meter are po
 ## Conventions and gotchas
 - Code, identifiers, commits, PRs in English; `docs/` and ADRs in Spanish.
 - Never commit audio/MIDI/models/links (`.gitignore` blocks them). Never log YouTube URLs.
-- Only permissive licenses (MIT/BSD/Apache/Unlicense). No GPL (PianoBooster/Neothesia are off-limits).
+- Only permissive licenses (MIT/BSD/Apache/Unlicense; OFL-1.1 for font packages only, ADR 0021). No GPL (PianoBooster/Neothesia are off-limits).
 - Basic Pitch 0.4.0 forces tensorflow on Linux; `override-dependencies` drops it and the ONNX runtime is used. ByteDance checkpoint is fetched/verified by `backend/scripts/fetch_bytedance_checkpoint.sh` (ADR 0013).
 - yt-dlp needs a JS runtime (Deno) since Nov 2025; keep it in the Docker image.
 - Marks: `network` (hits YouTube; excluded by default), `integration` (needs models), `slow`. CI runs offline + integration (ONNX) and builds the arm64 image on a native arm64 runner.
