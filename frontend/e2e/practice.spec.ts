@@ -1,25 +1,12 @@
-import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-
-// A synthetic exercise built by the real backend pipeline, not a song.
-const result: unknown = JSON.parse(readFileSync('e2e/fixtures/result.json', 'utf-8'));
-
-const done = { job_id: 'abc', status: 'done', duration_s: 14, position: null };
-
-async function openPractice(page: Page): Promise<void> {
-  await page.route('**/api/v1/jobs', (route) => route.fulfill({ status: 202, json: done }));
-  await page.route('**/api/v1/jobs/abc', (route) =>
-    route.request().method() === 'DELETE'
-      ? route.fulfill({ status: 204 })
-      : route.fulfill({ json: done }),
-  );
-  await page.route('**/api/v1/jobs/abc/result', (route) => route.fulfill({ json: result }));
-  await page.goto('/');
-  await page.getByLabel('Enlace de YouTube').fill('https://youtu.be/dQw4w9WgXcQ');
-  await page.getByRole('button', { name: 'Procesar canción' }).click();
-  await page.getByRole('button', { name: 'Practicar' }).last().click();
-  await expect(page.getByRole('region', { name: 'Práctica' })).toBeVisible();
-}
+import {
+  clickVideo,
+  fakeKeyboard,
+  fakeYouTube,
+  openPractice,
+  pressKey,
+  videoCalls,
+} from './support';
 
 const cursorLeft = (page: Page) =>
   page
@@ -53,28 +40,21 @@ test('level and speed can be changed while practicing', async ({ page }) => {
   await expect(page.getByLabel('50 %')).not.toBeChecked();
 });
 
-test('wait mode stops the song until the right key arrives from the keyboard', async ({ page }) => {
-  // A fake Web MIDI keyboard the test can press from the page.
-  await page.addInitScript(() => {
-    const port = {
-      id: 'k',
-      name: 'Test keyboard',
-      state: 'connected',
-      onmidimessage: null as unknown,
-    };
-    const access = { inputs: new Map([['k', port]]), onstatechange: null };
-    Object.defineProperty(navigator, 'requestMIDIAccess', { value: () => Promise.resolve(access) });
-    (window as unknown as { press: (pitch: number) => void }).press = (pitch) => {
-      (port.onmidimessage as (e: { data: Uint8Array }) => void)({
-        data: new Uint8Array([0x90, pitch, 90]),
-      });
-    };
-  });
+test('the timeline jumps to any moment of the song', async ({ page }) => {
   await openPractice(page);
-  const press = (pitch: number) =>
-    page.evaluate((p) => {
-      (window as unknown as { press: (n: number) => void }).press(p);
-    }, pitch);
+  // The exercise has 2 s bars at 120 BPM: 6 s is where bar 4 starts.
+  await page.getByLabel('Posición en la canción').fill('6');
+  await expect(page.locator('.timeline-now')).toHaveText('0:06');
+  await expect(page.locator('.transport-measure')).toContainText('Compás 4 de');
+  await expect(page.getByLabel('Posición en la canción')).toHaveAttribute(
+    'aria-valuetext',
+    '0:06 de 0:14',
+  );
+});
+
+test('wait mode stops the song until the right key arrives from the keyboard', async ({ page }) => {
+  await fakeKeyboard(page);
+  await openPractice(page);
   const progress = page.getByLabel('Progreso del modo espera');
 
   await page.getByLabel('Modo espera').check();
@@ -82,49 +62,22 @@ test('wait mode stops the song until the right key arrives from the keyboard', a
   await expect(page.getByText('Teclado conectado.')).toBeVisible();
   await page.getByRole('button', { name: 'Reproducir' }).click();
 
-  // The first chord is at t=0 (C3, G3 and C4): the song waits for all three.
+  // The first chord is at t=0 (C3, G3 and C4): the song waits for all three, shown as chips.
   await expect(progress).toContainText('Toca las notas indicadas');
-  await press(48);
-  await press(55);
+  const chips = progress.locator('.chip');
+  await expect(chips).toHaveText(['C', 'G', 'C']);
+  await pressKey(page, 48);
+  await pressKey(page, 55);
+  await expect(chips.first()).toHaveAttribute('data-done', 'true');
   await expect(progress).toContainText('Toca las notas indicadas');
-  await press(60);
+  await pressKey(page, 60);
   await expect(progress).toContainText('Acordes acertados: 1');
 
   // A wrong key while waiting for D4 counts as a mistake and rewinds.
   await expect(progress).toContainText('Toca las notas indicadas');
-  await press(100);
+  await pressKey(page, 100);
   await expect(progress).toContainText('Fallos: 1');
 });
-
-// The real IFrame API needs the network: a fake one records what the app asks of it and lets
-// the test click the video itself (`ytEmit` sends a YT.PlayerState to the app).
-async function fakeYouTube(page: Page): Promise<void> {
-  await page.route('https://www.youtube.com/iframe_api', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `
-        window.calls = [];
-        window.YT = { Player: class {
-          constructor(el, o) {
-            el.setAttribute('data-video', o.videoId);
-            window.ytEmit = (state) => o.events.onStateChange && o.events.onStateChange({ data: state });
-            setTimeout(() => o.events.onReady(), 0);
-          }
-          getCurrentTime() { return 0; }
-          playVideo() { window.calls.push('play'); }
-          pauseVideo() { window.calls.push('pause'); }
-          seekTo() {}
-          setPlaybackRate() {}
-        } };
-        window.onYouTubeIframeAPIReady();`,
-    }),
-  );
-}
-
-const clickVideo = (page: Page, state: number) =>
-  page.evaluate((s) => {
-    (window as unknown as { ytEmit: (n: number) => void }).ytEmit(s);
-  }, state);
 
 test('the video is shown and follows play and pause', async ({ page }) => {
   await fakeYouTube(page);
@@ -136,8 +89,27 @@ test('the video is shown and follows play and pause', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Reproducir' }).click();
   await page.getByRole('button', { name: 'Pausar' }).click();
-  const calls = await page.evaluate(() => (window as unknown as { calls: string[] }).calls);
-  expect(calls).toEqual(expect.arrayContaining(['play', 'pause']));
+  expect(await videoCalls(page)).toEqual(expect.arrayContaining(['play', 'pause']));
+});
+
+test('hiding the video keeps the practice on screen with the app piano', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  const video = page.getByRole('region', { name: 'Vídeo' });
+  await expect(video).toBeVisible();
+
+  await page.getByLabel('Mostrar el video').uncheck();
+  await expect(video).toBeHidden();
+  await expect(page.getByLabel('Sonido')).toBeChecked();
+  await expect(page.getByRole('region', { name: 'Práctica' })).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+  expect(await videoCalls(page)).not.toContain('play');
+  await page.getByRole('button', { name: 'Pausar' }).click();
+
+  await page.getByLabel('Mostrar el video').check();
+  await expect(video).toBeVisible();
+  await expect(page.getByLabel('Sonido')).not.toBeChecked();
 });
 
 test('a click on the video itself starts and stops the practice', async ({ page }) => {
@@ -167,29 +139,13 @@ test('playing never scrolls the page away from where the player is looking', asy
 test('a finished run played on the keyboard is kept as progress in the library', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const port = {
-      id: 'k',
-      name: 'Test keyboard',
-      state: 'connected',
-      onmidimessage: null as unknown,
-    };
-    const access = { inputs: new Map([['k', port]]), onstatechange: null };
-    Object.defineProperty(navigator, 'requestMIDIAccess', { value: () => Promise.resolve(access) });
-    (window as unknown as { press: (pitch: number) => void }).press = (pitch) => {
-      (port.onmidimessage as (e: { data: Uint8Array }) => void)({
-        data: new Uint8Array([0x90, pitch, 90]),
-      });
-    };
-  });
+  await fakeKeyboard(page);
   await openPractice(page);
   await page.getByLabel('Velocidad libre').fill('150');
   await page.getByRole('button', { name: 'Conectar teclado' }).click();
   await expect(page.getByText('Teclado conectado.')).toBeVisible();
   await page.getByRole('button', { name: 'Reproducir' }).click();
-  await page.evaluate(() => {
-    (window as unknown as { press: (n: number) => void }).press(60);
-  });
+  await pressKey(page, 60);
   // The 14 s exercise ends by itself (about 10 s at 150 %).
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Volver' }).click();

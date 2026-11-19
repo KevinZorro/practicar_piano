@@ -1,5 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { ApiError } from '../adapters/api/jobsApi';
+import { AlertIcon } from './icons';
 import { errorMessage } from './messages';
 
 interface Props {
@@ -30,7 +31,7 @@ export function LinkForm({ onSubmit }: Props) {
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)}>
+    <form className="link-form" onSubmit={(e) => void handleSubmit(e)}>
       <label htmlFor="video-link">Enlace de YouTube</label>
       <input
         id="video-link"
@@ -44,10 +45,15 @@ export function LinkForm({ onSubmit }: Props) {
         }}
         required
       />
-      <button type="submit" disabled={busy || url.trim() === ''}>
+      <button type="submit" className="key-primary" disabled={busy || url.trim() === ''}>
         {busy ? 'Enviando…' : 'Procesar canción'}
       </button>
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="notice">
+          <AlertIcon />
+          <span>{error}</span>
+        </p>
+      )}
     </form>
   );
 }

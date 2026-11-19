@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { MicInput } from '../adapters/audio/micInput';
 import type { Calibration, CalibrationPhase, CalibrationWarning } from '../core/audio/calibration';
 import type { InputStatus } from '../core/input/noteInput';
+import { Switch } from './controls';
+import { MicIcon } from './icons';
 
 const MIC_MESSAGE: Record<InputStatus, string> = {
   idle: 'Micrófono apagado.',
@@ -74,36 +76,35 @@ export function MicPanel({
   return (
     <div className="mic-panel">
       <button type="button" onClick={onConnect}>
+        <MicIcon />
         Usar micrófono
       </button>
-      <span role="status">{MIC_MESSAGE[mic ? status : 'idle']}</span>
+      <p role="status" className="status-line" data-ok={ready}>
+        {MIC_MESSAGE[mic ? status : 'idle']}
+      </p>
       {ready && (
         <>
-          <label>
-            <input
-              type="checkbox"
-              checked={headphones}
-              onChange={(e) => {
-                onHeadphones(e.target.checked);
-              }}
-            />{' '}
-            Uso audífonos (el sonido de la app se queda encendido)
-          </label>
+          <Switch
+            label="Uso audífonos"
+            checked={headphones}
+            onChange={onHeadphones}
+            hint="El sonido de la app se queda encendido."
+          />
           {!headphones && (
-            <small role="note" className="fine-print">
+            <p role="note" className="fine-print">
               Sin audífonos la app no suena para que el micrófono no la oiga: escucharás solo tu
               teclado.
-            </small>
+            </p>
           )}
           <button type="button" disabled={busy} onClick={() => void calibrate()}>
             Calibrar con Do central
           </button>
-          <span role="status" aria-label="Calibración">
+          <p role="status" aria-label="Calibración" className="status-line">
             {text ??
               (mic.calibration
                 ? summary(mic.calibration)
                 : 'Sin calibrar: se usan valores estándar.')}
-          </span>
+          </p>
         </>
       )}
     </div>
