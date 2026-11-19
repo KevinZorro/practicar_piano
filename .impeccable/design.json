@@ -1,0 +1,874 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T01:14:07.733Z",
+  "title": "Design System: Notacaida",
+  "extensions": {
+    "colorMeta": {
+      "case-bg": {
+        "role": "neutral",
+        "displayName": "Case Black",
+        "canonical": "oklch(16.0% 0.010 42.9)",
+        "tonalRamp": [
+          "#0f0a08",
+          "#292421",
+          "#47403e",
+          "#66605d",
+          "#88817e",
+          "#aba3a0",
+          "#cfc7c4",
+          "#f5ede9"
+        ]
+      },
+      "case-surface": {
+        "role": "neutral",
+        "displayName": "Case Surface",
+        "canonical": "oklch(19.8% 0.012 48.1)",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2a2320",
+          "#47403d",
+          "#675f5c",
+          "#88807c",
+          "#aba39f",
+          "#d0c7c3",
+          "#f5ece8"
+        ]
+      },
+      "case-raised": {
+        "role": "neutral",
+        "displayName": "Case Raised",
+        "canonical": "oklch(23.5% 0.015 48.1)",
+        "tonalRamp": [
+          "#100906",
+          "#2b231f",
+          "#49403b",
+          "#695f5a",
+          "#8a807b",
+          "#ada29d",
+          "#d2c7c1",
+          "#f7ece6"
+        ]
+      },
+      "case-hover": {
+        "role": "neutral",
+        "displayName": "Case Hover",
+        "canonical": "oklch(27.0% 0.018 48.0)",
+        "tonalRamp": [
+          "#110905",
+          "#2d231e",
+          "#4a3f3a",
+          "#6a5e59",
+          "#8c7f79",
+          "#afa29c",
+          "#d3c6bf",
+          "#f9ebe4"
+        ]
+      },
+      "case-line": {
+        "role": "neutral",
+        "displayName": "Case Hairline",
+        "canonical": "oklch(31.5% 0.019 50.3)",
+        "tonalRamp": [
+          "#120905",
+          "#2d221d",
+          "#4b3f39",
+          "#6b5e58",
+          "#8c7f78",
+          "#b0a29b",
+          "#d4c6be",
+          "#faebe3"
+        ]
+      },
+      "case-line-strong": {
+        "role": "neutral",
+        "displayName": "Case Edge",
+        "canonical": "oklch(57.6% 0.026 60.9)",
+        "tonalRamp": [
+          "#130802",
+          "#2e2218",
+          "#4c3f34",
+          "#6d5e53",
+          "#8e7f73",
+          "#b2a295",
+          "#d6c6b9",
+          "#fcebdd"
+        ]
+      },
+      "cream-ink": {
+        "role": "neutral",
+        "displayName": "Cream Ink",
+        "canonical": "oklch(94.5% 0.018 81.3)",
+        "tonalRamp": [
+          "#0f0a04",
+          "#29241b",
+          "#474138",
+          "#666056",
+          "#888177",
+          "#aba499",
+          "#cfc8bd",
+          "#f5eee2"
+        ]
+      },
+      "cream-ink-soft": {
+        "role": "neutral",
+        "displayName": "Cream Ink Soft",
+        "canonical": "oklch(81.9% 0.023 74.1)",
+        "tonalRamp": [
+          "#110a02",
+          "#2c2319",
+          "#494035",
+          "#696053",
+          "#8b8174",
+          "#aea396",
+          "#d2c7b9",
+          "#f8edde"
+        ]
+      },
+      "cream-ink-faint": {
+        "role": "neutral",
+        "displayName": "Cream Ink Faint",
+        "canonical": "oklch(69.9% 0.023 69.7)",
+        "tonalRamp": [
+          "#110902",
+          "#2d2319",
+          "#4a4035",
+          "#6a5f53",
+          "#8c8074",
+          "#afa396",
+          "#d3c7b9",
+          "#f9ecde"
+        ]
+      },
+      "highlighter": {
+        "role": "neutral",
+        "displayName": "Highlighter",
+        "canonical": "oklch(86.9% 0.155 94.9)",
+        "tonalRamp": [
+          "#0f0b00",
+          "#2d2403",
+          "#4f4105",
+          "#736007",
+          "#9a8008",
+          "#c2a308",
+          "#e9c73a",
+          "#ffefb2"
+        ]
+      },
+      "coral-alert": {
+        "role": "neutral",
+        "displayName": "Coral Alert",
+        "canonical": "oklch(78.9% 0.123 29.2)",
+        "tonalRamp": [
+          "#1e0100",
+          "#4d0101",
+          "#761e16",
+          "#9b4136",
+          "#c16356",
+          "#e88678",
+          "#ffb3a7",
+          "#fde9e6"
+        ]
+      },
+      "ivory-key": {
+        "role": "primary",
+        "displayName": "Ivory Key",
+        "canonical": "oklch(94.5% 0.016 82.8)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#29241c",
+          "#464139",
+          "#666157",
+          "#878278",
+          "#aaa49a",
+          "#cec8be",
+          "#f4eee3"
+        ]
+      },
+      "ivory-key-edge": {
+        "role": "primary",
+        "displayName": "Ivory Key Edge",
+        "canonical": "oklch(74.7% 0.035 79.2)",
+        "tonalRamp": [
+          "#120900",
+          "#2e2311",
+          "#4c402d",
+          "#6c5f4b",
+          "#8e806b",
+          "#b1a38d",
+          "#d5c7b1",
+          "#fbecd5"
+        ]
+      },
+      "ivory-key-ink": {
+        "role": "primary",
+        "displayName": "Ivory Key Ink",
+        "canonical": "oklch(20.6% 0.011 48.1)",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2a2320",
+          "#47403d",
+          "#675f5c",
+          "#88807c",
+          "#aba39f",
+          "#d0c7c3",
+          "#f5ece8"
+        ]
+      },
+      "black-key": {
+        "role": "neutral",
+        "displayName": "Black Key",
+        "canonical": "oklch(26.1% 0.016 45.3)",
+        "tonalRamp": [
+          "#110906",
+          "#2c231f",
+          "#49403b",
+          "#695f5a",
+          "#8b807b",
+          "#aea29d",
+          "#d2c6c1",
+          "#f8ebe6"
+        ]
+      },
+      "black-key-edge": {
+        "role": "neutral",
+        "displayName": "Black Key Edge",
+        "canonical": "oklch(13.8% 0.006 41.9)",
+        "tonalRamp": [
+          "#0e0a09",
+          "#282423",
+          "#45413f",
+          "#64605e",
+          "#86817f",
+          "#a9a4a2",
+          "#cdc8c6",
+          "#f2edeb"
+        ]
+      },
+      "linen-bg": {
+        "role": "neutral",
+        "displayName": "Linen",
+        "canonical": "oklch(95.4% 0.013 82.4)",
+        "tonalRamp": [
+          "#0e0b06",
+          "#28251e",
+          "#45413a",
+          "#656159",
+          "#86827a",
+          "#a9a49c",
+          "#cdc8c0",
+          "#f3eee5"
+        ]
+      },
+      "linen-surface": {
+        "role": "neutral",
+        "displayName": "Linen Surface",
+        "canonical": "oklch(98.0% 0.009 84.6)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#272520",
+          "#44423d",
+          "#63615c",
+          "#85827d",
+          "#a7a59f",
+          "#ccc9c3",
+          "#f1eee8"
+        ]
+      },
+      "linen-raised": {
+        "role": "neutral",
+        "displayName": "Linen Raised",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "linen-line": {
+        "role": "neutral",
+        "displayName": "Linen Hairline",
+        "canonical": "oklch(86.8% 0.023 78.2)",
+        "tonalRamp": [
+          "#100a02",
+          "#2b2418",
+          "#494134",
+          "#696053",
+          "#8a8173",
+          "#ada495",
+          "#d2c8b9",
+          "#f7edde"
+        ]
+      },
+      "linen-line-strong": {
+        "role": "neutral",
+        "displayName": "Linen Edge",
+        "canonical": "oklch(58.4% 0.035 74.9)",
+        "tonalRamp": [
+          "#130900",
+          "#2f2311",
+          "#4d402d",
+          "#6d5f4b",
+          "#8f806c",
+          "#b2a28d",
+          "#d7c6b1",
+          "#fdecd5"
+        ]
+      },
+      "sepia-ink": {
+        "role": "neutral",
+        "displayName": "Sepia Ink",
+        "canonical": "oklch(21.5% 0.012 55.6)",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2a241f",
+          "#47403c",
+          "#67605b",
+          "#88817b",
+          "#aba39e",
+          "#d0c7c2",
+          "#f5ede7"
+        ]
+      },
+      "sepia-ink-soft": {
+        "role": "neutral",
+        "displayName": "Sepia Ink Soft",
+        "canonical": "oklch(37.9% 0.019 60.8)",
+        "tonalRamp": [
+          "#110904",
+          "#2c231c",
+          "#4a4038",
+          "#6a5f56",
+          "#8b8077",
+          "#aea399",
+          "#d3c7bd",
+          "#f9ece2"
+        ]
+      },
+      "sepia-ink-faint": {
+        "role": "neutral",
+        "displayName": "Sepia Ink Faint",
+        "canonical": "oklch(46.8% 0.021 64.6)",
+        "tonalRamp": [
+          "#110903",
+          "#2c231a",
+          "#4a4036",
+          "#6a5f55",
+          "#8c8075",
+          "#afa397",
+          "#d3c7bb",
+          "#f9ece0"
+        ]
+      },
+      "highlighter-deep": {
+        "role": "neutral",
+        "displayName": "Deep Highlighter",
+        "canonical": "oklch(53.0% 0.109 83.3)",
+        "tonalRamp": [
+          "#110a00",
+          "#312201",
+          "#553d01",
+          "#7d5b01",
+          "#a27c28",
+          "#c69f4e",
+          "#ebc373",
+          "#ffecca"
+        ]
+      },
+      "brick-alert": {
+        "role": "neutral",
+        "displayName": "Brick Alert",
+        "canonical": "oklch(50.0% 0.182 29.5)",
+        "tonalRamp": [
+          "#1e0100",
+          "#4c0201",
+          "#7f0703",
+          "#b12015",
+          "#da4a3b",
+          "#fd7563",
+          "#feb3a7",
+          "#fde9e6"
+        ]
+      },
+      "sepia-key": {
+        "role": "primary",
+        "displayName": "Sepia Key",
+        "canonical": "oklch(23.0% 0.015 48.1)",
+        "tonalRamp": [
+          "#100906",
+          "#2b231f",
+          "#49403b",
+          "#695f5a",
+          "#8a807b",
+          "#ada29d",
+          "#d2c6c1",
+          "#f7ece6"
+        ]
+      },
+      "sepia-key-ink": {
+        "role": "primary",
+        "displayName": "Sepia Key Ink",
+        "canonical": "oklch(96.0% 0.016 82.8)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#29241c",
+          "#464139",
+          "#666157",
+          "#878278",
+          "#aaa49a",
+          "#cec8be",
+          "#f4eee3"
+        ]
+      },
+      "score-paper": {
+        "role": "neutral",
+        "displayName": "Score Paper",
+        "canonical": "oklch(99.4% 0.007 88.6)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#262521",
+          "#43423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a0",
+          "#cbc9c4",
+          "#f0eee9"
+        ]
+      },
+      "score-ink": {
+        "role": "neutral",
+        "displayName": "Score Ink",
+        "canonical": "oklch(26.6% 0.014 57.6)",
+        "tonalRamp": [
+          "#100a06",
+          "#2a231e",
+          "#48403b",
+          "#685f5a",
+          "#89807a",
+          "#aca39d",
+          "#d1c7c0",
+          "#f6ece6"
+        ]
+      },
+      "stage": {
+        "role": "neutral",
+        "displayName": "Stage",
+        "canonical": "oklch(18.9% 0.012 48.1)",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2a2320",
+          "#47403d",
+          "#675f5c",
+          "#89807c",
+          "#aca39f",
+          "#d0c7c3",
+          "#f6ece8"
+        ]
+      },
+      "note-c": {
+        "role": "secondary",
+        "displayName": "Do Coral Red",
+        "canonical": "oklch(67.9% 0.185 26.9)",
+        "tonalRamp": [
+          "#1f0001",
+          "#4c0204",
+          "#80020a",
+          "#b31b1d",
+          "#db4840",
+          "#ff7368",
+          "#feb3aa",
+          "#fceae7"
+        ]
+      },
+      "note-d": {
+        "role": "secondary",
+        "displayName": "Re Orange",
+        "canonical": "oklch(76.5% 0.150 58.2)",
+        "tonalRamp": [
+          "#150700",
+          "#3b1c01",
+          "#643401",
+          "#904e09",
+          "#bf690b",
+          "#e98a35",
+          "#fdb883",
+          "#ffeadb"
+        ]
+      },
+      "note-e": {
+        "role": "secondary",
+        "displayName": "Mi Yellow",
+        "canonical": "oklch(86.6% 0.155 94.9)",
+        "tonalRamp": [
+          "#0f0b01",
+          "#2d2402",
+          "#4f4104",
+          "#736006",
+          "#9a8006",
+          "#c2a305",
+          "#e9c739",
+          "#ffefb2"
+        ]
+      },
+      "note-f": {
+        "role": "secondary",
+        "displayName": "Fa Green",
+        "canonical": "oklch(78.0% 0.170 142.1)",
+        "tonalRamp": [
+          "#001000",
+          "#032f01",
+          "#055101",
+          "#0f7606",
+          "#389a30",
+          "#5ebf55",
+          "#83e47a",
+          "#ccffc6"
+        ]
+      },
+      "note-g": {
+        "role": "secondary",
+        "displayName": "Sol Teal",
+        "canonical": "oklch(76.0% 0.115 192.2)",
+        "tonalRamp": [
+          "#010e0e",
+          "#032b2a",
+          "#064c4b",
+          "#08706d",
+          "#099592",
+          "#2cbbb8",
+          "#5de1dc",
+          "#b7fefb"
+        ]
+      },
+      "note-a": {
+        "role": "secondary",
+        "displayName": "La Blue",
+        "canonical": "oklch(70.9% 0.135 250.3)",
+        "tonalRamp": [
+          "#010c1b",
+          "#002648",
+          "#014378",
+          "#0c63aa",
+          "#3986d0",
+          "#5eaaf6",
+          "#a0cefe",
+          "#e3f0fe"
+        ]
+      },
+      "note-b": {
+        "role": "secondary",
+        "displayName": "Si Violet",
+        "canonical": "oklch(71.1% 0.150 312.0)",
+        "tonalRamp": [
+          "#150021",
+          "#390151",
+          "#5c1f7a",
+          "#7d429e",
+          "#a064c2",
+          "#c487e9",
+          "#e1b4fd",
+          "#f5e9fe"
+        ]
+      },
+      "note-c-paper": {
+        "role": "secondary",
+        "displayName": "Do Red on Paper",
+        "canonical": "oklch(56.0% 0.200 27.1)",
+        "tonalRamp": [
+          "#1f0001",
+          "#4c0204",
+          "#80030a",
+          "#b80212",
+          "#e13f39",
+          "#ff7368",
+          "#feb4aa",
+          "#fee9e6"
+        ]
+      },
+      "note-d-paper": {
+        "role": "secondary",
+        "displayName": "Re Orange on Paper",
+        "canonical": "oklch(56.9% 0.147 51.5)",
+        "tonalRamp": [
+          "#160701",
+          "#3e1901",
+          "#683004",
+          "#974701",
+          "#c5641a",
+          "#ec8745",
+          "#fdb78d",
+          "#feeadf"
+        ]
+      },
+      "note-e-paper": {
+        "role": "secondary",
+        "displayName": "Mi Ochre on Paper",
+        "canonical": "oklch(55.9% 0.113 85.4)",
+        "tonalRamp": [
+          "#110a00",
+          "#312301",
+          "#543e01",
+          "#7b5c00",
+          "#a17c21",
+          "#c59f4a",
+          "#eac46f",
+          "#ffedc7"
+        ]
+      },
+      "note-f-paper": {
+        "role": "secondary",
+        "displayName": "Fa Green on Paper",
+        "canonical": "oklch(54.2% 0.161 145.0)",
+        "tonalRamp": [
+          "#001001",
+          "#012f07",
+          "#035112",
+          "#04761e",
+          "#339a3e",
+          "#5abf61",
+          "#80e485",
+          "#cbfecc"
+        ]
+      },
+      "note-g-paper": {
+        "role": "secondary",
+        "displayName": "Sol Teal on Paper",
+        "canonical": "oklch(54.7% 0.092 194.8)",
+        "tonalRamp": [
+          "#000e0e",
+          "#012c2c",
+          "#014c4c",
+          "#106f6f",
+          "#2a9393",
+          "#54b7b7",
+          "#7bdcdb",
+          "#b5fefd"
+        ]
+      },
+      "note-a-paper": {
+        "role": "secondary",
+        "displayName": "La Blue on Paper",
+        "canonical": "oklch(53.0% 0.151 255.1)",
+        "tonalRamp": [
+          "#000b1e",
+          "#00244e",
+          "#034081",
+          "#1460b4",
+          "#3c83da",
+          "#62a7ff",
+          "#a5ccff",
+          "#e5f0fe"
+        ]
+      },
+      "note-b-paper": {
+        "role": "secondary",
+        "displayName": "Si Violet on Paper",
+        "canonical": "oklch(51.9% 0.170 315.0)",
+        "tonalRamp": [
+          "#160020",
+          "#3b004e",
+          "#62127e",
+          "#843aa2",
+          "#a85dc7",
+          "#cc81ed",
+          "#e6b2fe",
+          "#f7e8fe"
+        ]
+      },
+      "note-ink": {
+        "role": "neutral",
+        "displayName": "Note Ink",
+        "canonical": "oklch(20.0% 0.011 60.8)",
+        "tonalRamp": [
+          "#0f0a07",
+          "#292420",
+          "#47413c",
+          "#66605b",
+          "#88817c",
+          "#aaa49e",
+          "#cfc8c2",
+          "#f4ede7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The home headline; the wordmark uses the same weight at 1.375rem."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles: Mi biblioteca, En proceso."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Song titles in the practice bar and on library cards."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Text and explanations, about 52 to 65ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Key-row legends and field labels."
+      },
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Time, measure, speed, percentages and durations, tabular."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-drop",
+        "value": "0 18px 40px -24px rgb(0 0 0 / 0.85)",
+        "purpose": "Home cards on the dark case (light mode: 0 18px 40px -26px rgb(60 40 20 / 0.45))."
+      },
+      {
+        "name": "drawer",
+        "value": "-24px 0 60px -30px rgb(0 0 0 / 0.75)",
+        "purpose": "The reading guide drawer over the page."
+      },
+      {
+        "name": "key-edge",
+        "value": "inset 0 -3px 0 <edge colour>",
+        "purpose": "The bottom edge of every key; inset 0 -1px 0 while pressed."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "All transitions: key press (90ms), hover fills (120ms), switches (140ms), guide drawer entrance (320ms)."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Every animation and transition under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "single-column",
+        "value": "1023px"
+      },
+      {
+        "name": "compact",
+        "value": "560px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary key",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action on a screen: Reproducir, Practicar, Procesar canción.",
+      "html": "<button class=\"ds-key-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5.5v13l10.5-6.5z\" fill=\"currentColor\"/></svg>Reproducir</button>",
+      "css": ".ds-key-primary { font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px 2px; border-radius: 4px 4px 10px 10px; font-size: 16px; font-weight: 600; line-height: 1.1; cursor: pointer; transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid #b9ab95; background: #f2ece1; color: #1c1613; box-shadow: inset 0 -3px 0 #b9ab95; } .ds-key-primary:hover { background: color-mix(in oklab, #f2ece1 88%, #b9ab95); } .ds-key-primary:active { transform: translateY(1px); box-shadow: inset 0 -1px 0 #b9ab95; } .ds-key-primary:focus-visible { outline: 2px solid #f4d248; outline-offset: 2px; }"
+    },
+    {
+      "name": "Black key",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary actions: Reiniciar, Conectar teclado, Usar micrófono.",
+      "html": "<button class=\"ds-key-black\">Reiniciar</button>",
+      "css": ".ds-key-black { font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px 2px; border-radius: 4px 4px 10px 10px; font-size: 16px; font-weight: 600; line-height: 1.1; cursor: pointer; transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid #3a2f29; background: #2b221e; color: #f3ece0; box-shadow: inset 0 -3px 0 #0b0807; } .ds-key-black:hover { background: #2e241f; } .ds-key-black:active { transform: translateY(1px); box-shadow: inset 0 -1px 0 #0b0807; } .ds-key-black:focus-visible { outline: 2px solid #f4d248; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet key",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Top-bar and icon actions: Biblioteca, Guía de lectura.",
+      "html": "<button class=\"ds-key-quiet\">Guía de lectura</button>",
+      "css": ".ds-key-quiet { font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px 2px; border-radius: 4px 4px 10px 10px; font-size: 16px; font-weight: 600; line-height: 1.1; cursor: pointer; transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid transparent; background: transparent; color: #f3ece0; } .ds-key-quiet:hover { background: #2e241f; } .ds-key-quiet:focus-visible { outline: 2px solid #f4d248; outline-offset: 2px; }"
+    },
+    {
+      "name": "Key row",
+      "kind": "chip",
+      "refersTo": "key-row-option-selected",
+      "description": "A choice between a few options drawn as a row of keys over native radios.",
+      "html": "<div class=\"ds-key-row\" role=\"radiogroup\" aria-label=\"Vista\"><label><input type=\"radio\" name=\"ds-view\">Notas</label><label><input type=\"radio\" name=\"ds-view\">Partitura</label><label><input type=\"radio\" name=\"ds-view\" checked>Ambas</label></div>",
+      "css": ".ds-key-row { display: inline-flex; gap: 2px; padding: 2px; border-radius: 6px 6px 10px 10px; background: #0b0807; font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; } .ds-key-row label { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px 2px; border-radius: 3px 3px 8px 8px; background: #2b221e; box-shadow: inset 0 -3px 0 color-mix(in oklab, #0b0807 70%, #2b221e); color: #cdc2b4; font-size: 15px; font-weight: 600; cursor: pointer; } .ds-key-row label:hover { color: #f3ece0; } .ds-key-row input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; } .ds-key-row label:has(input:checked) { background: #f2ece1; box-shadow: inset 0 -2px 0 #b9ab95; color: #1c1613; } .ds-key-row label:has(input:focus-visible) { outline: 2px solid #f4d248; outline-offset: 2px; z-index: 1; }"
+    },
+    {
+      "name": "Switch with hint",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "An on/off setting with its explanation under the label.",
+      "html": "<div class=\"ds-switch-field\"><label class=\"ds-switch\"><input type=\"checkbox\" checked aria-describedby=\"ds-hint\">Modo espera</label><p id=\"ds-hint\">La canción se detiene en cada acorde hasta que tocas sus notas.</p></div>",
+      "css": ".ds-switch-field { display: grid; font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; color: #f3ece0; } .ds-switch { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 16px; cursor: pointer; } .ds-switch input { appearance: none; position: relative; flex: none; width: 40px; height: 24px; margin: 0; border: 1px solid #85766a; border-radius: 12px; background: #241c18; cursor: pointer; transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1), border-color 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-switch input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #a89c8f; transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-switch input:checked { border-color: #f3ece0; background: #f3ece0; } .ds-switch input:checked::after { transform: translateX(16px); background: #110c0a; } .ds-switch input:focus-visible { outline: 2px solid #f4d248; outline-offset: 2px; } .ds-switch-field p { margin: -4px 0 0; padding-left: 52px; color: #cdc2b4; font-size: 13px; line-height: 1.4; }"
+    },
+    {
+      "name": "Note chips",
+      "kind": "chip",
+      "refersTo": "chip-note",
+      "description": "The notes wait mode is waiting for, in their colours; a played one becomes an outline.",
+      "html": "<p class=\"ds-hud\">Toca las notas indicadas para continuar. <span class=\"ds-chip\" style=\"--chip:#f56056\">C</span><span class=\"ds-chip\" style=\"--chip:#3fc8c4\" data-done=\"true\">G</span><span class=\"ds-chip\" style=\"--chip:#f56056\">C</span></p>",
+      "css": ".ds-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 8px 12px; border-radius: 6px; background: #241c18; color: #f3ece0; font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; } .ds-chip { display: inline-grid; place-items: center; min-width: 36px; height: 30px; padding: 0 8px 2px; border-radius: 3px 3px 7px 7px; background: var(--chip); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.22); color: #1a1511; font-weight: 800; } .ds-chip[data-done='true'] { background: transparent; box-shadow: inset 0 0 0 2px var(--chip); color: #f3ece0; text-decoration: line-through; text-decoration-thickness: 2px; }"
+    },
+    {
+      "name": "Link field",
+      "kind": "input",
+      "refersTo": "input-link",
+      "description": "The YouTube link field on the home page.",
+      "html": "<label class=\"ds-field\"><span>Enlace de YouTube</span><input type=\"url\" placeholder=\"https://www.youtube.com/watch?v=...\"></label>",
+      "css": ".ds-field { display: grid; gap: 8px; font-family: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif; color: #f3ece0; } .ds-field span { font-size: 16px; font-weight: 700; } .ds-field input { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid #85766a; border-radius: 6px; background: #241c18; color: #f3ece0; font: inherit; } .ds-field input:hover { border-color: #a89c8f; } .ds-field input:focus-visible { outline: 2px solid #f4d248; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Metallophone in Its Case",
+    "overview": "Notacaida is an instrument, not a page. The learner sits at a digital keyboard with both hands busy and reads the screen from the music rest, 60 to 80 cm away. The system is built for that glance: one fixed workspace on desktop, large type, tabular numbers, and nothing on screen that competes with the notes.\n\nThe world is a school metallophone: every note owns one colour, and that colour is the same on the key sticker, the falling bar, the notehead on the staff, the note's written name and the reading guide. Colour is how the app teaches reading. Everything that is not a note is the instrument's case: lacquered near-black browns with hairlines a step lighter and cream ink. Primary actions are ivory keys, secondary actions are black keys, and short choices are rows of keys. The score is a sheet of paper on the stand and never follows the theme.\n\nIt rejects the settings form stacked over a canvas, the card dashboard, and the dark SaaS look with a single accent colour.",
+    "keyCharacteristics": [
+      "One colour per note, calibrated in OKLCH to an even weight, with a bright set for the dark stage and a deep set for paper.",
+      "A warm, accent-free chrome: browns and creams only; colour belongs to music.",
+      "Buttons drawn as piano keys with a bottom edge and 1px of travel.",
+      "One typeface, Atkinson Hyperlegible Next, chosen for legibility at distance.",
+      "The practice screen is always the dark case; home, library and terms follow the system theme."
+    ],
+    "rules": [
+      {
+        "name": "The Notes Own Colour Rule",
+        "body": "No hue appears in the interface unless it names a note. Chrome, states and emphasis use browns, creams and the highlighter only.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never Alone Rule",
+        "body": "A note colour always travels with the note's name (letter or solfège), so the system works for colour-blind players and on poor screens.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paper Stays Paper Rule",
+        "body": "The score is always `score-paper`, and the practice screen is always the dark case, whatever the system theme.",
+        "section": "colors"
+      },
+      {
+        "name": "The Steady Numbers Rule",
+        "body": "Every number that changes while the song plays uses tabular figures, so nothing shifts under the player's eye.",
+        "section": "typography"
+      },
+      {
+        "name": "The Key Edge Rule",
+        "body": "Pressable things show a 3px inset bottom edge in their edge colour and move down 1px when pressed, losing 2px of edge. Nothing else uses that edge.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** take every hue from the seven note colours, and pair each with its name.",
+      "**Do** use the deep paper set (4.5:1 or more on `score-paper`) for anything on the score.",
+      "**Do** make the primary action an ivory key on the case and a sepia key on linen.",
+      "**Do** keep the practice screen in the dark case and the score on paper in every theme.",
+      "**Do** use tabular figures for anything that counts or changes during playback."
+    ],
+    "donts": [
+      "**Don't** add an accent colour to the chrome; states use tone, the highlighter or the key edge.",
+      "**Don't** colour a note without its letter or solfège name.",
+      "**Don't** move the learner away from the view they chose, or scroll the page while a song plays.",
+      "**Don't** use stacked cards of icon, heading and text as a page structure, or a label above a heading.",
+      "**Don't** imitate wood, lacquer or ivory with textures or gradients; the case is flat tone."
+    ]
+  }
+}

@@ -22,4 +22,6 @@ Una ADR por decisión del registro del 14 de noviembre de 2026. El estado vigent
 | [0016](0016-entrega-sin-cache-y-limites.md) | Entrega sin caché, límites de uso y aviso al terminar (nueva, modifica D-07) | Aceptada |
 | [0017](0017-reduccion-de-polifonia.md) | Reducción de polifonía para poder tocar (nueva) | Aceptada |
 | [0018](0018-pulso-cuantizacion-y-partitura.md) | Pulso, cuantización y partitura (nueva) | Aceptada |
+| [0019](0019-licencias-de-dependencias-transitivas.md) | Licencias de dependencias transitivas fuera de la lista permisiva (nueva, complementa D-12) | Aceptada |
 | [0020](0020-entrada-por-microfono.md) | Entrada por micrófono como alternativa al teclado MIDI (nueva, complementa D-08) | Propuesta |
+| [0021](0021-fuente-atkinson-hyperlegible.md) | Fuente Atkinson Hyperlegible Next con licencia SIL OFL 1.1 (nueva, complementa D-12) | Propuesta |

@@ -16,6 +16,9 @@ texts ship with each package and are kept up to date in docs/adr/0012-licencias.
 - music21 ........................... BSD-3-Clause
 - OpenSheetMusicDisplay ............. BSD-3-Clause
 - Tone.js ........................... MIT
+- Atkinson Hyperlegible Next (font,
+  Braille Institute; The Atkinson
+  Hyperlegible Next Project Authors) . SIL OFL-1.1; used unmodified (see docs/adr/0021)
 - yt-dlp ............................ Unlicense (public domain)
 - soxr (via librosa) ................ LGPL-2.1-or-later; used unmodified as a separate
                                       binary package (see docs/adr/0019)
