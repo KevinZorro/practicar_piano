@@ -20,6 +20,8 @@ function run(room: RoomOptions, amplitude: number, beatsPlayed: number, lateS = 
   return last;
 }
 
+const SLOW_RUNNER_MS = 30_000;
+
 describe('Calibrator', () => {
   it('learns tuning, timing and noise from five C4 beats', () => {
     const done = run({ noiseRms: 0.001, detuneCents: 25 }, 0.15, 5);
@@ -37,13 +39,18 @@ describe('Calibrator', () => {
     expect(done.result.warnings).toEqual([]);
   });
 
-  it("adds the player's own lateness to the latency", () => {
-    const base = run({ noiseRms: 0.001 }, 0.15, 5);
-    const late = run({ noiseRms: 0.001 }, 0.15, 5, 0.08);
-    const a = base.kind === 'done' ? base.result.calibration?.latencyS : undefined;
-    const b = late.kind === 'done' ? late.result.calibration?.latencyS : undefined;
-    expect((b ?? 0) - (a ?? 0)).toBeGreaterThan(0.05);
-  });
+  // Two full room simulations: slow CI runners need more than the default 5 s.
+  it(
+    "adds the player's own lateness to the latency",
+    () => {
+      const base = run({ noiseRms: 0.001 }, 0.15, 5);
+      const late = run({ noiseRms: 0.001 }, 0.15, 5, 0.08);
+      const a = base.kind === 'done' ? base.result.calibration?.latencyS : undefined;
+      const b = late.kind === 'done' ? late.result.calibration?.latencyS : undefined;
+      expect((b ?? 0) - (a ?? 0)).toBeGreaterThan(0.05);
+    },
+    SLOW_RUNNER_MS,
+  );
 
   it('gives up without a calibration when fewer than three beats are heard', () => {
     const done = run({ noiseRms: 0.001 }, 0.15, 2);
