@@ -1,8 +1,8 @@
-# Default rules plus a path-independent allowlist for one known false positive:
-# the localStorage key name `<app>.pendingJobs.v1` looks like a generic API key.
+# Default rules plus a path-independent allowlist for known false positives:
+# localStorage key names like `<app>.pendingJobs.v1` and `<app>.prefs.v1` look like generic API keys.
 [extend]
 useDefault = true
 
 [allowlist]
 description = "localStorage key names are not secrets"
-regexes = ['''[a-z]+\.pendingJobs\.v1''']
+regexes = ['''^[a-z]+\.(pendingJobs|prefs)\.v1$''']
