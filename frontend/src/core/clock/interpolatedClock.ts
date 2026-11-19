@@ -19,6 +19,8 @@ export class InterpolatedClock implements PlaybackClock {
   private anchorWallMs: number;
   private rate = 1;
   private playing = false;
+  /** The player is loading: the position holds still until it plays again. */
+  private stalled = false;
   private offsetS = 0;
   private readonly snapThresholdS: number;
   private readonly gain: number;
@@ -38,7 +40,7 @@ export class InterpolatedClock implements PlaybackClock {
 
   /** Position of the video itself, without the sync offset. */
   private rawNow(): number {
-    if (!this.playing) return this.anchorS;
+    if (!this.playing || this.stalled) return this.anchorS;
     return this.anchorS + ((this.options.wallMs() - this.anchorWallMs) / 1000) * this.rate;
   }
 
@@ -83,6 +85,13 @@ export class InterpolatedClock implements PlaybackClock {
     const reported = this.player.getCurrentTime();
     if (!this.playing) {
       this.anchorS = reported;
+      return;
+    }
+    // A video that is loading (right after going back, say) does not move: neither do the notes.
+    const buffering = this.player.isBuffering?.() ?? false;
+    if (buffering || this.stalled) {
+      this.stalled = buffering;
+      this.rebase(reported);
       return;
     }
     const error = reported - this.rawNow();

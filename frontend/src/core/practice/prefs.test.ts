@@ -9,14 +9,18 @@ describe('parsePrefs', () => {
       sheetLetters: true,
       naming: 'solfege',
       sheetZoom: 1.3,
+      rewindS: 12,
+      rewindOnMiss: true,
     };
     expect(parsePrefs(stored)).toEqual(stored);
   });
 
   it('falls back field by field on unknown or broken values', () => {
-    expect(parsePrefs({ view: 'piano-roll', naming: 3, sheetZoom: 7, showVideo: 'yes' })).toEqual(
-      DEFAULT_PREFS,
-    );
+    expect(
+      parsePrefs({ view: 'piano-roll', naming: 3, sheetZoom: 7, showVideo: 'yes', rewindS: 99 }),
+    ).toEqual(DEFAULT_PREFS);
+    expect(parsePrefs({ rewindS: 2.5 }).rewindS).toBe(5);
+    expect(parsePrefs({ rewindS: 0 }).rewindS).toBe(5);
     expect(parsePrefs({ view: 'falling' }).view).toBe('falling');
   });
 

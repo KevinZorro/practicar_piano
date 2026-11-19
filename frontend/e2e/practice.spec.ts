@@ -151,3 +151,28 @@ test('a finished run played on the keyboard is kept as progress in the library',
   await page.getByRole('button', { name: 'Volver' }).click();
   await expect(page.getByText(/Jugable: 1 intento, mejor \d+ %/)).toBeVisible();
 });
+
+test('automatic rewind goes back the chosen seconds on a wrong key, without waiting', async ({
+  page,
+}) => {
+  await fakeKeyboard(page);
+  await openPractice(page);
+  const progress = page.getByLabel('Progreso del retroceso automático');
+
+  await page.getByLabel('Retroceso automático').check();
+  // The two practice modes exclude each other.
+  await expect(page.getByLabel('Modo espera')).not.toBeChecked();
+  await page.getByLabel('Segundos que retrocede').fill('2');
+  await expect(page.getByText('2 s', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Conectar teclado' }).click();
+  await expect(page.getByText('Teclado conectado.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+
+  // The song keeps going on its own: it is past the first seconds without any key.
+  await expect(page.locator('.timeline-now')).not.toHaveText('0:00');
+  await expect(page.locator('.timeline-now')).toHaveText(/0:0[3-9]/, { timeout: 8_000 });
+  await pressKey(page, 100); // no such note in the song
+  await expect(progress).toContainText('Fallos: 1');
+  await expect(progress).toContainText('Retrocesos: 1');
+  await expect(page.locator('.timeline-now')).toHaveText(/0:0[0-3]/);
+});

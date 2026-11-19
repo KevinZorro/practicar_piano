@@ -16,6 +16,12 @@ import { accuracy, DEFAULT_CONFIG, type PracticeState } from '../core/practice/m
 import type { PracticePrefs, PracticeView } from '../core/practice/prefs';
 import { SpeedControl } from '../core/practice/speed';
 import { expectedNow } from '../core/practice/expected';
+import {
+  DEFAULT_FOLLOW_CONFIG,
+  FollowMode,
+  followAccuracy,
+  type FollowStats,
+} from '../core/practice/followMode';
 import { Judge } from '../core/practice/judge';
 import { formatClock, measureAt } from '../core/practice/timeline';
 import { WaitMode } from '../core/practice/waitMode';
@@ -25,7 +31,7 @@ import { stageLayout } from '../render/stageLayout';
 import { KeyRow, Switch } from './controls';
 import { BackIcon, BookIcon, KeysIcon, PauseIcon, PlayIcon, RestartIcon } from './icons';
 import { MicPanel } from './MicPanel';
-import { PracticePanel, ReadingPanel, WaitHud } from './PracticePanels';
+import { FollowHud, PracticePanel, ReadingPanel, WaitHud } from './PracticePanels';
 import { ReadingGuide } from './ReadingGuide';
 import { SheetPane } from './SheetPane';
 
@@ -110,6 +116,8 @@ export function PracticeScreen({
   // The video carries the song's own sound; the synth is for songs without one.
   const [sound, setSound] = useState(!canShowVideo || !prefs.showVideo);
   const [waitOn, setWaitOn] = useState(false);
+  // Follow mode: the video keeps going and a wrong key sends it back; it excludes wait mode.
+  const [followOn, setFollowOn] = useState(false);
   const [hand, setHand] = useState<HandFilter>('both');
   const [guideOpen, setGuideOpen] = useState(false);
   const [practice, setPractice] = useState<{
@@ -157,8 +165,12 @@ export function PracticeScreen({
   // What the frame loop reads every frame without re-subscribing.
   const drawing = useRef({ view: prefs.view, naming: prefs.naming, dim: null as Hand | null });
   useEffect(() => {
-    drawing.current = { view: prefs.view, naming: prefs.naming, dim: dimmedHand(waitOn, hand) };
-  }, [prefs.view, prefs.naming, waitOn, hand]);
+    drawing.current = {
+      view: prefs.view,
+      naming: prefs.naming,
+      dim: dimmedHand(waitOn || followOn, hand),
+    };
+  }, [prefs.view, prefs.naming, waitOn, followOn, hand]);
 
   // On narrow screens the stage takes what the header and the sticky transport leave, so the
   // transport never covers the keyboard, even when wait mode makes it taller.
@@ -237,10 +249,10 @@ export function PracticeScreen({
       (state) => {
         setPractice({ source: holder.current, state });
       },
-      { ...DEFAULT_CONFIG, rewindOnWrong },
+      { ...DEFAULT_CONFIG, rewindOnWrong, rewindS: prefs.rewindS },
     );
     return holder.current;
-  }, [waitOn, hand, view, clock, rewindOnWrong]);
+  }, [waitOn, hand, view, clock, rewindOnWrong, prefs.rewindS]);
   useEffect(() => {
     waitRef.current = wait;
     attemptInfo.current.reported = false;
@@ -248,6 +260,40 @@ export function PracticeScreen({
       waitRef.current = null;
     };
   }, [wait]);
+
+  // Follow mode, with its own tally; reports carry the instance so stale ones are ignored.
+  const [followTally, setFollowTally] = useState<{
+    source: FollowMode | null;
+    stats: FollowStats;
+  } | null>(null);
+  const follow = useMemo(() => {
+    if (!followOn) return null;
+    const holder: { current: FollowMode | null } = { current: null };
+    holder.current = new FollowMode(
+      view.notes,
+      hand,
+      clock,
+      (stats) => {
+        setFollowTally({ source: holder.current, stats });
+      },
+      { ...DEFAULT_FOLLOW_CONFIG, rewindS: prefs.rewindS, rewindOnMiss: prefs.rewindOnMiss },
+    );
+    return holder.current;
+  }, [followOn, hand, view, clock, prefs.rewindS, prefs.rewindOnMiss]);
+  const followRef = useRef<FollowMode | null>(null);
+  useEffect(() => {
+    followRef.current = follow;
+    attemptInfo.current.reported = false;
+    return () => {
+      followRef.current = null;
+    };
+  }, [follow]);
+  const followStats = follow
+    ? followTally?.source === follow
+      ? followTally.stats
+      : follow.snapshot
+    : null;
+
   const practiceState = wait ? (practice?.source === wait ? practice.state : wait.snapshot) : null;
 
   useEffect(() => {
@@ -269,7 +315,8 @@ export function PracticeScreen({
       else {
         // The microphone confirms a note a little after the key went down: judge it back then.
         const back = (message.ageS ?? 0) * speedControl.speed;
-        judgeRef.current.noteOn(message.pitch, clock.now() - back);
+        if (followRef.current) followRef.current.noteOn(message.pitch, clock.now() - back);
+        else judgeRef.current.noteOn(message.pitch, clock.now() - back);
       }
     });
     return () => {
@@ -348,7 +395,10 @@ export function PracticeScreen({
         if (measureNow.current) measureNow.current.textContent = String(bar ?? 1);
       }
       seekSheet.current?.(now);
-      if (sessionRef.current) waitRef.current?.tick();
+      if (sessionRef.current) {
+        waitRef.current?.tick();
+        followRef.current?.tick();
+      }
       const listening = micRef.current;
       if (listening) {
         listening.setExpected(
@@ -365,7 +415,11 @@ export function PracticeScreen({
         if (now >= duration) {
           clock.pause();
           setPlaying(false);
-          if (!waitRef.current && judgeRef.current.pressCount > 0) {
+          const tally = followRef.current?.snapshot;
+          if (tally && tally.hits + tally.mistakes > 0) {
+            // A run that needed rewinds was helped: it is reported like wait mode, never as mastered.
+            report({ accuracy: followAccuracy(tally), waitMode: tally.rewinds > 0 });
+          } else if (!waitRef.current && !tally && judgeRef.current.pressCount > 0) {
             report({
               accuracy: judgeRef.current.result(duration).accuracy,
               waitMode: false,
@@ -467,6 +521,7 @@ export function PracticeScreen({
     const target = Math.min(Math.max(timeS, 0), duration);
     clock.seek(target);
     waitRef.current?.seek(target);
+    followRef.current?.seek(target);
     judge.reset(target);
     attemptInfo.current.reported = false;
     piano.current?.stopAll();
@@ -519,6 +574,16 @@ export function PracticeScreen({
     const input = createMic();
     setSource({ kind: 'mic', input });
     setInputStatus(await input.start());
+  }
+
+  function chooseWait(on: boolean) {
+    setWaitOn(on);
+    if (on) setFollowOn(false);
+  }
+
+  function chooseFollow(on: boolean) {
+    setFollowOn(on);
+    if (on) setWaitOn(false);
   }
 
   function chooseSpeed(next: number) {
@@ -644,6 +709,7 @@ export function PracticeScreen({
           <span className="transport-hint">
             <kbd>Espacio</kbd> reproduce o pausa
           </span>
+          {followStats && <FollowHud stats={followStats} />}
           {waitOn && practiceState && (
             <WaitHud
               state={practiceState}
@@ -683,7 +749,17 @@ export function PracticeScreen({
           speed={speed}
           onSpeed={chooseSpeed}
           waitOn={waitOn}
-          onWait={setWaitOn}
+          onWait={chooseWait}
+          followOn={followOn}
+          onFollow={chooseFollow}
+          rewindS={prefs.rewindS}
+          onRewindS={(rewindS) => {
+            onPrefs({ rewindS });
+          }}
+          rewindOnMiss={prefs.rewindOnMiss}
+          onRewindOnMiss={(rewindOnMiss) => {
+            onPrefs({ rewindOnMiss });
+          }}
           hand={hand}
           onHand={setHand}
           rewindOnWrong={rewindOnWrong}

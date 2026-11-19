@@ -45,6 +45,9 @@ export class SwitchablePlayer implements PlayerPort {
     this.rate = rate;
     this.current.setPlaybackRate(rate);
   }
+  isBuffering(): boolean {
+    return this.current.isBuffering?.() ?? false;
+  }
   setMuted(muted: boolean): void {
     this.muted = muted;
     this.current.setMuted?.(muted);

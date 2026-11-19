@@ -49,6 +49,15 @@ describe('YouTubePlayerPort', () => {
     expect(seen).toEqual([true, false, false]);
   });
 
+  it('knows when the player is loading data', () => {
+    const port = new YouTubePlayerPort(fakeYt());
+    expect(port.isBuffering()).toBe(false);
+    port.handleState(3);
+    expect(port.isBuffering()).toBe(true);
+    port.handleState(1);
+    expect(port.isBuffering()).toBe(false);
+  });
+
   it('stops reporting after unsubscribing', () => {
     const port = new YouTubePlayerPort(fakeYt());
     const seen: boolean[] = [];
