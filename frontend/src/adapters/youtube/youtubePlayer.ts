@@ -15,11 +15,13 @@ export interface YtPlayerLike {
 const YT_ENDED = 0;
 const YT_PLAYING = 1;
 const YT_PAUSED = 2;
+const YT_BUFFERING = 3;
 
 export class YouTubePlayerPort implements PlayerPort {
   /** What the app last asked for, to tell its own changes from the player's clicks. */
   private commanded: 'play' | 'pause' = 'pause';
   private readonly listeners = new Set<(playing: boolean) => void>();
+  private buffering = false;
 
   constructor(private readonly player: YtPlayerLike) {}
 
@@ -40,6 +42,9 @@ export class YouTubePlayerPort implements PlayerPort {
   setPlaybackRate(rate: number): void {
     this.player.setPlaybackRate(rate);
   }
+  isBuffering(): boolean {
+    return this.buffering;
+  }
   setMuted(muted: boolean): void {
     if (muted) this.player.mute?.();
     else this.player.unMute?.();
@@ -57,6 +62,7 @@ export class YouTubePlayerPort implements PlayerPort {
    * knowing; the app then follows instead of drawing a song that runs on its own.
    */
   handleState(state: number): void {
+    this.buffering = state === YT_BUFFERING;
     if (state !== YT_PLAYING && state !== YT_PAUSED && state !== YT_ENDED) return;
     const playing = state === YT_PLAYING;
     if (playing === (this.commanded === 'play')) return;

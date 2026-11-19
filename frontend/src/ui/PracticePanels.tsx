@@ -2,8 +2,15 @@ import type { CSSProperties } from 'react';
 import type { HandFilter } from '../core/notes/model';
 import { displayName } from '../core/notes/names';
 import type { LevelName } from '../core/practice/level';
+import { followAccuracy, type FollowStats } from '../core/practice/followMode';
 import { accuracy, type PracticeState } from '../core/practice/machine';
-import { SHEET_ZOOM_STEPS, stepZoom, type PracticePrefs } from '../core/practice/prefs';
+import {
+  REWIND_MAX_S,
+  REWIND_MIN_S,
+  SHEET_ZOOM_STEPS,
+  stepZoom,
+  type PracticePrefs,
+} from '../core/practice/prefs';
 import { SPEED_PRESETS } from '../core/practice/speed';
 import { stageColor } from '../render/notePalette';
 import { KeyRow, Switch } from './controls';
@@ -27,6 +34,12 @@ interface PracticePanelProps {
   onSpeed: (speed: number) => void;
   waitOn: boolean;
   onWait: (on: boolean) => void;
+  followOn: boolean;
+  onFollow: (on: boolean) => void;
+  rewindS: number;
+  onRewindS: (seconds: number) => void;
+  rewindOnMiss: boolean;
+  onRewindOnMiss: (on: boolean) => void;
   hand: HandFilter;
   onHand: (hand: HandFilter) => void;
   rewindOnWrong: boolean;
@@ -90,7 +103,13 @@ export function PracticePanel(props: PracticePanelProps) {
         onChange={props.onWait}
         hint="La canción se detiene en cada acorde hasta que tocas sus notas."
       />
-      {props.waitOn && (
+      <Switch
+        label="Retroceso automático"
+        checked={props.followOn}
+        onChange={props.onFollow}
+        hint="El video sigue a su ritmo, sin esperarte. Si tocas una nota que no es, vuelve unos segundos atrás."
+      />
+      {(props.waitOn || props.followOn) && (
         <div className="wait-options">
           <KeyRow
             legend="Manos que tocas"
@@ -102,12 +121,43 @@ export function PracticePanel(props: PracticePanelProps) {
             onChange={props.onHand}
             className="hands"
           />
-          <Switch
-            label="Retroceder al fallar"
-            checked={props.rewindOnWrong}
-            onChange={props.onRewind}
-            hint="Vuelve unos segundos atrás si tocas una nota que no toca."
-          />
+          {props.waitOn && (
+            <Switch
+              label="Retroceder al fallar"
+              checked={props.rewindOnWrong}
+              onChange={props.onRewind}
+              hint="Vuelve unos segundos atrás si tocas una nota que no toca."
+            />
+          )}
+          {props.followOn && (
+            <Switch
+              label="También si me salto un acorde"
+              checked={props.rewindOnMiss}
+              onChange={props.onRewindOnMiss}
+              hint="La transcripción no es perfecta: si el video toca algo que ella no tiene, déjalo apagado."
+            />
+          )}
+          {(props.followOn || props.rewindOnWrong) && (
+            <div className="field">
+              <label className="field-label" htmlFor="rewind-seconds">
+                Segundos que retrocede
+              </label>
+              <div className="speed-free">
+                <input
+                  id="rewind-seconds"
+                  type="range"
+                  min={REWIND_MIN_S}
+                  max={REWIND_MAX_S}
+                  step={1}
+                  value={props.rewindS}
+                  onChange={(e) => {
+                    props.onRewindS(Number(e.target.value));
+                  }}
+                />
+                <output htmlFor="rewind-seconds">{String(props.rewindS)} s</output>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <Switch
@@ -232,6 +282,22 @@ export function WaitHud({ state, expected, naming }: WaitHudProps) {
         {' '}
         Acordes acertados: {state.stats.chordsHit} · Fallos: {state.stats.mistakes} · Precisión:{' '}
         {Math.round(accuracy(state.stats) * 100)} %
+      </span>
+    </p>
+  );
+}
+
+interface FollowHudProps {
+  stats: FollowStats;
+}
+
+/** Follow mode at a glance: the song never waits, so only the tally is shown. */
+export function FollowHud({ stats }: FollowHudProps) {
+  return (
+    <p role="status" aria-label="Progreso del retroceso automático" className="hud">
+      <span className="hud-stats">
+        Notas acertadas: {stats.hits} · Fallos: {stats.mistakes} · Retrocesos: {stats.rewinds} ·
+        Precisión: {Math.round(followAccuracy(stats) * 100)} %
       </span>
     </p>
   );

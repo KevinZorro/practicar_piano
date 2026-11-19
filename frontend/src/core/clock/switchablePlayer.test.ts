@@ -65,4 +65,15 @@ describe('SwitchablePlayer', () => {
     player.attach(stand);
     expect(stand.played).toBe(1);
   });
+
+  it('reports the loading state of whichever player is current', () => {
+    const video = new FakePlayer();
+    const buffering = { value: false };
+    Object.assign(video, { isBuffering: () => buffering.value });
+    const player = new SwitchablePlayer(new FakePlayer());
+    expect(player.isBuffering()).toBe(false);
+    player.attach(video);
+    buffering.value = true;
+    expect(player.isBuffering()).toBe(true);
+  });
 });

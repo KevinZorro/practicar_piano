@@ -15,7 +15,14 @@ export interface PracticePrefs {
   readonly naming: NamingStyle;
   /** Size of the score, 1 is the renderer's default. */
   readonly sheetZoom: number;
+  /** Seconds the song goes back after a wrong key (wait mode and follow mode). */
+  readonly rewindS: number;
+  /** Follow mode: a skipped chord also rewinds, not only a wrong key. */
+  readonly rewindOnMiss: boolean;
 }
+
+export const REWIND_MIN_S = 1;
+export const REWIND_MAX_S = 30;
 
 export const SHEET_ZOOM_STEPS = [0.8, 0.9, 1, 1.15, 1.3, 1.5] as const;
 
@@ -26,6 +33,8 @@ export const DEFAULT_PREFS: PracticePrefs = {
   sheetLetters: true,
   naming: 'letters',
   sheetZoom: 1,
+  rewindS: 5,
+  rewindOnMiss: false,
 };
 
 const VIEWS: readonly PracticeView[] = ['falling', 'sheet', 'both'];
@@ -39,6 +48,12 @@ function flag(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
+function whole(value: unknown, min: number, max: number, fallback: number): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
+    ? value
+    : fallback;
+}
+
 /** Reads stored preferences field by field: anything unknown or broken takes its default. */
 export function parsePrefs(value: unknown): PracticePrefs {
   if (typeof value !== 'object' || value === null) return DEFAULT_PREFS;
@@ -50,6 +65,8 @@ export function parsePrefs(value: unknown): PracticePrefs {
     sheetLetters: flag(v['sheetLetters'], DEFAULT_PREFS.sheetLetters),
     naming: pick(v['naming'], NAMINGS, DEFAULT_PREFS.naming),
     sheetZoom: pick(v['sheetZoom'], SHEET_ZOOM_STEPS, DEFAULT_PREFS.sheetZoom),
+    rewindS: whole(v['rewindS'], REWIND_MIN_S, REWIND_MAX_S, DEFAULT_PREFS.rewindS),
+    rewindOnMiss: flag(v['rewindOnMiss'], DEFAULT_PREFS.rewindOnMiss),
   };
 }
 

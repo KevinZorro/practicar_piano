@@ -3,6 +3,10 @@ import type { PlayerPort } from './playbackClock';
 
 class FakePlayer implements PlayerPort {
   time = 0;
+  buffering = false;
+  isBuffering(): boolean {
+    return this.buffering;
+  }
   calls: string[] = [];
   getCurrentTime(): number {
     return this.time;
@@ -146,5 +150,24 @@ describe('InterpolatedClock', () => {
     clock.seek(10);
     expect(clock.now()).toBeCloseTo(10);
     expect(player.time).toBeCloseTo(10.12);
+  });
+
+  it('holds still while the video is loading and picks up again when it plays', () => {
+    const { clock, advance, player } = setup();
+    clock.play();
+    advance(1000);
+    clock.sync(); // playing normally: the video is at 1 s
+    player.time = 1;
+    player.buffering = true; // a seek made the player load
+    clock.sync();
+    const held = clock.now();
+    advance(2000);
+    expect(clock.now()).toBeCloseTo(held);
+    player.time = 1.1;
+    player.buffering = false;
+    clock.sync();
+    expect(clock.now()).toBeCloseTo(1.1);
+    advance(500);
+    expect(clock.now()).toBeCloseTo(1.6);
   });
 });
