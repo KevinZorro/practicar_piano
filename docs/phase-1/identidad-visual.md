@@ -63,7 +63,7 @@ El tema claro sigue la preferencia del sistema en la portada, la biblioteca y lo
 ## 4. Tipografía
 
 - **Atkinson Hyperlegible Next** (Braille Institute), variable, en toda la interfaz y en los nombres de las notas dentro de la partitura. Se eligió por legibilidad a distancia: letras inconfundibles (I, l y 1; O y 0), aperturas amplias, acentos claros en español y cifras que no se confunden en el tiempo y el compás. Se sirve desde el propio sitio (paquete `@fontsource-variable`, solo latín y latín extendido), sin peticiones a terceros.
-- Licencia SIL OFL 1.1: no está en la lista de licencias del proyecto, ver [ADR 0021](../adr/0021-fuente-atkinson-hyperlegible.md) (propuesta).
+- Licencia SIL OFL 1.1, fuera de la lista general de licencias del proyecto: Kevin la aceptó solo para fuentes en el [ADR 0021](../adr/0021-fuente-atkinson-hyperlegible.md).
 - Escala corta, pensada para una herramienta: 0,75 / 0,8125 / 0,875 / 0,9375 / 1 / 1,0625 / 1,25 / 1,375 rem, y el titular de la portada con `clamp(1,5rem, 2,4vw, 2rem)`. Pesos 400, 600, 700 y 800 (el logotipo).
 - Cifras tabulares (`.num`) en tiempo, compás, velocidad, porcentajes y duraciones, para que no bailen al cambiar.
 - En la partitura los nombres de las notas van en negrita (`FontStyles.Bold` de OpenSheetMusicDisplay) y del color de su nota.
@@ -122,4 +122,3 @@ Poco y con propósito: el botón baja al pulsarlo, la guía entra deslizándose,
 
 - Probarlo con el piano real a la distancia de uso y con Kevin leyendo la partitura.
 - YouTube real y el micrófono con el Vangoa: siguen sin verificar en este cambio (se probaron con dobles).
-- Visto bueno de Kevin a la fuente (ADR 0021).

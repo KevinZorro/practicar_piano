@@ -54,7 +54,7 @@ beginner already knows lead into reading the staff.
 - Songs up to 10 minutes; one song is processed at a time; the queue holds a few more.
 - The transcription is automatic and can be wrong: say so plainly.
 - Stack: React, TypeScript, Vite, Canvas 2D, OpenSheetMusicDisplay, Tone.js, Web MIDI, Web Audio.
-- Only permissive licenses (MIT, BSD, Apache, Unlicense); no GPL. Never ship copyrighted audio
+- Only permissive licenses (MIT, BSD, Apache, Unlicense; SIL OFL 1.1 for fonts only, ADR 0021); no GPL. Never ship copyrighted audio
   or MIDI.
 
 ## Brand Commitments

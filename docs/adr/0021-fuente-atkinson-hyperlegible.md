@@ -1,6 +1,6 @@
 # ADR 0021 — Fuente Atkinson Hyperlegible Next (licencia SIL OFL 1.1)
 
-Estado: **Propuesta** (pendiente del visto bueno de Kevin). Complementa los ADR 0012 y 0019.
+Estado: **Aceptada** por Kevin el 2026-11-19. Complementa los ADR 0012 y 0019.
 
 ## Contexto
 
@@ -17,12 +17,12 @@ La regla del proyecto admite MIT, BSD, Apache y Unlicense. Casi todas las fuente
 
 ## Alternativas consideradas
 
-- **Fuente del sistema** (`system-ui`): cero dependencias, pero se ve distinta en cada sistema, es menos legible a distancia y cambia las medidas de los nombres en la partitura. Es el respaldo si se rechaza esta ADR.
+- **Fuente del sistema** (`system-ui`): cero dependencias, pero se ve distinta en cada sistema, es menos legible a distancia y cambia las medidas de los nombres en la partitura. Queda como respaldo si la fuente no carga.
 - **Fuentes con licencia Apache 2.0** (versiones antiguas de Roboto u Open Sans): hoy también se publican con OFL, y no están diseñadas para la legibilidad como Atkinson.
 - **Inter, Source Sans u otras**: también son OFL; no resuelven la cuestión de la licencia y son menos distintivas para leer a distancia.
 
 ## Consecuencias
 
 - Unos 53 KB de fuente (woff2) que el navegador guarda en caché.
-- Si Kevin la rechaza, volver a la fuente del sistema es quitar el `@import` de `frontend/src/styles/tokens.css` y el paquete (`--font` ya cae a `system-ui`), y poner `FONT_FAMILY = 'system-ui'` en `frontend/src/adapters/sheet/osmdSheet.ts` para la partitura.
+- Volver a la fuente del sistema, si algún día hiciera falta, es quitar el `@import` de `frontend/src/styles/tokens.css` y el paquete (`--font` ya cae a `system-ui`), y poner `FONT_FAMILY = 'system-ui'` en `frontend/src/adapters/sheet/osmdSheet.ts` para la partitura.
 - La revisión de licencias de cada cambio de dependencias (ADR 0019) debe aceptar `OFL-1.1` solo para paquetes de fuentes.
