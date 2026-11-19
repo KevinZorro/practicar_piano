@@ -1,8 +1,9 @@
 import type { Hand, Note } from '../core/notes/model';
-import { HIGHEST_PITCH, LOWEST_PITCH } from '../core/notes/model';
-import { isBlackKey, keyBox } from './keyboardLayout';
-import { noteName, noteNameWithOctave } from './noteNames';
-import { noteRect, type View } from './projection';
+import type { NamingStyle } from '../core/practice/prefs';
+import { FULL_RANGE, isBlackKey, keyBox, type KeyRange } from './keyboardLayout';
+import { displayName } from '../core/notes/names';
+import { INK, stageColor } from './notePalette';
+import { noteRect, type Rect, type View } from './projection';
 
 /** The Canvas 2D calls we use, so tests can record them. */
 export interface Drawing {
@@ -14,31 +15,56 @@ export interface Drawing {
   clearRect(x: number, y: number, w: number, h: number): void;
   fillRect(x: number, y: number, w: number, h: number): void;
   fillText(text: string, x: number, y: number): void;
+  measureText(text: string): { readonly width: number };
+  beginPath(): void;
+  roundRect(x: number, y: number, w: number, h: number, radius: number): void;
+  fill(): void;
 }
 
-export const HAND_COLORS = { left: '#4cc9f0', right: '#f72585' } as const;
-/** A key the player is holding down on their own keyboard. */
-export const PRESSED_COLOR = '#ffd166';
 export const KEYBOARD_HEIGHT = 110;
+/** Space between the hit line and the keys. */
+export const HIT_GAP = 4;
 
-const HIT_LINE_COLOR = '#ffffff';
-const LANE_COLOR = '#222233';
-const OCTAVE_LINE_COLOR = '#34344c';
-const WHITE_KEY = '#f4f4fa';
-const BLACK_KEY = '#14141d';
-const LABEL_ON_WHITE = '#4a4a5e';
+export const FONT_FAMILY =
+  '"Atkinson Hyperlegible Next Variable", "Atkinson Hyperlegible Next", system-ui, sans-serif';
+
+/** The stage is always the dark case of the instrument; notes and keys carry the colour. */
+export const STAGE = {
+  ground: '#18120f',
+  blackLane: '#130e0b',
+  octaveLine: '#332c28',
+  middleLine: '#5a514b',
+  label: '#a59d95',
+  hitLine: '#f1e7d2',
+  whiteKey: '#f4f0e7',
+  whiteKeyLabel: '#49403b',
+  blackKey: '#2b241f',
+  outline: '#f1e7d2',
+} as const;
+
+const MIDDLE_C = 60;
 const BLACK_KEY_HEIGHT_RATIO = 0.62;
+const DIMMED_ALPHA = 0.22;
+const PRESSED_SHADE = 0.2;
 const MIN_LABEL_NOTE_HEIGHT = 16;
-const MIN_LABEL_NOTE_WIDTH = 14;
+const MIN_LABEL_NOTE_WIDTH = 13;
+const LABEL_BACKING_ALPHA = 0.85;
+const LABEL_PAD = 3;
 
 export interface FrameOptions {
   /** Pitches the player is holding on their keyboard. */
   readonly pressed?: ReadonlySet<number>;
+  /** Keys on screen; defaults to the full piano. */
+  readonly range?: KeyRange;
+  readonly keyboardHeight?: number;
+  readonly naming?: NamingStyle;
+  /** Notes of this hand are drawn faint: wait mode only asks for the other one. */
+  readonly dimHand?: Hand | null;
 }
 
 /**
  * Draws the lanes, the falling notes, the hit line and the keyboard below it.
- * `view.height` is the falling area; the keyboard takes `KEYBOARD_HEIGHT` px under it.
+ * `view.height` is the falling area; the keyboard sits `HIT_GAP` px under it.
  * Returns how many notes were drawn.
  */
 export function drawFrame(
@@ -48,109 +74,202 @@ export function drawFrame(
   view: View,
   options: FrameOptions = {},
 ): number {
-  ctx.clearRect(0, 0, view.width, view.height + KEYBOARD_HEIGHT + 2);
-  drawLanes(ctx, view);
+  const range = options.range ?? FULL_RANGE;
+  const keyboardHeight = options.keyboardHeight ?? KEYBOARD_HEIGHT;
+  const naming = options.naming ?? 'letters';
+  const total = view.height + HIT_GAP + keyboardHeight;
+  ctx.clearRect(0, 0, view.width, total);
+  ctx.fillStyle = STAGE.ground;
+  ctx.fillRect(0, 0, view.width, total);
+  if (view.height > 0) drawLanes(ctx, view, range);
 
-  const sounding = new Map<number, Hand>();
+  const sounding = new Set<number>();
   let drawn = 0;
   for (const note of notes) {
-    const rect = noteRect(note, nowS, view);
-    if (!rect) continue;
     const active = note.startS <= nowS && nowS < note.endS;
-    if (active) sounding.set(note.pitch, note.hand);
-    drawNote(ctx, note, rect, active);
+    const dimmed = options.dimHand === note.hand;
+    if (active && !dimmed) sounding.add(note.pitch);
+    const rect = view.height > 0 ? noteRect(note, nowS, view, range) : null;
+    if (!rect) continue;
+    drawNote(ctx, note, rect, { active, dimmed, naming });
     drawn++;
   }
+  // Over the notes, so a bar entering at the top never hides where an octave or a hand is.
+  if (view.height > 0) drawLaneLabels(ctx, view, range, naming);
 
-  ctx.fillStyle = HIT_LINE_COLOR;
+  ctx.fillStyle = STAGE.hitLine;
   ctx.fillRect(0, view.height, view.width, 2);
-  drawKeyboard(ctx, view, sounding, options.pressed ?? new Set());
+  const keys = { top: view.height + HIT_GAP, height: keyboardHeight };
+  drawKeyboard(ctx, view.width, keys, range, {
+    sounding,
+    pressed: options.pressed ?? new Set(),
+    naming,
+  });
   return drawn;
 }
 
-function drawLanes(ctx: Drawing, view: View): void {
-  for (let pitch = LOWEST_PITCH; pitch <= HIGHEST_PITCH; pitch++) {
+function drawLanes(ctx: Drawing, view: View, range: KeyRange): void {
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
     if (!isBlackKey(pitch)) continue;
-    const key = keyBox(pitch, view.width);
-    ctx.fillStyle = LANE_COLOR;
+    const key = keyBox(pitch, view.width, range);
+    ctx.fillStyle = STAGE.blackLane;
     ctx.fillRect(key.x, 0, key.width, view.height);
   }
-  // A line at every C, so the octaves can be told apart at a glance.
-  for (let pitch = LOWEST_PITCH; pitch <= HIGHEST_PITCH; pitch++) {
+  // A line at every C, so the octaves can be told apart at a glance; middle C splits the hands.
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
     if (pitch % 12 !== 0) continue;
-    ctx.fillStyle = OCTAVE_LINE_COLOR;
-    ctx.fillRect(keyBox(pitch, view.width).x, 0, 1, view.height);
+    const x = keyBox(pitch, view.width, range).x;
+    const middle = pitch === MIDDLE_C;
+    ctx.fillStyle = middle ? STAGE.middleLine : STAGE.octaveLine;
+    ctx.fillRect(x, 0, middle ? 2 : 1, view.height);
   }
+}
+
+function drawLaneLabels(ctx: Drawing, view: View, range: KeyRange, naming: NamingStyle): void {
+  ctx.font = `600 11px ${FONT_FAMILY}`;
+  ctx.textBaseline = 'top';
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
+    if (pitch % 12 !== 0) continue;
+    const x = keyBox(pitch, view.width, range).x;
+    drawLabel(ctx, octaveLabel(pitch, naming), x + 5, 8, 'left');
+  }
+  const middle = MIDDLE_C >= range.low && MIDDLE_C <= range.high;
+  if (middle && view.width >= 480) {
+    const x = keyBox(MIDDLE_C, view.width, range).x;
+    drawLabel(ctx, 'mano izquierda', x - 8, 26, 'right');
+    drawLabel(ctx, 'mano derecha', x + 8, 26, 'left');
+  }
+}
+
+/** A small caption on a dark backing, readable even over a coloured note. */
+function drawLabel(
+  ctx: Drawing,
+  text: string,
+  x: number,
+  y: number,
+  align: 'left' | 'right',
+): void {
+  const width = ctx.measureText(text).width;
+  const left = align === 'left' ? x : x - width;
+  ctx.globalAlpha = LABEL_BACKING_ALPHA;
+  ctx.fillStyle = STAGE.ground;
+  ctx.beginPath();
+  ctx.roundRect(left - LABEL_PAD, y - LABEL_PAD, width + LABEL_PAD * 2, 11 + LABEL_PAD * 2, 4);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = STAGE.label;
+  ctx.textAlign = align;
+  ctx.fillText(text, x, y);
+}
+
+function octaveLabel(pitch: number, naming: NamingStyle): string {
+  return `${displayName(pitch, naming)}${String(Math.floor(pitch / 12) - 1)}`;
 }
 
 function drawNote(
   ctx: Drawing,
   note: Note,
-  rect: { x: number; y: number; width: number; height: number },
-  active: boolean,
+  rect: Rect,
+  state: { active: boolean; dimmed: boolean; naming: NamingStyle },
 ): void {
-  const color = HAND_COLORS[note.hand];
-  const inset = 1;
+  const color = stageColor(note.pitch);
+  const inset = rect.width > 10 ? 1.5 : 0.5;
   const x = rect.x + inset;
   const width = Math.max(rect.width - inset * 2, 1);
-  if (active) {
-    // A halo and a white border instead of a blur: blurs are very slow without a GPU.
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.35;
-    ctx.fillRect(x - 3, rect.y - 3, width + 6, rect.height + 6);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x, rect.y, width, rect.height);
-    ctx.fillStyle = color;
-    ctx.fillRect(x + 2, rect.y + 2, Math.max(width - 4, 1), Math.max(rect.height - 4, 1));
-  } else {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, rect.y, width, rect.height);
+  const radius = Math.min(6, width / 3, rect.height / 2);
+  ctx.globalAlpha = state.dimmed ? DIMMED_ALPHA : 1;
+  if (state.active) {
+    // The bar being struck gets a light rim instead of a glow: blurs are slow without a GPU.
+    fillRound(ctx, STAGE.outline, x - 2, rect.y - 2, width + 4, rect.height + 4, radius + 2);
   }
+  fillRound(ctx, color, x, rect.y, width, rect.height, radius);
   if (rect.height >= MIN_LABEL_NOTE_HEIGHT && width >= MIN_LABEL_NOTE_WIDTH) {
-    ctx.fillStyle = '#10101a';
-    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.fillStyle = INK;
+    ctx.font = `700 ${width >= 22 ? '13' : '11'}px ${FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(noteName(note.pitch), x + width / 2, rect.y + rect.height - 4);
+    ctx.fillText(displayName(note.pitch, state.naming), x + width / 2, rect.y + rect.height - 5);
   }
+  ctx.globalAlpha = 1;
 }
 
-function keyColor(
-  pitch: number,
-  base: string,
-  sounding: ReadonlyMap<number, Hand>,
-  pressed: ReadonlySet<number>,
-): string {
-  if (pressed.has(pitch)) return PRESSED_COLOR;
-  const hand = sounding.get(pitch);
-  return hand ? HAND_COLORS[hand] : base;
+function fillRound(
+  ctx: Drawing,
+  color: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, Math.max(r, 0));
+  ctx.fill();
+}
+
+interface KeyState {
+  readonly sounding: ReadonlySet<number>;
+  readonly pressed: ReadonlySet<number>;
+  readonly naming: NamingStyle;
 }
 
 function drawKeyboard(
   ctx: Drawing,
-  view: View,
-  sounding: ReadonlyMap<number, Hand>,
-  pressed: ReadonlySet<number>,
+  width: number,
+  keys: { top: number; height: number },
+  range: KeyRange,
+  state: KeyState,
 ): void {
-  const top = view.height + 2;
-  const height = KEYBOARD_HEIGHT;
-  for (let pitch = LOWEST_PITCH; pitch <= HIGHEST_PITCH; pitch++) {
+  const { top, height } = keys;
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
     if (isBlackKey(pitch)) continue;
-    const key = keyBox(pitch, view.width);
-    ctx.fillStyle = keyColor(pitch, WHITE_KEY, sounding, pressed);
-    ctx.fillRect(key.x + 0.5, top, key.width - 1, height);
-    ctx.fillStyle = LABEL_ON_WHITE;
-    ctx.font = 'bold 10px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    const label = pitch % 12 === 0 ? noteNameWithOctave(pitch) : noteName(pitch);
-    ctx.fillText(label, key.x + key.width / 2, top + height - 6);
+    const key = keyBox(pitch, width, range);
+    const lit = state.sounding.has(pitch);
+    const face = lit ? stageColor(pitch) : STAGE.whiteKey;
+    fillRound(ctx, face, key.x + 0.75, top, key.width - 1.5, height, 4);
+    if (!lit) {
+      // The coloured sticker learners put on their keys: the colour ties the key to its notes.
+      ctx.fillStyle = stageColor(pitch);
+      ctx.fillRect(key.x + 3, top + height - 7, Math.max(key.width - 6, 1), 4);
+    }
+    if (state.pressed.has(pitch)) drawPressed(ctx, key.x + 0.75, top, key.width - 1.5, height, INK);
+    if (key.width >= 11) {
+      ctx.fillStyle = lit ? INK : STAGE.whiteKeyLabel;
+      ctx.font = `700 ${key.width >= 26 ? '13' : '10'}px ${FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(keyLabel(pitch, state.naming), key.x + key.width / 2, top + height - 13);
+    }
   }
-  for (let pitch = LOWEST_PITCH; pitch <= HIGHEST_PITCH; pitch++) {
+  const blackHeight = height * BLACK_KEY_HEIGHT_RATIO;
+  for (let pitch = range.low; pitch <= range.high; pitch++) {
     if (!isBlackKey(pitch)) continue;
-    const key = keyBox(pitch, view.width);
-    ctx.fillStyle = keyColor(pitch, BLACK_KEY, sounding, pressed);
-    ctx.fillRect(key.x, top, key.width, height * BLACK_KEY_HEIGHT_RATIO);
+    const key = keyBox(pitch, width, range);
+    const lit = state.sounding.has(pitch);
+    fillRound(ctx, lit ? stageColor(pitch) : STAGE.blackKey, key.x, top, key.width, blackHeight, 3);
+    if (!lit) {
+      ctx.fillStyle = stageColor(pitch);
+      ctx.fillRect(key.x + 2, top + blackHeight - 6, Math.max(key.width - 4, 1), 3);
+    }
+    if (state.pressed.has(pitch)) {
+      drawPressed(ctx, key.x, top, key.width, blackHeight, STAGE.outline);
+    }
   }
+}
+
+/** A key the player holds: shaded as if pushed down, with a bar along its top edge. */
+function drawPressed(ctx: Drawing, x: number, y: number, w: number, h: number, bar: string): void {
+  ctx.globalAlpha = PRESSED_SHADE;
+  ctx.fillStyle = INK;
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = bar;
+  ctx.fillRect(x, y, w, 4);
+}
+
+/** White keys show their letter; each C also carries its octave (C4 is middle C). */
+function keyLabel(pitch: number, naming: NamingStyle): string {
+  const name = displayName(pitch, naming);
+  return pitch % 12 === 0 ? `${name}${String(Math.floor(pitch / 12) - 1)}` : name;
 }

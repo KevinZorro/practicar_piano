@@ -1,0 +1,81 @@
+/*
+ * Notacaida tokens. Two worlds: the case (the warm dark of the instrument) and the paper (the
+ * score on the stand). Colour belongs to the notes; the chrome stays in browns and creams.
+ * The practice screen always uses the case; everything else follows the system preference.
+ */
+@import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+
+:root,
+:root[data-screen='practice'] {
+  color-scheme: dark;
+  --bg: #110c0a;
+  --surface: #1a1411;
+  --raised: #241c18;
+  --hover: #2e241f;
+  --line: #3a2f29;
+  --line-strong: #85766a;
+  --text: #f3ece0;
+  --text-2: #cdc2b4;
+  --text-3: #a89c8f;
+  --focus: #f4d248;
+  --danger: #ff9b8c;
+  --danger-line: #7a3b33;
+  /* Primary actions are ivory keys; secondary ones are black keys. */
+  --primary: #f2ece1;
+  --primary-edge: #b9ab95;
+  --primary-text: #1c1613;
+  --secondary: #2b221e;
+  --secondary-edge: #0b0807;
+  --secondary-text: #f3ece0;
+  --shadow: 0 18px 40px -24px rgb(0 0 0 / 0.85);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-screen='practice']) {
+    color-scheme: light;
+    --bg: #f4efe6;
+    --surface: #fbf8f2;
+    --raised: #ffffff;
+    --hover: #ede6da;
+    --line: #dcd2c3;
+    --line-strong: #887965;
+    --text: #1e1814;
+    --text-2: #4a4038;
+    --text-3: #63584e;
+    --focus: #8a6500;
+    --danger: #b42318;
+    --danger-line: #e7b4ab;
+    --primary: #231b17;
+    --primary-edge: #000000;
+    --primary-text: #f7f1e6;
+    --secondary: #ffffff;
+    --secondary-edge: #cfc3b1;
+    --secondary-text: #1e1814;
+    --shadow: 0 18px 40px -26px rgb(60 40 20 / 0.45);
+  }
+}
+
+:root {
+  /* The score sheet and the stage never change with the theme. */
+  --paper: #fffdf8;
+  --paper-ink: #2b241f;
+  --paper-line: #e6ddcf;
+  --stage: #18120f;
+
+  /* One colour per note, like the bars of a school metalófono (see render/notePalette.ts). */
+  --note-c: #f56056;
+  --note-d: #f89845;
+  --note-e: #f3d146;
+  --note-f: #71d268;
+  --note-g: #3fc8c4;
+  --note-a: #5aa6f2;
+  --note-b: #c184e5;
+  --note-ink: #1a1511;
+
+  --font:
+    'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

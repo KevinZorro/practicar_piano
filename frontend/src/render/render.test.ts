@@ -1,8 +1,24 @@
 import { note } from '../core/notes/fixtures';
-import { drawFrame, HAND_COLORS, KEYBOARD_HEIGHT, PRESSED_COLOR, type Drawing } from './drawFrame';
-import { noteName, noteNameWithOctave } from './noteNames';
-import { WHITE_KEY_COUNT, isBlackKey, keyBox } from './keyboardLayout';
+import { drawFrame, HIT_GAP, KEYBOARD_HEIGHT, STAGE, type Drawing } from './drawFrame';
+import {
+  bothNames,
+  displayName,
+  letterOf,
+  noteName,
+  noteNameWithOctave,
+  writtenName,
+} from '../core/notes/names';
+import { INK, PAPER_COLORS, STAGE_COLORS } from './notePalette';
+import {
+  MIN_FITTED_KEYS,
+  WHITE_KEY_COUNT,
+  fitKeyRange,
+  isBlackKey,
+  keyBox,
+  whiteKeyCount,
+} from './keyboardLayout';
 import { noteRect, timeToY, type View } from './projection';
+import { contrast } from '../testing/contrast';
 
 const view: View = { width: 1040, height: 400, aheadS: 4 };
 
@@ -41,6 +57,39 @@ describe('keyboard layout', () => {
     expect(() => keyBox(20, 100)).toThrow(RangeError);
     expect(() => keyBox(109, 100)).toThrow(RangeError);
   });
+
+  it('spreads a smaller range over the same width', () => {
+    const range = { low: 48, high: 84 }; // C3 to C6: 22 white keys
+    expect(whiteKeyCount(range)).toBe(22);
+    expect(keyBox(48, 1100, range).x).toBe(0);
+    expect(keyBox(84, 1100, range).x + keyBox(84, 1100, range).width).toBeCloseTo(1100);
+    expect(keyBox(60, 1100, range).width).toBeCloseTo(50);
+    expect(() => keyBox(47, 1100, range)).toThrow(RangeError);
+  });
+});
+
+describe('fitKeyRange', () => {
+  it('goes from a C to a C around the song, at least three octaves wide', () => {
+    expect(fitKeyRange([48, 55, 60, 67])).toEqual({ low: 48, high: 84 });
+    const wide = fitKeyRange([36, 96]);
+    expect(wide).toEqual({ low: 36, high: 96 }); // a 61-key keyboard, C2 to C7
+  });
+
+  it('includes a C at the top edge and keeps at least the minimum span', () => {
+    const range = fitKeyRange([72]);
+    expect(range.high - range.low + 1).toBeGreaterThanOrEqual(MIN_FITTED_KEYS);
+    expect(range.low % 12).toBe(0);
+    expect(range.high % 12).toBe(0);
+  });
+
+  it('never leaves the piano', () => {
+    expect(fitKeyRange([21, 23])).toEqual({ low: 21, high: 60 });
+    expect(fitKeyRange([105, 108]).high).toBe(108);
+  });
+
+  it('centres on middle C when there is nothing to fit', () => {
+    expect(fitKeyRange([])).toEqual({ low: 48, high: 84 });
+  });
 });
 
 describe('projection', () => {
@@ -75,19 +124,55 @@ describe('projection', () => {
 });
 
 describe('note names', () => {
-  it('names pitches by letter and octave', () => {
+  it('names pitches by letter and octave, with the spelling music21 writes', () => {
     expect(noteName(60)).toBe('C');
     expect(noteName(61)).toBe('C#');
+    expect(noteName(63)).toBe('Eb');
+    expect(noteName(70)).toBe('Bb');
     expect(noteNameWithOctave(60)).toBe('C4');
     expect(noteNameWithOctave(21)).toBe('A0');
     expect(noteNameWithOctave(108)).toBe('C8');
   });
+
+  it('gives each pitch the letter it is written on', () => {
+    expect([60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71].map(letterOf).join('')).toBe(
+      'CCDEEFFGGABB',
+    );
+  });
+
+  it('shows letters or solfège with real accidental signs', () => {
+    expect(displayName(61, 'letters')).toBe('C♯');
+    expect(displayName(63, 'solfege')).toBe('Mi♭');
+    expect(displayName(67, 'solfege')).toBe('Sol');
+    expect(writtenName('B', -1, 'letters')).toBe('B♭');
+    expect(writtenName('F', 2, 'solfege')).toBe('Fa♯♯');
+    expect(bothNames(60)).toBe('C (Do)');
+  });
+});
+
+describe('note palette', () => {
+  it('keeps the letters on every bar and key readable (AA for small text)', () => {
+    for (const color of Object.values(STAGE_COLORS)) {
+      expect(contrast(INK, color)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(color, STAGE.ground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps every note name and notehead readable on the score paper (AA for small text)', () => {
+    for (const color of Object.values(PAPER_COLORS)) {
+      expect(contrast(color, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(color, '#fffdf8')).toBeGreaterThanOrEqual(4.5);
+    }
+  });
 });
 
 describe('drawFrame', () => {
+  type Shape = { style: unknown; rect: number[]; alpha: number };
   function recorder() {
-    const fills: { style: unknown; rect: number[] }[] = [];
-    const texts: { text: string; x: number }[] = [];
+    const fills: Shape[] = [];
+    const rounds: Shape[] = [];
+    const texts: { text: string; x: number; style: unknown }[] = [];
+    let path: number[] = [];
     const ctx: Drawing = {
       fillStyle: '',
       font: '',
@@ -96,17 +181,29 @@ describe('drawFrame', () => {
       globalAlpha: 1,
       clearRect: () => undefined,
       fillRect(x, y, w, h) {
-        fills.push({ style: this.fillStyle, rect: [x, y, w, h] });
+        fills.push({ style: this.fillStyle, rect: [x, y, w, h], alpha: this.globalAlpha });
       },
       fillText(text, x) {
-        texts.push({ text, x });
+        texts.push({ text, x, style: this.fillStyle });
+      },
+      measureText: (text) => ({ width: text.length * 6 }),
+      beginPath() {
+        path = [];
+      },
+      roundRect(x, y, w, h) {
+        path = [x, y, w, h];
+      },
+      fill() {
+        rounds.push({ style: this.fillStyle, rect: path, alpha: this.globalAlpha });
       },
     };
-    return { ctx, fills, texts };
+    return { ctx, fills, rounds, texts };
   }
+  const keyTop = view.height + HIT_GAP;
+  const keyFaces = (shapes: Shape[]) => shapes.filter((s) => s.rect[1] === keyTop);
 
-  it('counts visible notes and draws the hit line above the keyboard', () => {
-    const { ctx, fills } = recorder();
+  it('counts visible notes, colours them by note and draws the hit line above the keys', () => {
+    const { ctx, fills, rounds } = recorder();
     const drawn = drawFrame(
       ctx,
       [note(60, 11, 12, 'right'), note(40, 12, 13, 'left'), note(70, 99, 100)],
@@ -114,44 +211,83 @@ describe('drawFrame', () => {
       view,
     );
     expect(drawn).toBe(2);
-    expect(fills.some((f) => f.style === HAND_COLORS.right)).toBe(true);
-    expect(fills.some((f) => f.style === HAND_COLORS.left)).toBe(true);
+    expect(rounds.some((r) => r.style === STAGE_COLORS.C && (r.rect[1] ?? 0) < view.height)).toBe(
+      true,
+    );
+    expect(rounds.some((r) => r.style === STAGE_COLORS.E && (r.rect[1] ?? 0) < view.height)).toBe(
+      true,
+    );
     expect(fills.some((f) => f.rect.join() === [0, 400, 1040, 2].join())).toBe(true);
   });
 
   it('keeps each note inside the lane of its key', () => {
-    const { ctx, fills } = recorder();
+    const { ctx, rounds } = recorder();
     drawFrame(ctx, [note(60, 11, 12, 'right')], 10, view);
     const key = keyBox(60, view.width);
-    const body = fills.find((f) => f.style === HAND_COLORS.right && (f.rect[1] ?? 0) < view.height);
+    const body = rounds.find((r) => r.style === STAGE_COLORS.C && (r.rect[1] ?? 0) < view.height);
     expect(body?.rect[0]).toBeGreaterThanOrEqual(key.x);
     expect((body?.rect[0] ?? 0) + (body?.rect[2] ?? 0)).toBeLessThanOrEqual(key.x + key.width);
   });
 
-  it('draws 52 white key labels, with the octave only on each C', () => {
+  it('labels the white keys, with the octave only on each C', () => {
+    const range = { low: 48, high: 84 };
     const { ctx, texts } = recorder();
-    drawFrame(ctx, [], 0, view);
-    expect(texts).toHaveLength(WHITE_KEY_COUNT);
-    expect(texts.filter((t) => /\d/.test(t.text)).map((t) => t.text)).toContain('C4');
-    expect(texts.every((t) => !t.text.includes('#'))).toBe(true);
+    drawFrame(ctx, [], 0, view, { range });
+    const keyLabels = texts.filter((t) => t.style === STAGE.whiteKeyLabel);
+    expect(keyLabels).toHaveLength(whiteKeyCount(range));
+    expect(keyLabels.map((t) => t.text)).toEqual(expect.arrayContaining(['C3', 'C4', 'D', 'B']));
+    expect(keyLabels.every((t) => !/[#♯♭]/.test(t.text))).toBe(true);
   });
 
-  it('lights the key of a sounding note with the hand colour', () => {
-    const { ctx, fills } = recorder();
-    const keyTop = view.height + 2;
-    const lit = (fs: typeof fills) =>
-      fs.filter((f) => f.rect[1] === keyTop && f.rect[3] === KEYBOARD_HEIGHT);
-    drawFrame(ctx, [note(60, 9, 11, 'left')], 10, view);
-    expect(lit(fills).some((f) => f.style === HAND_COLORS.left)).toBe(true);
+  it('writes solfège names when asked', () => {
+    const { ctx, texts } = recorder();
+    drawFrame(ctx, [note(67, 10, 11)], 10.2, view, {
+      range: { low: 48, high: 84 },
+      naming: 'solfege',
+    });
+    expect(texts.map((t) => t.text)).toEqual(expect.arrayContaining(['Do4', 'Sol', 'Re']));
+  });
+
+  it('lights the key of a sounding note with the colour of the note', () => {
+    const { ctx, rounds } = recorder();
+    drawFrame(ctx, [note(64, 9, 11, 'right')], 10, view);
+    expect(keyFaces(rounds).some((r) => r.style === STAGE_COLORS.E)).toBe(true);
 
     const idle = recorder();
-    drawFrame(idle.ctx, [note(60, 11, 12, 'left')], 10, view);
-    expect(lit(idle.fills).some((f) => f.style === HAND_COLORS.left)).toBe(false);
+    drawFrame(idle.ctx, [note(64, 11, 12, 'right')], 10, view);
+    expect(keyFaces(idle.rounds).some((r) => r.style === STAGE_COLORS.E)).toBe(false);
   });
 
-  it('lights keys the player is pressing', () => {
+  it('marks keys the player is pressing', () => {
     const { ctx, fills } = recorder();
     drawFrame(ctx, [], 0, view, { pressed: new Set([61]) });
-    expect(fills.some((f) => f.style === PRESSED_COLOR)).toBe(true);
+    const key = keyBox(61, view.width);
+    expect(fills.some((f) => f.rect.join() === [key.x, keyTop, key.width, 4].join())).toBe(true);
+  });
+
+  it('draws the hand wait mode does not ask for faintly, and does not light its keys', () => {
+    const { ctx, rounds } = recorder();
+    drawFrame(ctx, [note(48, 9, 11, 'left'), note(64, 9, 11, 'right')], 10, view, {
+      dimHand: 'left',
+    });
+    const left = rounds.find((r) => r.style === STAGE_COLORS.C && (r.rect[1] ?? 0) < view.height);
+    expect(left?.alpha).toBeLessThan(0.5);
+    expect(keyFaces(rounds).some((r) => r.style === STAGE_COLORS.C)).toBe(false);
+    expect(keyFaces(rounds).some((r) => r.style === STAGE_COLORS.E)).toBe(true);
+  });
+
+  it('draws only the keyboard when there is no falling area', () => {
+    const { ctx, rounds } = recorder();
+    const drawn = drawFrame(
+      ctx,
+      [note(60, 9, 11)],
+      10,
+      { ...view, height: 0 },
+      {
+        keyboardHeight: KEYBOARD_HEIGHT,
+      },
+    );
+    expect(drawn).toBe(0);
+    expect(rounds.some((r) => r.style === STAGE_COLORS.C && r.rect[1] === HIT_GAP)).toBe(true);
   });
 });

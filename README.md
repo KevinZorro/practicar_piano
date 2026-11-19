@@ -18,10 +18,18 @@ notes, synchronized sheet music, wait mode and automatic rewind when you miss a 
    the harmony, finds the beat and builds the sheet music.
 2. You are told when it is ready (browser notification). The song is delivered to your
    browser and **deleted from the server**; it lives in your browser's library.
-3. Practice with falling notes, a score with a cursor, the YouTube video, adjustable
-   speed and level (original, playable, easy). With a USB/Bluetooth MIDI keyboard
-   (Chrome or Edge) you can use **wait mode**: the song stops until you play the right
-   chord, and rewinds if you miss. Progress per level is kept, with a "mastered" mark.
+3. Practice with falling notes, the score with a cursor, or both at once, plus the
+   YouTube video, adjustable speed and two levels (playable, easy). With a USB/Bluetooth
+   MIDI keyboard (Chrome or Edge), or with the microphone, you can use **wait mode**: the
+   song stops until you play the right chord, and rewinds if you miss. Progress per level
+   is kept, with a "mastered" mark.
+4. Learn to read while you play: every note has one colour on the key, the falling bar and
+   the notehead, the score can write each note's name (C D E or Do Re Mi), and a reading
+   guide explains clefs, note values, rests, accidentals, time signatures and chords with
+   drawn examples. The visual identity is described in
+   [`docs/phase-1/identidad-visual.md`](docs/phase-1/identidad-visual.md) (Spanish).
+
+<img src="docs/img/practice-mobile.png" alt="Practice screen on a phone" width="300">
 
 The screenshots show a synthetic exercise, not a real song.
 

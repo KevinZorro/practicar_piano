@@ -1,5 +1,5 @@
 import type { Note } from '../core/notes/model';
-import { keyBox } from './keyboardLayout';
+import { FULL_RANGE, keyBox, type KeyRange } from './keyboardLayout';
 
 export interface View {
   readonly width: number;
@@ -23,12 +23,18 @@ export function timeToY(timeS: number, nowS: number, view: View): number {
 
 const MIN_NOTE_HEIGHT = 3;
 
-/** Rectangle of a falling note, or null when it is fully outside the visible area. */
-export function noteRect(note: Note, nowS: number, view: View): Rect | null {
+/** Rectangle of a falling note, or null when it is outside the visible area or keyboard. */
+export function noteRect(
+  note: Note,
+  nowS: number,
+  view: View,
+  range: KeyRange = FULL_RANGE,
+): Rect | null {
   const bottom = timeToY(note.startS, nowS, view); // start is the lower edge
   const top = timeToY(note.endS, nowS, view);
   if (bottom < 0 || top > view.height) return null;
-  const key = keyBox(note.pitch, view.width);
+  if (note.pitch < range.low || note.pitch > range.high) return null;
+  const key = keyBox(note.pitch, view.width, range);
   const height = Math.max(bottom - top, MIN_NOTE_HEIGHT);
   return { x: key.x, y: bottom - height, width: key.width, height };
 }

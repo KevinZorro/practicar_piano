@@ -8,13 +8,19 @@ export class SwitchablePlayer implements PlayerPort {
   private playing = false;
   private rate = 1;
   private muted = false;
+  private readonly listeners = new Set<(playing: boolean) => void>();
+  private unsubscribe: () => void;
 
-  constructor(private current: PlayerPort) {}
+  constructor(private current: PlayerPort) {
+    this.unsubscribe = this.subscribe(current);
+  }
 
   attach(next: PlayerPort): void {
     const timeS = this.current.getCurrentTime();
+    this.unsubscribe();
     this.current.pause();
     this.current = next;
+    this.unsubscribe = this.subscribe(next);
     next.setPlaybackRate(this.rate);
     next.setMuted?.(this.muted);
     next.seekTo(timeS);
@@ -42,5 +48,22 @@ export class SwitchablePlayer implements PlayerPort {
   setMuted(muted: boolean): void {
     this.muted = muted;
     this.current.setMuted?.(muted);
+  }
+
+  /** Changes made on the current player itself (a click on the video), whichever it is. */
+  onExternalChange(listener: (playing: boolean) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private subscribe(player: PlayerPort): () => void {
+    return (
+      player.onExternalChange?.((playing) => {
+        this.playing = playing;
+        for (const listener of this.listeners) listener(playing);
+      }) ?? (() => undefined)
+    );
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TonePiano } from '../adapters/audio/tonePiano';
 import type { MicInput } from '../adapters/audio/micInput';
 import type { MidiInput, MidiStatus } from '../adapters/midi/midiInput';
+import type { SheetAids } from '../adapters/sheet/osmdSheet';
 import type { InputStatus } from '../core/input/noteInput';
 import { NoteTrigger } from '../core/audio/noteTrigger';
 import { SynthPlayer } from '../core/audio/synthPlayer';
@@ -9,16 +10,23 @@ import { InterpolatedClock } from '../core/clock/interpolatedClock';
 import type { PlayerPort } from '../core/clock/playbackClock';
 import { SwitchablePlayer } from '../core/clock/switchablePlayer';
 import type { Attempt, LibrarySong } from '../core/library/library';
-import type { HandFilter, Note } from '../core/notes/model';
+import type { Hand, HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
 import { accuracy, DEFAULT_CONFIG, type PracticeState } from '../core/practice/machine';
-import { SPEED_PRESETS, SpeedControl } from '../core/practice/speed';
+import type { PracticePrefs, PracticeView } from '../core/practice/prefs';
+import { SpeedControl } from '../core/practice/speed';
 import { expectedNow } from '../core/practice/expected';
 import { Judge } from '../core/practice/judge';
+import { formatClock, measureAt } from '../core/practice/timeline';
 import { WaitMode } from '../core/practice/waitMode';
-import { drawFrame, KEYBOARD_HEIGHT } from '../render/drawFrame';
-import { LEVEL_LABEL } from './messages';
+import { drawFrame } from '../render/drawFrame';
+import { fitKeyRange, whiteKeyCount } from '../render/keyboardLayout';
+import { stageLayout } from '../render/stageLayout';
+import { KeyRow, Switch } from './controls';
+import { BackIcon, BookIcon, KeysIcon, PauseIcon, PlayIcon, RestartIcon } from './icons';
 import { MicPanel } from './MicPanel';
+import { PracticePanel, ReadingPanel, WaitHud } from './PracticePanels';
+import { ReadingGuide } from './ReadingGuide';
 import { SheetPane } from './SheetPane';
 
 /** Embeds the video in `host` and resolves when it can be controlled. */
@@ -26,6 +34,8 @@ export type VideoFactory = (host: HTMLElement, videoId: string) => Promise<Playe
 
 interface Props {
   song: LibrarySong;
+  prefs: PracticePrefs;
+  onPrefs: (patch: Partial<PracticePrefs>) => void;
   onBack: () => void;
   /** Creates the audio voice; injected so tests do not need a sound card. */
   createPiano?: (() => TonePiano) | undefined;
@@ -39,11 +49,19 @@ interface Props {
   onAttempt?: ((attempt: Attempt) => void) | undefined;
 }
 
-const AHEAD_S = 4;
-// Logical canvas size: 20 px per white key; the bitmap is scaled by the pixel ratio for crisp text.
-const CANVAS_WIDTH = 1040;
-const FALL_HEIGHT = 340;
-const CANVAS_HEIGHT = FALL_HEIGHT + KEYBOARD_HEIGHT + 2;
+const VIEW_OPTIONS: readonly (readonly [PracticeView, string])[] = [
+  ['falling', 'Notas'],
+  ['sheet', 'Partitura'],
+  ['both', 'Ambas'],
+];
+const MIDI_MESSAGE: Record<InputStatus, string> = {
+  idle: 'Teclado sin conectar.',
+  unsupported: 'Este navegador no admite teclados MIDI. Usa Chrome o Edge.',
+  denied: 'Permiso denegado. Permite el acceso a MIDI en el candado de la barra de direcciones.',
+  'no-device': 'No se detecta ningún teclado. Conéctalo por USB y enciéndelo.',
+  ready: 'Teclado conectado.',
+};
+const SYNC_EVERY_MS = 250;
 
 const wallMs = (): number => performance.now();
 
@@ -53,24 +71,25 @@ function createTiming() {
   const clock = new InterpolatedClock(player, { wallMs });
   return { clock, player, speedControl: new SpeedControl(clock) };
 }
-const SYNC_EVERY_MS = 250;
-// The embedded player fills its box, so the box needs a size (styles come with C9).
-const VIDEO_STYLE = { aspectRatio: '16 / 9', maxWidth: '480px' } as const;
-const HAND_LABEL: Record<HandFilter, string> = {
-  both: 'Ambas manos',
-  right: 'Mano derecha',
-  left: 'Mano izquierda',
-};
-const MIDI_MESSAGE: Record<InputStatus, string> = {
-  idle: 'Teclado sin conectar.',
-  unsupported: 'Este navegador no admite teclados MIDI. Usa Chrome o Edge.',
-  denied: 'Permiso denegado. Permite el acceso a MIDI en el candado de la barra de direcciones.',
-  'no-device': 'No se detecta ningún teclado. Conéctalo por USB y enciéndelo.',
-  ready: 'Teclado conectado.',
-};
+
+/** In wait mode with one hand, the other hand's notes are drawn faint. */
+function dimmedHand(waitOn: boolean, hand: HandFilter): Hand | null {
+  if (!waitOn || hand === 'both') return null;
+  return hand === 'right' ? 'left' : 'right';
+}
+
+/** The keyboard shortcut must not fire while the player types or works a control. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest('input, textarea, select, button, a, [contenteditable], .guide') !== null
+  );
+}
 
 export function PracticeScreen({
   song,
+  prefs,
+  onPrefs,
   onBack,
   createPiano,
   createMidi,
@@ -83,11 +102,16 @@ export function PracticeScreen({
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(false);
   const videoId = song.videoId ?? null;
-  const [hasVideo, setHasVideo] = useState(false);
+  const canShowVideo = videoId !== null && createVideo !== undefined;
+  const [video, setVideo] = useState<PlayerPort | null>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+  // The embed is created the first time the video is shown, and then kept.
+  const [videoWanted, setVideoWanted] = useState(prefs.showVideo);
   // The video carries the song's own sound; the synth is for songs without one.
-  const [sound, setSound] = useState(videoId === null || !createVideo);
+  const [sound, setSound] = useState(!canShowVideo || !prefs.showVideo);
   const [waitOn, setWaitOn] = useState(false);
   const [hand, setHand] = useState<HandFilter>('both');
+  const [guideOpen, setGuideOpen] = useState(false);
   const [practice, setPractice] = useState<{
     source: WaitMode | null;
     state: PracticeState;
@@ -104,12 +128,66 @@ export function PracticeScreen({
   const micSilence = mic !== null && inputStatus === 'ready' && !headphones;
   const view = useMemo(() => viewLevel(song.result, level), [song.result, level]);
   const duration = song.result.meta.duration_s;
+  const measures = useMemo(() => view.score?.measures ?? [], [view]);
+  const lastMeasure = measures[measures.length - 1]?.measure ?? null;
+  const range = useMemo(() => fitKeyRange(view.notes.map((n) => n.pitch)), [view]);
+  const aids = useMemo<SheetAids>(
+    () => ({
+      colors: prefs.sheetColors,
+      letters: prefs.sheetLetters,
+      naming: prefs.naming,
+      zoom: prefs.sheetZoom,
+    }),
+    [prefs.sheetColors, prefs.sheetLetters, prefs.naming, prefs.sheetZoom],
+  );
 
   const canvas = useRef<HTMLCanvasElement>(null);
+  const fallBox = useRef<HTMLDivElement>(null);
+  const stageSize = useRef({ width: 0, height: 0 });
+  const timeline = useRef<HTMLInputElement>(null);
+  const timeNow = useRef<HTMLSpanElement>(null);
+  const measureNow = useRef<HTMLSpanElement>(null);
+  const scrubbing = useRef(false);
+  const guideOpener = useRef<HTMLButtonElement | null>(null);
   const pressedKeys = useRef(new Set<number>());
   const seekSheet = useRef<((timeS: number) => void) | null>(null);
   const registerSeek = useCallback((seek: ((timeS: number) => void) | null) => {
     seekSheet.current = seek;
+  }, []);
+  // What the frame loop reads every frame without re-subscribing.
+  const drawing = useRef({ view: prefs.view, naming: prefs.naming, dim: null as Hand | null });
+  useEffect(() => {
+    drawing.current = { view: prefs.view, naming: prefs.naming, dim: dimmedHand(waitOn, hand) };
+  }, [prefs.view, prefs.naming, waitOn, hand]);
+
+  // On narrow screens the stage takes what the header and the sticky transport leave, so the
+  // transport never covers the keyboard, even when wait mode makes it taller.
+  const shell = useRef<HTMLElement>(null);
+  const topBar = useRef<HTMLElement>(null);
+  const transportBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = shell.current;
+    const header = topBar.current;
+    const transport = transportBox.current;
+    if (!root || !header || !transport || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty('--bar-h', `${String(header.offsetHeight)}px`);
+      root.style.setProperty('--transport-h', `${String(transport.offsetHeight)}px`);
+    });
+    observer.observe(header);
+    observer.observe(transport);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // The practice screen opens at its top, wherever the library was scrolled; leaving returns there.
+  useEffect(() => {
+    const from = window.scrollY;
+    window.scrollTo(0, 0);
+    return () => {
+      window.scrollTo(0, from);
+    };
   }, []);
 
   const [{ clock, player, speedControl }] = useState(createTiming);
@@ -126,7 +204,6 @@ export function PracticeScreen({
   }, [mic]);
   const judge = useMemo(() => new Judge(view.notes), [view]);
   const judgeRef = useRef(judge);
-  // What the frame loop and the keyboard handler need without re-subscribing.
   const attemptInfo = useRef({ level, onAttempt, reported: false });
   useEffect(() => {
     judgeRef.current = judge;
@@ -203,23 +280,72 @@ export function PracticeScreen({
     };
   }, [source, clock, speedControl]);
 
+  // The canvas follows the size of its box; the bitmap is scaled for crisp text.
+  useEffect(() => {
+    const box = fallBox.current;
+    const element = canvas.current;
+    if (!box || !element) return;
+    const apply = (width: number, height: number) => {
+      stageSize.current = { width, height };
+      const scale = canvasScale();
+      element.width = Math.round(width * scale);
+      element.height = Math.round(height * scale);
+    };
+    apply(box.clientWidth, box.clientHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect) apply(Math.round(rect.width), Math.round(rect.height));
+    });
+    observer.observe(box);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const trigger = new NoteTrigger(view.notes);
+    const whiteKeys = whiteKeyCount(range);
     let frame = 0;
+    let shownSecond = -1;
+    let shownTenth = -1;
     const tick = () => {
       const now = clock.now();
       const ctx = canvas.current?.getContext('2d');
-      const el = canvas.current;
-      if (ctx && el) {
-        const ratio = el.width / CANVAS_WIDTH;
+      const element = canvas.current;
+      const { width, height } = stageSize.current;
+      if (ctx && element && width > 0 && height > 0) {
+        const { view: layoutView, naming, dim } = drawing.current;
+        const layout = stageLayout(width, height, whiteKeys, layoutView);
+        const ratio = element.width / width;
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         drawFrame(
           ctx,
           view.notes,
           now,
-          { width: CANVAS_WIDTH, height: FALL_HEIGHT, aheadS: AHEAD_S },
-          { pressed: pressedKeys.current },
+          { width, height: layout.fallHeight, aheadS: layout.aheadS },
+          {
+            pressed: pressedKeys.current,
+            range,
+            keyboardHeight: layout.keyboardHeight,
+            naming,
+            dimHand: dim,
+          },
         );
+      }
+      const tenth = Math.floor(now * 10);
+      if (tenth !== shownTenth && !scrubbing.current && timeline.current) {
+        shownTenth = tenth;
+        timeline.current.value = String(Math.min(now, duration));
+      }
+      const second = Math.floor(now);
+      if (second !== shownSecond) {
+        shownSecond = second;
+        const text = formatClock(Math.min(now, duration));
+        if (timeNow.current) timeNow.current.textContent = text;
+        timeline.current?.setAttribute('aria-valuetext', `${text} de ${formatClock(duration)}`);
+        const bar = measureAt(measures, now);
+        if (measureNow.current) measureNow.current.textContent = String(bar ?? 1);
       }
       seekSheet.current?.(now);
       if (sessionRef.current) waitRef.current?.tick();
@@ -255,31 +381,39 @@ export function PracticeScreen({
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [view, clock, duration, speedControl, report]);
+  }, [view, range, measures, clock, duration, speedControl, report]);
 
   useEffect(() => {
     const host = videoHost.current;
-    if (!videoId || !createVideo || !host) return;
+    if (!videoId || !createVideo || !host || !videoWanted) return;
     const state = { cancelled: false, timer: 0 };
     createVideo(host, videoId).then(
-      (video) => {
+      (ready) => {
         if (state.cancelled) return;
-        player.attach(video);
-        setHasVideo(true);
+        setVideo(ready);
+        setSound(false);
         state.timer = window.setInterval(() => {
           clock.sync();
         }, SYNC_EVERY_MS);
       },
       () => {
         // The video cannot be embedded or loaded: practice goes on with the synth.
-        if (!state.cancelled) setSound(true);
+        if (state.cancelled) return;
+        setVideoFailed(true);
+        setSound(true);
       },
     );
     return () => {
       state.cancelled = true;
       window.clearInterval(state.timer);
     };
-  }, [videoId, createVideo, player, clock]);
+  }, [videoId, createVideo, videoWanted, clock]);
+
+  // A hidden video never plays: the clock moves to a synth counter and the app's piano sounds.
+  useEffect(() => {
+    if (!video) return;
+    player.attach(prefs.showVideo ? video : new SynthPlayer(wallMs));
+  }, [video, prefs.showVideo, player]);
 
   useEffect(
     () => () => {
@@ -305,32 +439,70 @@ export function PracticeScreen({
     }
   }, [finished, practiceState, report]);
 
-  async function togglePlay() {
-    if (playing) {
-      clock.pause();
-      piano.current?.stopAll();
-      setPlaying(false);
-      return;
-    }
-    await ensurePiano();
-    if (clock.now() >= duration) {
-      clock.seek(0);
-      waitRef.current?.seek(0);
-      judge.reset(0);
-      attemptInfo.current.reported = false;
-    }
+  function stop() {
+    clock.pause();
+    piano.current?.stopAll();
+    setPlaying(false);
+  }
+
+  function start() {
+    if (clock.now() >= duration) seekTo(0);
     // While the song waits for a key, resuming must not run past the chord.
     if (waitRef.current?.snapshot.status !== 'waiting') clock.play();
+    else player.pause();
     setPlaying(true);
   }
 
-  function restart() {
-    clock.seek(0);
-    waitRef.current?.seek(0);
-    judge.reset(0);
+  async function togglePlay() {
+    if (playing) {
+      stop();
+      return;
+    }
+    await ensurePiano();
+    start();
+  }
+
+  /** Moves the song by hand (timeline, restart); a run started over counts as a new attempt. */
+  function seekTo(timeS: number) {
+    const target = Math.min(Math.max(timeS, 0), duration);
+    clock.seek(target);
+    waitRef.current?.seek(target);
+    judge.reset(target);
     attemptInfo.current.reported = false;
-    if (sessionRef.current) clock.play();
     piano.current?.stopAll();
+  }
+
+  // A click on the video itself starts or stops it: the practice follows it.
+  const controls = useRef({ start, stop, togglePlay });
+  useEffect(() => {
+    controls.current = { start, stop, togglePlay };
+  });
+  useEffect(
+    () =>
+      player.onExternalChange((videoPlaying) => {
+        if (videoPlaying === sessionRef.current) return;
+        if (videoPlaying) controls.current.start();
+        else controls.current.stop();
+      }),
+    [player],
+  );
+
+  // Space plays and pauses from anywhere on the screen, except while typing or on a control.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || isTypingTarget(event.target)) return;
+      event.preventDefault();
+      void controls.current.togglePlay();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  function restart() {
+    seekTo(0);
+    if (sessionRef.current) clock.play();
   }
 
   async function connectMidi() {
@@ -349,181 +521,213 @@ export function PracticeScreen({
     setInputStatus(await input.start());
   }
 
-  function pauseForCalibration() {
-    clock.pause();
-    piano.current?.stopAll();
-    setPlaying(false);
-  }
-
   function chooseSpeed(next: number) {
     setSpeed(speedControl.set(next));
   }
 
+  function showVideo(show: boolean) {
+    onPrefs({ showVideo: show });
+    if (show) setVideoWanted(true);
+    if (video) setSound(!show);
+  }
+
+  function openGuide(opener: HTMLButtonElement) {
+    guideOpener.current = opener;
+    setGuideOpen(true);
+  }
+
+  const closeGuide = useCallback(() => {
+    setGuideOpen(false);
+    guideOpener.current?.focus();
+  }, []);
+
+  const videoReady = video !== null && prefs.showVideo;
+
   return (
-    <section aria-label="Práctica" className="practice">
-      <header>
-        <button type="button" onClick={onBack}>
-          Volver
+    <section ref={shell} aria-label="Práctica" className="practice">
+      <header ref={topBar} className="practice-bar">
+        <button
+          type="button"
+          className="key-quiet"
+          aria-label="Volver a la biblioteca"
+          onClick={onBack}
+        >
+          <BackIcon />
+          <span className="back-label">Biblioteca</span>
         </button>
-        <h2>{song.title}</h2>
-        <small className="fine-print">Transcripción automática: puede contener errores.</small>
+        <div className="practice-title">
+          <h2>{song.title}</h2>
+          <p className="fine-print">Transcripción automática: puede contener errores.</p>
+        </div>
+        <KeyRow
+          legend="Vista"
+          name="view"
+          value={prefs.view}
+          options={VIEW_OPTIONS}
+          onChange={(next) => {
+            onPrefs({ view: next });
+          }}
+          className="view-switch"
+        />
+        <button
+          type="button"
+          className="key-quiet"
+          aria-expanded={guideOpen}
+          onClick={(e) => {
+            openGuide(e.currentTarget);
+          }}
+        >
+          <BookIcon />
+          <span className="guide-label">Guía</span>
+        </button>
       </header>
 
-      <div className="controls">
-        <button type="button" onClick={() => void togglePlay()}>
-          {playing ? 'Pausar' : 'Reproducir'}
-        </button>
-        <button type="button" onClick={restart}>
-          Reiniciar
-        </button>
-        <label>
-          <input
-            type="checkbox"
-            checked={sound && !micSilence}
-            disabled={micSilence}
-            onChange={(e) => {
-              setSound(e.target.checked);
-            }}
-          />{' '}
-          Sonido
-        </label>
-        <fieldset>
-          <legend>Nivel</legend>
-          {levels.map((name) => (
-            <label key={name}>
-              <input
-                type="radio"
-                name="level"
-                checked={level === name}
-                onChange={() => {
-                  setLevel(name);
-                }}
-              />{' '}
-              {LEVEL_LABEL[name]}
-            </label>
-          ))}
-        </fieldset>
-        <fieldset>
-          <legend>Velocidad</legend>
-          {SPEED_PRESETS.map((value) => (
-            <label key={value}>
-              <input
-                type="radio"
-                name="speed"
-                checked={speed === value}
-                onChange={() => {
-                  chooseSpeed(value);
-                }}
-              />{' '}
-              {String(Math.round(value * 100))} %
-            </label>
-          ))}
-          <label>
-            Libre{' '}
+      <div className="practice-main">
+        <div className="stage" data-view={prefs.view}>
+          <div className="stage-sheet">
+            <SheetPane score={view.score} aids={aids} registerSeek={registerSeek} />
+          </div>
+          <div className="stage-fall" ref={fallBox}>
+            <canvas
+              ref={canvas}
+              role="img"
+              aria-label={prefs.view === 'sheet' ? 'Teclado' : 'Notas que caen'}
+            />
+          </div>
+        </div>
+
+        <div ref={transportBox} className="transport">
+          <button
+            type="button"
+            className="key-primary transport-play"
+            onClick={() => void togglePlay()}
+          >
+            {playing ? <PauseIcon /> : <PlayIcon />}
+            {playing ? 'Pausar' : 'Reproducir'}
+          </button>
+          <button type="button" onClick={restart}>
+            <RestartIcon />
+            Reiniciar
+          </button>
+          <div className="timeline">
+            <span ref={timeNow} className="timeline-now">
+              0:00
+            </span>
             <input
+              ref={timeline}
               type="range"
-              min={25}
-              max={150}
-              step={5}
-              value={Math.round(speed * 100)}
-              aria-label="Velocidad libre"
+              min={0}
+              max={duration}
+              step={0.1}
+              defaultValue={0}
+              aria-label="Posición en la canción"
+              onPointerDown={() => {
+                scrubbing.current = true;
+              }}
+              onPointerUp={() => {
+                scrubbing.current = false;
+              }}
+              onBlur={() => {
+                scrubbing.current = false;
+              }}
               onChange={(e) => {
-                chooseSpeed(Number(e.target.value) / 100);
+                seekTo(Number(e.target.value));
               }}
             />
-          </label>
-        </fieldset>
+            <span>{formatClock(duration)}</span>
+          </div>
+          {lastMeasure !== null && (
+            <span className="transport-measure">
+              Compás <span ref={measureNow}>1</span> de {lastMeasure}
+            </span>
+          )}
+          <span className="transport-hint">
+            <kbd>Espacio</kbd> reproduce o pausa
+          </span>
+          {waitOn && practiceState && (
+            <WaitHud
+              state={practiceState}
+              expected={wait?.expectedPitches() ?? []}
+              naming={prefs.naming}
+            />
+          )}
+        </div>
       </div>
 
-      <div className="wait-mode">
-        <label>
-          <input
-            type="checkbox"
-            checked={waitOn}
-            onChange={(e) => {
-              setWaitOn(e.target.checked);
-            }}
-          />{' '}
-          Modo espera
-        </label>
-        <fieldset disabled={!waitOn}>
-          <legend>Manos</legend>
-          {(Object.keys(HAND_LABEL) as HandFilter[]).map((value) => (
-            <label key={value}>
-              <input
-                type="radio"
-                name="hand"
-                checked={hand === value}
-                onChange={() => {
-                  setHand(value);
-                }}
-              />{' '}
-              {HAND_LABEL[value]}
-            </label>
-          ))}
-        </fieldset>
-        <label>
-          <input
-            type="checkbox"
-            checked={rewindOnWrong}
-            onChange={(e) => {
-              setRewindOnWrong(e.target.checked);
-            }}
-          />{' '}
-          Retroceder al fallar
-        </label>
-        <button type="button" onClick={() => void connectMidi()}>
-          Conectar teclado
-        </button>
-        <span role="status">{MIDI_MESSAGE[midi ? inputStatus : 'idle']}</span>
-        {midi && midi.deviceNames.length > 0 && <span> {midi.deviceNames.join(', ')}</span>}
-      </div>
-
-      {createMic && (
-        <MicPanel
-          mic={mic}
-          status={inputStatus}
-          headphones={headphones}
-          onHeadphones={setHeadphones}
-          onConnect={() => void connectMic()}
-          onBeforeCalibrate={pauseForCalibration}
+      <aside className="inspector" aria-label="Ajustes de la práctica">
+        {canShowVideo && (
+          <section className="panel panel-video">
+            <h3 className="sr-only">Video</h3>
+            <div
+              ref={videoHost}
+              className="video"
+              role="region"
+              aria-label="Vídeo"
+              hidden={!videoReady}
+            />
+            {!videoFailed && (
+              <Switch label="Mostrar el video" checked={prefs.showVideo} onChange={showVideo} />
+            )}
+            {videoFailed && (
+              <p className="fine-print video-note">
+                El video no se puede mostrar aquí: suena el piano de la app.
+              </p>
+            )}
+          </section>
+        )}
+        <PracticePanel
+          levels={levels}
+          level={level}
+          onLevel={setLevel}
+          droppedRatio={view.droppedRatio}
+          speed={speed}
+          onSpeed={chooseSpeed}
+          waitOn={waitOn}
+          onWait={setWaitOn}
+          hand={hand}
+          onHand={setHand}
+          rewindOnWrong={rewindOnWrong}
+          onRewind={setRewindOnWrong}
+          sound={sound}
+          soundLocked={micSilence}
+          onSound={setSound}
+          videoSound={videoReady}
         />
-      )}
-
-      {waitOn && practiceState && (
-        <p role="status" aria-label="Progreso del modo espera">
-          {practiceState.status === 'waiting' && 'Toca las notas indicadas para continuar. '}
-          {practiceState.status === 'finished' && '¡Terminaste! '}
-          Acordes acertados: {practiceState.stats.chordsHit} · Fallos:{' '}
-          {practiceState.stats.mistakes} · Precisión:{' '}
-          {Math.round(accuracy(practiceState.stats) * 100)} %
-        </p>
-      )}
-
-      {view.droppedRatio > 0 && (
-        <p role="note">
-          Se simplificó el {String(Math.round(view.droppedRatio * 100))} % de las notas para poder
-          tocarla.
-        </p>
-      )}
-
-      {videoId && createVideo && (
-        <div
-          ref={videoHost}
-          className="video"
-          role="region"
-          aria-label="Vídeo"
-          hidden={!hasVideo}
-          style={VIDEO_STYLE}
+        <section className="panel">
+          <h3>Tu teclado</h3>
+          <button type="button" className="connect" onClick={() => void connectMidi()}>
+            <KeysIcon />
+            Conectar teclado
+          </button>
+          <p
+            role="status"
+            className="status-line"
+            data-ok={midi !== null && inputStatus === 'ready'}
+          >
+            {MIDI_MESSAGE[midi ? inputStatus : 'idle']}
+            {midi && midi.deviceNames.length > 0 && ` ${midi.deviceNames.join(', ')}`}
+          </p>
+          {createMic && (
+            <MicPanel
+              mic={mic}
+              status={inputStatus}
+              headphones={headphones}
+              onHeadphones={setHeadphones}
+              onConnect={() => void connectMic()}
+              onBeforeCalibrate={stop}
+            />
+          )}
+        </section>
+        <ReadingPanel
+          prefs={prefs}
+          onPrefs={onPrefs}
+          onGuide={() => {
+            setGuideOpen(true);
+          }}
         />
-      )}
-      <canvas
-        ref={canvas}
-        width={CANVAS_WIDTH * canvasScale()}
-        height={CANVAS_HEIGHT * canvasScale()}
-        aria-label="Notas que caen"
-      />
-      <SheetPane score={view.score} registerSeek={registerSeek} />
+      </aside>
+
+      {guideOpen && <ReadingGuide naming={prefs.naming} onClose={closeGuide} />}
     </section>
   );
 }

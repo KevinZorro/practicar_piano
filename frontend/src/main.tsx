@@ -8,12 +8,20 @@ import { createWebMicInput } from './adapters/audio/micInput';
 import { createWebMidiInput } from './adapters/midi/midiInput';
 import { IndexedDbLibrary, openLibraryDb } from './adapters/storage/indexedDbLibrary';
 import { createLocalPendingStore } from './adapters/storage/localPendingStore';
+import { browserStorage, createLocalPrefsStore } from './adapters/storage/localPrefs';
 import { JobTracker } from './core/jobs/jobTracker';
 import type { LibrarySong, SongLibrary } from './core/library/library';
 import { App } from './ui/App';
 import './styles.css';
 
 const root = document.getElementById('root');
+// A first name for a new song ("Canción del 19 de noviembre, 18:05"); the library can rename it.
+const SAVED_AT = new Intl.DateTimeFormat('es', {
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 if (!root) throw new Error('Missing #root element');
 
 async function openLibrary(): Promise<SongLibrary | null> {
@@ -41,7 +49,7 @@ async function main(container: HTMLElement): Promise<void> {
     await tracker.collect(jobId, async (result, job) => {
       const song: LibrarySong = {
         id: jobId,
-        title: `Canción ${new Date().toLocaleDateString()}`,
+        title: `Canción del ${SAVED_AT.format(new Date())}`,
         savedAt: Date.now(),
         videoId: job?.videoId ?? null,
         result,
@@ -60,6 +68,7 @@ async function main(container: HTMLElement): Promise<void> {
         notifications={notifications}
         library={library}
         openJob={openJob}
+        prefsStore={createLocalPrefsStore(browserStorage())}
         createPiano={() => new TonePiano()}
         createMidi={() => createWebMidiInput()}
         createMic={() => createWebMicInput()}

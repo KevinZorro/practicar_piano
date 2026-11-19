@@ -137,7 +137,7 @@ describe('App', () => {
     api.createError = new ApiError(code, status, retry);
     await submitLink();
     expect(await screen.findByRole('alert')).toHaveTextContent(text);
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Tus canciones' })).not.toBeInTheDocument();
   });
 
   it('tells the user when to retry on a full queue', async () => {

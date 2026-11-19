@@ -21,4 +21,9 @@ export interface PlayerPort {
   setPlaybackRate(rate: number): void;
   /** Silences the player (the microphone must not hear the video). Optional: the synth is silent anyway. */
   setMuted?(muted: boolean): void;
+  /**
+   * Reports starts and stops the app did not ask for (the player clicked the video itself, or
+   * it ended). Optional: only a real video can change on its own. Returns an unsubscribe.
+   */
+  onExternalChange?(listener: (playing: boolean) => void): () => void;
 }

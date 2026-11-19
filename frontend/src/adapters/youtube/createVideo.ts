@@ -9,7 +9,11 @@ interface YtApi {
       width: string;
       height: string;
       playerVars: Record<string, number>;
-      events: { onReady: () => void; onError: () => void };
+      events: {
+        onReady: () => void;
+        onError: () => void;
+        onStateChange: (event: { data: number }) => void;
+      };
     },
   ) => YtPlayerLike;
 }
@@ -26,6 +30,7 @@ export async function createYouTubeVideo(host: HTMLElement, videoId: string): Pr
   const target = host.ownerDocument.createElement('div');
   host.appendChild(target);
   return new Promise<PlayerPort>((resolve, reject) => {
+    let port: YouTubePlayerPort | null = null;
     const player = new api.Player(target, {
       videoId,
       width: '100%',
@@ -34,10 +39,14 @@ export async function createYouTubeVideo(host: HTMLElement, videoId: string): Pr
       playerVars: { rel: 0, playsinline: 1, disablekb: 1, controls: 0 },
       events: {
         onReady: () => {
-          resolve(new YouTubePlayerPort(player));
+          port = new YouTubePlayerPort(player);
+          resolve(port);
         },
         onError: () => {
           reject(new Error('The video cannot be played here'));
+        },
+        onStateChange: (event) => {
+          port?.handleState(event.data);
         },
       },
     });
