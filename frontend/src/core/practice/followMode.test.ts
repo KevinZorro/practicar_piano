@@ -120,6 +120,19 @@ describe('FollowMode', () => {
     expect(on.mode.snapshot.mistakes).toBe(1);
   });
 
+  it('counts silence as a mistake once the keyboard is listening, after a lead-in', () => {
+    const { clock, mode } = setup({ rewindOnMiss: true, rewindS: 4 });
+    clock.time = 9.5;
+    mode.tick(true); // listening begins: chords before 10.5 s do not count
+    clock.time = 10.6; // C4 at 10 s went by, but it came before the lead-in ended
+    mode.tick(true);
+    expect(clock.seeks).toEqual([]);
+    clock.time = 12.4; // E4 at 12 s went by and nothing was heard
+    mode.tick(true);
+    expect(clock.seeks).toEqual([8.4]);
+    expect(mode.snapshot.mistakes).toBe(1);
+  });
+
   it('does not count a chord that was played', () => {
     const { clock, mode } = setup({ rewindOnMiss: true });
     clock.time = 10;

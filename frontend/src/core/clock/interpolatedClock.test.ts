@@ -171,3 +171,52 @@ describe('InterpolatedClock', () => {
     expect(clock.now()).toBeCloseTo(1.6);
   });
 });
+
+describe('InterpolatedClock after a seek', () => {
+  /** A player whose position still shows the old place when the clock first asks. */
+  function laggingSetup() {
+    const ctx = setup();
+    ctx.player.seekTo = (timeS: number) => {
+      ctx.player.calls.push(`seek:${String(timeS)}`);
+    };
+    ctx.player.time = 20;
+    ctx.clock.seek(20);
+    ctx.clock.play();
+    return ctx;
+  }
+
+  it('does not let a stale report undo a rewind', () => {
+    const { clock, player, advance } = laggingSetup();
+    advance(1000);
+    expect(clock.now()).toBeCloseTo(21, 1);
+    clock.seek(15); // the rewind; the player still says ~21
+    player.time = 21;
+    advance(250);
+    clock.sync();
+    expect(clock.now()).toBeCloseTo(15.25, 1);
+    player.time = 15.4; // the player arrives: normal correction resumes
+    advance(250);
+    clock.sync();
+    expect(clock.now()).toBeCloseTo(15.5, 1);
+  });
+
+  it('trusts the player again if it never reaches the target', () => {
+    const { clock, player, advance } = laggingSetup();
+    clock.seek(15);
+    player.time = 40;
+    advance(3500);
+    clock.sync();
+    expect(clock.now()).toBeCloseTo(40, 1);
+  });
+
+  it('holds still on the new place while the player loads it', () => {
+    const { clock, player, advance } = laggingSetup();
+    clock.seek(15);
+    player.time = 21;
+    player.buffering = true;
+    advance(500);
+    clock.sync();
+    advance(500);
+    expect(clock.now()).toBeCloseTo(15, 1);
+  });
+});

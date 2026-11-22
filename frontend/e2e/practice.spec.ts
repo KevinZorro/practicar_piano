@@ -85,7 +85,7 @@ test('the video is shown and follows play and pause', async ({ page }) => {
   await expect(page.getByRole('region', { name: 'Video' })).toBeVisible();
   await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
   // With the video the song's own sound plays, so the synth starts off.
-  await expect(page.getByLabel('Sonido')).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Del video' })).toBeChecked();
 
   await page.getByRole('button', { name: 'Reproducir' }).click();
   await page.getByRole('button', { name: 'Pausar' }).click();
@@ -100,7 +100,7 @@ test('hiding the video keeps the practice on screen with the app piano', async (
 
   await page.getByLabel('Mostrar el video').uncheck();
   await expect(video).toBeHidden();
-  await expect(page.getByLabel('Sonido')).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Piano de la app' })).toBeChecked();
   await expect(page.getByRole('region', { name: 'Práctica' })).toBeVisible();
   await page.getByRole('button', { name: 'Reproducir' }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
@@ -109,7 +109,39 @@ test('hiding the video keeps the practice on screen with the app piano', async (
 
   await page.getByLabel('Mostrar el video').check();
   await expect(video).toBeVisible();
-  await expect(page.getByLabel('Sonido')).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Del video' })).toBeChecked();
+});
+
+test('the piano samples are served by the app itself', async ({ page }) => {
+  await fakeYouTube(page);
+  const sample = page.waitForResponse(
+    (response) => response.url().includes('/samples/piano/C4.mp3') && response.ok(),
+  );
+  await openPractice(page);
+  await sample;
+});
+
+test('the sound can come from the video, the app piano or both', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  const video = page.getByRole('region', { name: 'Video' });
+
+  // Piano only: the video stays on screen but paused, and the clock runs without it.
+  await page.getByRole('radio', { name: 'Piano de la app' }).check();
+  await expect(video).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+  expect(await videoCalls(page)).not.toContain('play');
+  await page.getByRole('button', { name: 'Pausar' }).click();
+
+  // Both: the video plays again and the app piano sounds on top of it.
+  await page.getByRole('radio', { name: 'Los dos' }).check();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await expect.poll(() => videoCalls(page)).toContain('play');
+  await page.getByRole('button', { name: 'Pausar' }).click();
+
+  // The choice stays on screen.
+  await expect(page.getByRole('radio', { name: 'Los dos' })).toBeChecked();
 });
 
 test('the video view puts the video on the stage and can fill the screen', async ({ page }) => {
@@ -152,16 +184,16 @@ test('the video view shows a hidden video and hides it again on leaving', async 
   const video = page.getByRole('region', { name: 'Video' });
   await page.getByLabel('Mostrar el video').uncheck();
   await expect(video).toBeHidden();
-  await expect(page.getByLabel('Sonido')).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Piano de la app' })).toBeChecked();
 
   await page.getByRole('radio', { name: 'Video', exact: true }).check();
   await expect(video).toBeVisible();
-  await expect(page.getByLabel('Sonido')).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Del video' })).toBeChecked();
 
   await page.getByRole('radio', { name: 'Ambas', exact: true }).check();
   await expect(video).toBeHidden();
   await expect(page.getByLabel('Mostrar el video')).not.toBeChecked();
-  await expect(page.getByLabel('Sonido')).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Piano de la app' })).toBeChecked();
 });
 
 test('after a click on the video or its full-screen key, Space still plays', async ({ page }) => {
@@ -244,6 +276,9 @@ test('automatic rewind goes back the chosen seconds on a wrong key, without wait
   await expect(page.getByLabel('Modo espera')).not.toBeChecked();
   await page.getByLabel('Segundos que retrocede').fill('2');
   await expect(page.getByText('2 s', { exact: true })).toBeVisible();
+  // Silence rewinds by default; this test is about the wrong key alone.
+  await expect(page.getByLabel('También si no toco o me salto un acorde')).toBeChecked();
+  await page.getByLabel('También si no toco o me salto un acorde').uncheck();
   await page.getByRole('button', { name: 'Conectar teclado' }).click();
   await expect(page.getByText('Teclado conectado.')).toBeVisible();
   await page.getByRole('button', { name: 'Reproducir' }).click();
@@ -255,4 +290,18 @@ test('automatic rewind goes back the chosen seconds on a wrong key, without wait
   await expect(progress).toContainText('Fallos: 1');
   await expect(progress).toContainText('Retrocesos: 1');
   await expect(page.locator('.timeline-now')).toHaveText(/0:0[0-3]/);
+});
+
+test('automatic rewind also goes back when the keyboard hears nothing', async ({ page }) => {
+  await fakeKeyboard(page);
+  await openPractice(page);
+  const progress = page.getByLabel('Progreso del retroceso automático');
+
+  await page.getByLabel('Retroceso automático').check();
+  await page.getByRole('button', { name: 'Conectar teclado' }).click();
+  await expect(page.getByText('Teclado conectado.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+
+  // No key is pressed at all: the first chords go by unheard and the song goes back.
+  await expect(progress).toContainText(/Retrocesos: [1-9]/, { timeout: 15_000 });
 });

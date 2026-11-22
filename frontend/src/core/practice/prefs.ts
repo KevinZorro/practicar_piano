@@ -3,6 +3,11 @@
  * itself in place of the falling notes (its own falling notes are usually the original ones).
  */
 export type PracticeView = 'falling' | 'sheet' | 'both' | 'video';
+/**
+ * What is heard while practising a song that has a video: the video's own sound, the app's
+ * piano playing the song's notes (the video stays paused), or both at once.
+ */
+export type AudioSource = 'video' | 'piano' | 'both';
 /** Note names as letters (C D E) or as solfège (Do Re Mi). */
 export type NamingStyle = 'letters' | 'solfege';
 
@@ -11,6 +16,8 @@ export interface PracticePrefs {
   readonly view: PracticeView;
   /** Shows the YouTube video when the song has one; hidden, the app's piano plays instead. */
   readonly showVideo: boolean;
+  /** What is heard; it applies while the video is shown, hidden the app's piano plays. */
+  readonly audio: AudioSource;
   /** Colours the noteheads like the falling notes and the keys. */
   readonly sheetColors: boolean;
   /** Writes the name of every note under the staff. */
@@ -21,7 +28,7 @@ export interface PracticePrefs {
   /** Seconds the song goes back after a wrong key (wait mode and follow mode). */
   readonly rewindS: number;
   /** Follow mode: a skipped chord also rewinds, not only a wrong key. */
-  readonly rewindOnMiss: boolean;
+  readonly rewindOnSilence: boolean;
 }
 
 export const REWIND_MIN_S = 1;
@@ -32,15 +39,17 @@ export const SHEET_ZOOM_STEPS = [0.8, 0.9, 1, 1.15, 1.3, 1.5] as const;
 export const DEFAULT_PREFS: PracticePrefs = {
   view: 'both',
   showVideo: true,
+  audio: 'video',
   sheetColors: true,
   sheetLetters: true,
   naming: 'letters',
   sheetZoom: 1,
   rewindS: 5,
-  rewindOnMiss: false,
+  rewindOnSilence: true,
 };
 
 const VIEWS: readonly PracticeView[] = ['falling', 'sheet', 'both', 'video'];
+const AUDIOS: readonly AudioSource[] = ['video', 'piano', 'both'];
 const NAMINGS: readonly NamingStyle[] = ['letters', 'solfege'];
 
 function pick<T>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -69,12 +78,13 @@ export function parsePrefs(value: unknown): PracticePrefs {
   return {
     view: pick(v['view'], VIEWS, DEFAULT_PREFS.view),
     showVideo: flag(v['showVideo'], DEFAULT_PREFS.showVideo),
+    audio: pick(v['audio'], AUDIOS, DEFAULT_PREFS.audio),
     sheetColors: flag(v['sheetColors'], DEFAULT_PREFS.sheetColors),
     sheetLetters: flag(v['sheetLetters'], DEFAULT_PREFS.sheetLetters),
     naming: pick(v['naming'], NAMINGS, DEFAULT_PREFS.naming),
     sheetZoom: pick(v['sheetZoom'], SHEET_ZOOM_STEPS, DEFAULT_PREFS.sheetZoom),
     rewindS: whole(v['rewindS'], REWIND_MIN_S, REWIND_MAX_S, DEFAULT_PREFS.rewindS),
-    rewindOnMiss: flag(v['rewindOnMiss'], DEFAULT_PREFS.rewindOnMiss),
+    rewindOnSilence: flag(v['rewindOnSilence'], DEFAULT_PREFS.rewindOnSilence),
   };
 }
 

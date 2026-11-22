@@ -13,7 +13,12 @@ import type { Attempt, LibrarySong } from '../core/library/library';
 import type { Hand, HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
 import { accuracy, DEFAULT_CONFIG, type PracticeState } from '../core/practice/machine';
-import { isKeyboardOnly, type PracticePrefs, type PracticeView } from '../core/practice/prefs';
+import {
+  isKeyboardOnly,
+  type AudioSource,
+  type PracticePrefs,
+  type PracticeView,
+} from '../core/practice/prefs';
 import { SpeedControl } from '../core/practice/speed';
 import { expectedNow } from '../core/practice/expected';
 import {
@@ -133,8 +138,12 @@ export function PracticeScreen({
   const videoShown = prefs.showVideo || shownView === 'video';
   // The embed is created the first time the video is shown, and then kept.
   const [videoWanted, setVideoWanted] = useState(videoShown);
-  // The video carries the song's own sound; the synth is for songs without one.
-  const [sound, setSound] = useState(!canShowVideo || !videoShown);
+  // Songs without a (working) video only choose between the app's piano and silence.
+  const [sound, setSound] = useState(true);
+  // A hidden video never plays, so the app's piano carries the song until it is shown again.
+  const audio: AudioSource = videoShown ? prefs.audio : 'piano';
+  const videoPlays = audio !== 'piano';
+  const appSound = videoAvailable ? audio !== 'video' : sound;
   const [fullscreen, setFullscreen] = useState(false);
   const [waitOn, setWaitOn] = useState(false);
   // Follow mode: the video keeps going and a wrong key sends it back; it excludes wait mode.
@@ -226,15 +235,19 @@ export function PracticeScreen({
   const [{ clock, player, speedControl }] = useState(createTiming);
   const videoHost = useRef<HTMLDivElement>(null);
   const piano = useRef<TonePiano | null>(null);
-  const soundRef = useRef(sound);
+  const soundRef = useRef(appSound);
   useEffect(() => {
-    soundRef.current = sound && !micSilence;
+    soundRef.current = appSound && !micSilence;
     player.setMuted(micSilence);
-  }, [sound, micSilence, player]);
+  }, [appSound, micSilence, player]);
+  const inputReadyRef = useRef(false);
   const micRef = useRef<MicInput | null>(null);
   useEffect(() => {
     micRef.current = mic;
   }, [mic]);
+  useEffect(() => {
+    inputReadyRef.current = source !== null && inputStatus === 'ready';
+  }, [source, inputStatus]);
   const judge = useMemo(() => new Judge(view.notes), [view]);
   const judgeRef = useRef(judge);
   const attemptInfo = useRef({ level, onAttempt, reported: false });
@@ -297,10 +310,10 @@ export function PracticeScreen({
       (stats) => {
         setFollowTally({ source: holder.current, stats });
       },
-      { ...DEFAULT_FOLLOW_CONFIG, rewindS: prefs.rewindS, rewindOnMiss: prefs.rewindOnMiss },
+      { ...DEFAULT_FOLLOW_CONFIG, rewindS: prefs.rewindS, rewindOnMiss: prefs.rewindOnSilence },
     );
     return holder.current;
-  }, [followOn, hand, view, clock, prefs.rewindS, prefs.rewindOnMiss]);
+  }, [followOn, hand, view, clock, prefs.rewindS, prefs.rewindOnSilence]);
   const followRef = useRef<FollowMode | null>(null);
   useEffect(() => {
     followRef.current = follow;
@@ -418,7 +431,7 @@ export function PracticeScreen({
       seekSheet.current?.(now);
       if (sessionRef.current) {
         waitRef.current?.tick();
-        followRef.current?.tick();
+        followRef.current?.tick(inputReadyRef.current);
       }
       const listening = micRef.current;
       if (listening) {
@@ -466,7 +479,6 @@ export function PracticeScreen({
       (ready) => {
         if (state.cancelled) return;
         setVideo(ready);
-        setSound(false);
         state.timer = window.setInterval(() => {
           clock.sync();
         }, SYNC_EVERY_MS);
@@ -475,7 +487,6 @@ export function PracticeScreen({
         // The video cannot be embedded or loaded: practice goes on with the synth.
         if (state.cancelled) return;
         setVideoFailed(true);
-        setSound(true);
       },
     );
     return () => {
@@ -484,11 +495,11 @@ export function PracticeScreen({
     };
   }, [videoId, createVideo, videoWanted, clock]);
 
-  // A hidden video never plays: the clock moves to a synth counter and the app's piano sounds.
+  // A video that is not playing stays paused: the clock moves to a synth counter.
   useEffect(() => {
     if (!video) return;
-    player.attach(videoShown ? video : new SynthPlayer(wallMs));
-  }, [video, videoShown, player]);
+    player.attach(videoPlays ? video : new SynthPlayer(wallMs));
+  }, [video, videoPlays, player]);
 
   // Full screen keeps the video, the keyboard strip and the transport; Escape leaves it.
   useEffect(() => {
@@ -518,10 +529,20 @@ export function PracticeScreen({
     [clock],
   );
 
-  /** Audio can only start from a click, which is why it is created here. */
-  async function ensurePiano() {
-    if (piano.current || !createPiano) return;
+  const pianoUnlocked = useRef(false);
+
+  // The piano samples (about 2 MB) download while the player reads the screen, not on Play.
+  useEffect(() => {
+    if (!createPiano || piano.current) return;
     piano.current = createPiano();
+    piano.current.preload();
+  }, [createPiano]);
+
+  /** Audio can only start from a click, which is why it is unlocked here. */
+  async function ensurePiano() {
+    if (!createPiano || pianoUnlocked.current) return;
+    pianoUnlocked.current = true;
+    piano.current ??= createPiano();
     await piano.current.unlock().catch(() => {
       setSound(false);
     });
@@ -650,11 +671,16 @@ export function PracticeScreen({
     setSpeed(speedControl.set(next));
   }
 
-  /** Shows or hides the video; while it is hidden the app's piano carries the song. */
+  /** The embed is created the first time the video is shown. */
   function revealVideo(shown: boolean) {
-    if (shown === videoShown) return;
     if (shown) setVideoWanted(true);
-    if (video) setSound(!shown);
+  }
+
+  /** Playing the video's sound needs the video on screen, so choosing it shows the video. */
+  function chooseAudio(next: AudioSource) {
+    const show = next === 'piano' ? prefs.showVideo : true;
+    onPrefs({ audio: next, showVideo: show });
+    revealVideo(show || shownView === 'video');
   }
 
   function showVideo(show: boolean) {
@@ -799,7 +825,13 @@ export function PracticeScreen({
       {/* One element for every view: moving an embedded video reloads it, so CSS places it. */}
       {canShowVideo && (
         <div className="video-frame" hidden={!videoReady && shownView !== 'video'}>
-          <div className="video" role="region" aria-label="Video" hidden={!videoReady}>
+          <div
+            className="video"
+            role="region"
+            aria-label="Video"
+            hidden={!videoReady}
+            data-paused={!videoPlays}
+          >
             <div ref={videoHost} className="video-player" />
             {/* Where video players keep it, on the picture, so it also brings the window back. */}
             {shownView === 'video' && document.fullscreenEnabled && (
@@ -852,18 +884,19 @@ export function PracticeScreen({
           onRewindS={(rewindS) => {
             onPrefs({ rewindS });
           }}
-          rewindOnMiss={prefs.rewindOnMiss}
+          rewindOnMiss={prefs.rewindOnSilence}
           onRewindOnMiss={(rewindOnMiss) => {
-            onPrefs({ rewindOnMiss });
+            onPrefs({ rewindOnSilence: rewindOnMiss });
           }}
           hand={hand}
           onHand={setHand}
           rewindOnWrong={rewindOnWrong}
           onRewind={setRewindOnWrong}
+          audio={videoAvailable ? audio : null}
+          onAudio={chooseAudio}
           sound={sound}
           soundLocked={micSilence}
           onSound={setSound}
-          videoSound={videoReady}
         />
         <section className="panel">
           <h3>Tu teclado</h3>

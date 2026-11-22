@@ -8,6 +8,8 @@ La transcripción automática no es idéntica a la canción: cambia notas, funde
 
 ## Decisión
 
+> Actualización (2026-11-22, petición de Kevin): el silencio también es un fallo. Con el teclado o el micrófono listos, un acorde que pasa sin oír nada retrocede aunque aún no se haya tocado ninguna tecla (tras 1 s de margen al empezar). La opción pasó a llamarse `rewindOnSilence` y viene activa por defecto; quien la tenía guardada apagada la recupera encendida. En modo espera, una pausa que cae a menos de 0,15 s del acorde ya no hace `seek` atrás: el seek recarga el video y se notaba como tirón en cada acorde.
+
 1. **Nuevo modo «Retroceso automático»** (`core/practice/followMode.ts`), excluyente con el modo espera. La canción nunca espera: sigue el reloj del video. Una tecla cuenta si hay una nota de ese tono a ±0,3 s (la misma ventana que `Judge`); si no, es un fallo y el reloj retrocede `rewindS` segundos. Opcional: un acorde que pasa sin tocar ninguna de sus notas también cuenta como fallo (desactivado por defecto, porque la transcripción puede inventar o perder acordes; solo se evalúa tras la primera tecla de la pasada).
 2. **Segundos de retroceso configurables** (1–30, por defecto 5), guardados con el resto de preferencias en `localStorage` (`rewindS`, `rewindOnMiss`). Valen para el modo espera y para el nuevo modo.
 3. **Contra la carga del visor**:

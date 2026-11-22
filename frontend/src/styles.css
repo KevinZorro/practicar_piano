@@ -1491,3 +1491,9 @@ kbd {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* A paused video is only a picture: a click on it must not start it out of step. */
+.video[data-paused='true'] .video-player {
+  pointer-events: none;
+  opacity: 0.75;
+}

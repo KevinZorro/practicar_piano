@@ -35,6 +35,7 @@ models/
 *.midi
 *.wav
 *.mp3
+!frontend/public/samples/piano/*.mp3
 *.m4a
 *.opus
 *.webm
