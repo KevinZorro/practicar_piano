@@ -1,4 +1,4 @@
-"""yt-dlp adapter: downloads only the audio of one validated video."""
+"""yt-dlp adapter: downloads the audio of one validated video, or its picture (ADR 0023)."""
 
 from __future__ import annotations
 
@@ -8,14 +8,18 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from notacaida.application.ports import SongMedia
 from notacaida.domain.errors import DownloadError, DurationLimitExceededError
-from notacaida.domain.models import AudioFile, SongSource
+from notacaida.domain.models import AudioFile, SongSource, VideoFile
 from notacaida.domain.video_url import VideoUrl
 
 logger = logging.getLogger(__name__)
 
 _AUDIO_BASENAME = "audio"
+_VIDEO_BASENAME = "video"
 _SAMPLE_RATE_HZ = "44100"
+_BYTES_PER_MB = 1024 * 1024
+DEFAULT_VIDEO_HEIGHT = 480
 
 
 class _SilentLogger:
@@ -53,10 +57,12 @@ class YtDlpDownloader:
         max_duration_seconds: float,
         proxy_url: str | None = None,
         ydl_factory: Callable[[dict[str, Any]], Any] = _default_factory,
+        video_height: int = DEFAULT_VIDEO_HEIGHT,
     ) -> None:
         self._max_duration_seconds = max_duration_seconds
         self._proxy_url = proxy_url or None
         self._ydl_factory = ydl_factory
+        self._video_height = video_height
 
     def download(self, source: SongSource, dest_dir: Path) -> AudioFile:
         if not isinstance(source, VideoUrl):
@@ -77,6 +83,28 @@ class YtDlpDownloader:
         if not path.exists():
             raise DownloadError("yt-dlp finished but produced no audio file")
         return AudioFile(path=path, duration_seconds=duration)
+
+    def download_video(self, source: SongSource, dest_dir: Path) -> VideoFile:
+        """Get only the picture, at most ``video_height`` rows and 30 frames per second.
+
+        H.264 is preferred: it is the cheapest to decode on the VPS. Raises like ``download``.
+        """
+        if not isinstance(source, VideoUrl):
+            raise DownloadError("this downloader only handles YouTube links")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            duration = self._probe_duration(source)
+            with contextlib.closing(self._open(self._video_options(dest_dir))) as ydl:
+                ydl.download([source.canonical])
+        except DurationLimitExceededError:
+            raise
+        except Exception as exc:
+            raise DownloadError(_scrub(str(exc), source)) from None
+        found = sorted(dest_dir.glob(f"{_VIDEO_BASENAME}.*"))
+        if not found:
+            raise DownloadError("yt-dlp finished but produced no video file")
+        path = found[0]
+        return VideoFile(path, duration, path.stat().st_size / _BYTES_PER_MB)
 
     def probe(self, video: VideoUrl) -> float:
         """Duration in seconds without downloading; raises when live or over the limit."""
@@ -126,6 +154,30 @@ class YtDlpDownloader:
             # Mono, 44.1 kHz: enough for both models, and small on disk.
             "postprocessor_args": {"extractaudio": ["-ac", "1", "-ar", _SAMPLE_RATE_HZ]},
         }
+
+    def _video_options(self, dest_dir: Path) -> dict[str, Any]:
+        height = self._video_height
+        return {
+            **self._base_options(),
+            "format": (
+                f"bestvideo[height<={height}][fps<=30][vcodec^=avc1]"
+                f"/bestvideo[height<={height}][fps<=30]"
+                f"/bestvideo[height<={height}]/best[height<={height}]"
+            ),
+            "outtmpl": str(dest_dir / f"{_VIDEO_BASENAME}.%(ext)s"),
+        }
+
+
+class YtDlpMediaSource:
+    """Picture and sound of a YouTube video, for the video reading benchmark."""
+
+    def __init__(self, downloader: YtDlpDownloader) -> None:
+        self._downloader = downloader
+
+    def fetch(self, source: SongSource, dest_dir: Path) -> SongMedia:
+        video = self._downloader.download_video(source, dest_dir / "picture")
+        audio = self._downloader.download(source, dest_dir / "sound")
+        return SongMedia(video=video, audio=audio)
 
 
 def _scrub(message: str, url: VideoUrl) -> str:

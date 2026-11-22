@@ -2,24 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TypeVar
 
-from notacaida.application.ports import Measured
+from notacaida.application.ports import Measured, SongMedia
 from notacaida.domain.errors import (
     DownloadError,
     JobNotFoundError,
     ResultNotReadyError,
     TranscriptionError,
+    VideoReadError,
 )
 from notacaida.domain.job import Job
-from notacaida.domain.models import AudioFile, ResourceUsage, SongSource, TranscriptionOutput
+from notacaida.domain.models import (
+    AudioFile,
+    ResourceUsage,
+    SongSource,
+    TranscriptionOutput,
+    VideoFile,
+)
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import QuantizedPiece
 from notacaida.domain.result import SongResult
 from notacaida.domain.score import Score
+from notacaida.domain.video_reading import NoteReading, ReadingMethod, VideoReading
 from notacaida.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -160,3 +168,86 @@ class DictResultStore:
 class FakeScoreBuilder:
     def build(self, piece: QuantizedPiece) -> Score:
         return Score(musicxml="<score-partwise/>", timemap=(), tempo_bpm=piece.tempo_bpm)
+
+
+SCALE = tuple(NoteEvent(60 + i, 1.0 + 0.5 * i, 1.4 + 0.5 * i, 80) for i in range(8))
+
+
+def video_reading(notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True) -> VideoReading:
+    """A readable reading: bars only, or bars and fused (preferred) when keys light up."""
+    readings = [NoteReading(ReadingMethod.BARS, tuple(notes))]
+    if lit:
+        readings.append(NoteReading(ReadingMethod.FUSED, tuple(notes)))
+    return VideoReading(
+        failure=None,
+        keyboard="88 teclas, A0-C8",
+        fps=30.0,
+        frames=300,
+        frames_with_keyboard=300,
+        fall_speed_px_s=240.0,
+        lit_keys=lit,
+        readings=tuple(readings),
+        preferred=readings[-1].method,
+    )
+
+
+class FakeSongMedia:
+    """Writes stand-in video (and sound) files; a song whose name has "blocked" fails."""
+
+    def __init__(self, *, truth: tuple[NoteEvent, ...] | None = SCALE, audio: bool = True) -> None:
+        self._truth = truth
+        self._audio = audio
+        self.fetched: list[Path] = []
+
+    def fetch(self, source: SongSource, dest_dir: Path) -> SongMedia:
+        name = source.video_id if isinstance(source, VideoUrl) else source.path.stem
+        if "blocked" in name:
+            raise DownloadError("blocked by fake")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        video = dest_dir / "video.mp4"
+        video.write_bytes(b"fake-video")
+        self.fetched.append(video)
+        audio = None
+        if self._audio:
+            (dest_dir / "audio.wav").write_bytes(b"RIFF")
+            audio = AudioFile(dest_dir / "audio.wav", 10.0)
+            self.fetched.append(audio.path)
+        return SongMedia(VideoFile(video, 10.0, 1.5), audio, self._truth)
+
+
+class FakeVideoReader:
+    def __init__(self, result: VideoReading | None = None, *, fails: bool = False) -> None:
+        self._result = result or video_reading()
+        self._fails = fails
+
+    def read(self, video: VideoFile, debug_dir: Path | None = None) -> VideoReading:
+        assert video.path.exists()
+        if self._fails:
+            raise VideoReadError("ffmpeg failed: moov atom not found")
+        if debug_dir is not None:
+            (debug_dir / "keyboard.png").write_bytes(b"PNG")
+        return self._result
+
+
+class FakeMidiWriter:
+    def __init__(self) -> None:
+        self.written: dict[Path, tuple[NoteEvent, ...]] = {}
+
+    def write(self, notes: Sequence[NoteEvent], midi_path: Path) -> None:
+        midi_path.write_bytes(b"MThd")
+        self.written[midi_path] = tuple(notes)
+
+
+class FakeRollPlotter:
+    def __init__(self) -> None:
+        self.plotted: list[tuple[Path, int, int]] = []
+
+    def plot(
+        self,
+        path: Path,
+        reference: Sequence[NoteEvent],
+        estimate: Sequence[NoteEvent],
+        seconds: float,
+    ) -> None:
+        path.write_bytes(b"PNG")
+        self.plotted.append((path, len(reference), len(estimate)))

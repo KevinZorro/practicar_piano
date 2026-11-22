@@ -45,6 +45,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --python 3.11 --locked --extra synth --extra basic-pitch --extra score
+      - name: ffmpeg (local audio and the video reading of ADR 0023)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: uv run pytest -q -m integration
 
   frontend:

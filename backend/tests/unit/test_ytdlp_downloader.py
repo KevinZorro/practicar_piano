@@ -6,8 +6,9 @@ from typing import Any
 import pytest
 
 from notacaida.domain.errors import DownloadError, DurationLimitExceededError
+from notacaida.domain.models import LocalAudio
 from notacaida.domain.video_url import VideoUrl
-from notacaida.infrastructure.ytdlp_downloader import YtDlpDownloader
+from notacaida.infrastructure.ytdlp_downloader import YtDlpDownloader, YtDlpMediaSource
 
 VIDEO_ID = "dQw4w9WgXcQ"
 URL = VideoUrl.parse(f"https://youtu.be/{VIDEO_ID}")
@@ -145,3 +146,64 @@ def test_yt_dlp_gets_a_silent_logger_so_video_ids_never_reach_stderr(
     logger.debug(VIDEO_ID)
     captured = capsys.readouterr()
     assert VIDEO_ID not in captured.out + captured.err
+
+
+def test_download_video_asks_for_a_small_h264_picture_without_sound(tmp_path: Path) -> None:
+    video = make(tmp_path).download_video(URL, tmp_path / "picture")
+
+    options = FakeYoutubeDL.instances[-1].options
+    assert video.path.parent == tmp_path / "picture"
+    assert video.path.stem == "video"
+    assert video.duration_seconds == 200.0
+    assert video.megabytes > 0
+    assert options["format"].startswith("bestvideo[height<=480][fps<=30][vcodec^=avc1]/")
+    assert "bestaudio" not in options["format"]
+    assert "postprocessors" not in options
+    assert options["noplaylist"] is True
+    assert FakeYoutubeDL.instances[-1].downloaded == [URL.canonical]
+
+
+def test_download_video_height_is_configurable(tmp_path: Path) -> None:
+    FakeYoutubeDL.instances = []
+    downloader = YtDlpDownloader(
+        max_duration_seconds=600.0,
+        ydl_factory=lambda options: FakeYoutubeDL(options, {"duration": 200}, None),
+        video_height=360,
+    )
+
+    downloader.download_video(URL, tmp_path)
+
+    assert "height<=480" not in FakeYoutubeDL.instances[-1].options["format"]
+    assert "[height<=360]" in FakeYoutubeDL.instances[-1].options["format"]
+
+
+def test_download_video_errors_never_leak_the_link(tmp_path: Path) -> None:
+    message = f"ERROR: [youtube] {VIDEO_ID}: Video unavailable https://youtu.be/{VIDEO_ID}"
+
+    with pytest.raises(DownloadError) as caught:
+        make(tmp_path, fail=message).download_video(URL, tmp_path)
+
+    assert VIDEO_ID not in str(caught.value)
+
+
+def test_download_video_rejects_long_videos_and_local_files(tmp_path: Path) -> None:
+    with pytest.raises(DurationLimitExceededError):
+        make(tmp_path, info={"duration": 900}).download_video(URL, tmp_path)
+    with pytest.raises(DownloadError, match="only handles YouTube links"):
+        make(tmp_path).download_video(LocalAudio(tmp_path / "song.mp4"), tmp_path)
+
+
+def test_missing_video_file_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(FakeYoutubeDL, "download", lambda self, urls: None)
+
+    with pytest.raises(DownloadError, match="no video file"):
+        make(tmp_path).download_video(URL, tmp_path)
+
+
+def test_media_source_keeps_picture_and_sound_apart(tmp_path: Path) -> None:
+    media = YtDlpMediaSource(make(tmp_path)).fetch(URL, tmp_path)
+
+    assert media.video.path.parent == tmp_path / "picture"
+    assert media.audio is not None
+    assert media.audio.path == tmp_path / "sound" / "audio.wav"
+    assert media.truth is None

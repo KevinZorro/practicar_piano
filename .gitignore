@@ -40,6 +40,10 @@ models/
 *.webm
 *.flac
 *.f32
+*.mp4
+*.mkv
+*.mov
+*.m4v
 frontend/.piano-samples/
 
 # Phase 0 run artifacts (contain copyrighted material and song titles)
@@ -47,6 +51,11 @@ phase0-work/
 phase0-output/
 phase0-audio/
 links.txt
+links-*.txt
+# Video reading prototype (ADR 0023): run outputs and synthetic test videos
+videonotes-output/
+videonotes-synthetic/
+synthetic-videos/
 
 # OS / editors
 .DS_Store

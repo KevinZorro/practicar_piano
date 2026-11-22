@@ -47,7 +47,7 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers -m 'not network'"
 markers = [
   "network: hits the real network (YouTube); run explicitly",
-  "integration: needs the transcription models installed",
+  "integration: needs the transcription models or ffmpeg installed",
   "slow: long-running test",
 ]
 
