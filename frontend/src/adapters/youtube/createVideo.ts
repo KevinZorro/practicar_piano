@@ -39,6 +39,8 @@ export async function createYouTubeVideo(host: HTMLElement, videoId: string): Pr
       playerVars: { rel: 0, playsinline: 1, disablekb: 1, controls: 0 },
       events: {
         onReady: () => {
+          // Its own keys are off (disablekb), so the frame has no business in the Tab order.
+          host.querySelector('iframe')?.setAttribute('tabindex', '-1');
           port = new YouTubePlayerPort(player);
           resolve(port);
         },

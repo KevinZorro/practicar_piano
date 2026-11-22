@@ -74,8 +74,8 @@ beginner already knows lead into reading the staff.
 
 1. The instrument comes first: everything needed while playing is readable from the bench, and
    nothing on screen competes with the notes.
-2. The learner chooses how to read: falling notes, the score, or both, and the app never moves
-   them away from their choice.
+2. The learner chooses how to read: falling notes, the score, both, or the original video in
+   place of the falling notes, and the app never moves them away from their choice.
 3. Teach reading while playing: letters, keys and staff positions are always shown as the same
    note.
 4. Honest about the machine: automatic transcription, simplified notes and waiting times are

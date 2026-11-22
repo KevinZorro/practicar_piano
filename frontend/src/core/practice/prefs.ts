@@ -1,5 +1,8 @@
-/** How the player reads the song: falling notes, the score, or both at once. */
-export type PracticeView = 'falling' | 'sheet' | 'both';
+/**
+ * How the player reads the song: falling notes, the score, both at once, or the YouTube video
+ * itself in place of the falling notes (its own falling notes are usually the original ones).
+ */
+export type PracticeView = 'falling' | 'sheet' | 'both' | 'video';
 /** Note names as letters (C D E) or as solfège (Do Re Mi). */
 export type NamingStyle = 'letters' | 'solfege';
 
@@ -37,7 +40,7 @@ export const DEFAULT_PREFS: PracticePrefs = {
   rewindOnMiss: false,
 };
 
-const VIEWS: readonly PracticeView[] = ['falling', 'sheet', 'both'];
+const VIEWS: readonly PracticeView[] = ['falling', 'sheet', 'both', 'video'];
 const NAMINGS: readonly NamingStyle[] = ['letters', 'solfege'];
 
 function pick<T>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -52,6 +55,11 @@ function whole(value: unknown, min: number, max: number, fallback: number): numb
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
     ? value
     : fallback;
+}
+
+/** The score and the video take the stage: the canvas keeps only the keyboard strip. */
+export function isKeyboardOnly(view: PracticeView): boolean {
+  return view === 'sheet' || view === 'video';
 }
 
 /** Reads stored preferences field by field: anything unknown or broken takes its default. */

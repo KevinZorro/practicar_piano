@@ -57,6 +57,9 @@ export async function fakeYouTube(page: Page): Promise<void> {
         window.YT = { Player: class {
           constructor(el, o) {
             el.setAttribute('data-video', o.videoId);
+            const frame = document.createElement('iframe');
+            frame.srcdoc = '<body style="margin:0;height:100vh"></body>';
+            el.appendChild(frame);
             window.ytEmit = (state) => o.events.onStateChange && o.events.onStateChange({ data: state });
             setTimeout(() => o.events.onReady(), 0);
           }
