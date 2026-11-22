@@ -41,6 +41,20 @@ export interface Strike {
   durationS?: number;
 }
 
+/**
+ * Level of partial `h` of a note, in dB against the fundamental of the plain 1/h^1.1 model.
+ * Recorded pianos (FluidR3, MusyngKite, Salamander; see `recorded.ts`) are far from 1/h at
+ * both ends: the fundamental of C2 is 10–27 dB under the 2nd partial in two of the three,
+ * and above C5 the upper partials fall away (G6: 2nd partial −24 to −28 dB, C7: 3rd partial
+ * −32 to −63 dB). The plain model made the detector look fine where it failed on real keys.
+ */
+export function partialGainDb(pitch: number, h: number): number {
+  let db = -22 * Math.log10(h);
+  if (h === 1 && pitch < 48) db -= Math.min(18, (48 - pitch) * 1.5);
+  if (pitch > 72) db -= (h - 1) * Math.min(12, (pitch - 72) * 0.5);
+  return db;
+}
+
 /** Additive piano: three slightly detuned strings, stretched partials, faster decay up high. */
 export function renderNote(
   out: Float32Array,
@@ -58,7 +72,7 @@ export function renderNote(
   for (let h = 1; h <= 20; h++) {
     const f = f0 * h * Math.sqrt(1 + inharmonicity * h * h);
     if (f > 9000) break;
-    let a = (strike.amplitude * 0.6) / h ** 1.1;
+    let a = strike.amplitude * 0.6 * 10 ** (partialGainDb(strike.pitch, h) / 20);
     if (corner > 0) a /= Math.sqrt(1 + (corner / f) ** 4);
     partials.push({
       f,
