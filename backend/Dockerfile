@@ -24,8 +24,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project \
         --extra synth --extra basic-pitch --extra bytedance --extra score
 COPY src ./src
+# --reinstall-package: uv keeps the wheel it built for a local project in its cache and only
+# rebuilds it when pyproject.toml changes, so on a host with a persistent cache (the VPS) the
+# image kept shipping old code after a merge. Always rebuild the project from ./src.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable \
+    uv sync --locked --no-dev --no-editable --reinstall-package notacaida \
         --extra synth --extra basic-pitch --extra bytedance --extra score
 
 # ---- runtime ------------------------------------------------------------------------
