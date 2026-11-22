@@ -33,6 +33,9 @@ Hexagonal: `cli` → `application` → `domain`; `infrastructure` implementa los
 4. Borra el audio descargado, siempre (también ante errores).
 5. Genera `report.md` con tiempo, factor de tiempo real y memoria por modelo, y una plantilla `verdicts.csv` para anotar de oído si la canción es reconocible. `notacaida phase0 gate` lee ese archivo y aplica el criterio.
 
+## Prototipo: leer las notas del video (ADR 0023)
+`notacaida videonotes run` usa los mismos puertos y añade `SongMediaSource` (imagen y sonido de cada canción: yt-dlp o archivos locales), `VideoNoteReader` (lectura de las notas que caen, en `infrastructure/falling_notes_reader.py`, con ffmpeg y numpy), `MidiNoteWriter` y `RollPlotter`. El caso de uso `CompareVideoReading` mide la lectura en un subproceso como a los modelos, la compara con cada transcripción (`domain/agreement.py`) y borra los medios al terminar cada canción. Detalle en `phase-1/lectura-de-video.md`.
+
 ## Atributos de calidad
 Privacidad (sin URLs en logs, sin medios en git), testabilidad (puertos con dobles), portabilidad (linux/arm64, modelos intercambiables), mantenibilidad (Ruff, mypy estricto).
 
