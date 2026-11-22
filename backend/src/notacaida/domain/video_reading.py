@@ -14,8 +14,6 @@ class ReadingMethod(StrEnum):
     BARS = "bars"
     #: The keys of the drawn keyboard that light up, frame by frame.
     KEYS = "keys"
-    #: The notes of the lit keys with the finer timing of their bars.
-    FUSED = "fused"
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,8 +36,12 @@ class VideoReading:
     frames: int = 0
     frames_with_keyboard: int = 0
     fall_speed_px_s: float | None = None
-    #: Whether the video lights the keys that sound (enables the KEYS and FUSED readings).
+    #: Whether the video lights the keys that sound (enables the KEYS reading).
     lit_keys: bool = False
+    #: F1 (onsets within 100 ms) of the bars against the lit keys once their delay is removed.
+    bar_key_agreement: float | None = None
+    #: How much later (+) or earlier (-) the bars land than their keys light up, in seconds.
+    bar_delay_s: float | None = None
     readings: tuple[NoteReading, ...] = ()
     preferred: ReadingMethod | None = None
 

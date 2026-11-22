@@ -4,7 +4,11 @@ For every song: get the picture and the sound, read the notes from the picture (
 its own process, like the models), transcribe the sound with each model, and compare every
 reading with every transcription (and with the true notes of a synthetic video). A video
 that cannot be read skips the models. Nothing of the song outlives the run but the MIDI, a
-WAV of each to listen to and two check images.
+WAV of each to listen to and the check images.
+
+With ``reuse_from`` a model is not run again for a song whose MIDI an earlier run left, in
+this run's output or in the given folders (the Phase 0 output names the songs the same way):
+a rerun that only changes the reader takes minutes instead of the models' half hour.
 """
 
 from __future__ import annotations
@@ -74,6 +78,8 @@ class ModelResult:
     note_count: int | None = None
     usage: ResourceUsage | None = None
     error: str | None = None
+    #: The MIDI of an earlier run was read instead of transcribing again (no usage then).
+    reused: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,12 +116,16 @@ class CompareVideoReading:
         transcribers: Sequence[Transcriber],
         tools: BenchmarkTools,
         *,
+        reuse_from: Sequence[Path] | None = None,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
+        """``reuse_from``: None transcribes every song; a sequence (even empty) first looks
+        for a MIDI of an earlier run in this run's output, then in those folders."""
         self._media = media
         self._reader = reader
         self._transcribers = tuple(transcribers)
         self._tools = tools
+        self._reuse_from = None if reuse_from is None else tuple(reuse_from)
         self._clock = clock
 
     def run(
@@ -173,12 +183,13 @@ class CompareVideoReading:
             references[TRUTH] = media.truth
         models = []
         for transcriber in self._transcribers if media.audio else ():
-            result, notes = self._transcribe(transcriber, media, song_out)
+            result, notes = self._transcribe(transcriber, media, song_out, base.fingerprint)
             models.append(result)
             if notes is not None:
                 references[transcriber.name] = notes
         tools.midi_writer.write(preferred.notes, song_out / "video.mid")
-        self._synthesize(song_out, ["video", *(m.name for m in models if m.error is None)])
+        heard = [m.name for m in models if m.error is None and not _has_wav(m, song_out)]
+        self._synthesize(song_out, ["video", *heard])
         if tools.plotter is not None and references:
             name = next(iter(references))
             tools.plotter.plot(
@@ -203,10 +214,21 @@ class CompareVideoReading:
                 logger.warning("could not synthesize %s: %s", name, exc)
 
     def _transcribe(
-        self, transcriber: Transcriber, media: SongMedia, song_out: Path
+        self, transcriber: Transcriber, media: SongMedia, song_out: Path, fingerprint: str
     ) -> tuple[ModelResult, tuple[NoteEvent, ...] | None]:
         assert media.audio is not None  # noqa: S101 - checked by the caller
         midi_path = song_out / f"{transcriber.name}.mid"
+        earlier = self._earlier_midi(transcriber.name, song_out, fingerprint)
+        if earlier is not None:
+            try:
+                notes = self._tools.midi_reader.read(earlier)
+                if earlier != midi_path:  # keep it beside the reading, for its WAV and roll
+                    shutil.copyfile(earlier, midi_path)
+            except (NotacaidaError, OSError) as exc:  # unusable: transcribe again
+                logger.warning("cannot reuse %s: %s", transcriber.name, exc)
+            else:
+                logger.info("reusing the %s transcription of an earlier run", transcriber.name)
+                return ModelResult(transcriber.name, len(notes), reused=True), notes
         try:
             measured = self._tools.meter.measure(
                 partial(transcriber.transcribe, media.audio, midi_path)
@@ -216,6 +238,24 @@ class CompareVideoReading:
             logger.warning("model %s failed: %s", transcriber.name, exc)
             return ModelResult(transcriber.name, error=str(exc)), None
         return ModelResult(transcriber.name, len(notes), measured.usage), notes
+
+    def _earlier_midi(self, name: str, song_out: Path, fingerprint: str) -> Path | None:
+        """The MIDI of model ``name`` an earlier run left for this song, if reusing."""
+        if self._reuse_from is None:
+            return None
+        own = song_out / f"{name}.mid"
+        if own.is_file():
+            return own
+        for folder in self._reuse_from:  # any index: the song list may have been reordered
+            found = sorted(folder.glob(f"*-{fingerprint}/{name}.mid"))
+            if found:
+                return found[0]
+        return None
+
+
+def _has_wav(model: ModelResult, song_out: Path) -> bool:
+    """A reused transcription whose WAV an earlier run already wrote here."""
+    return model.reused and (song_out / f"{model.name}.wav").is_file()
 
 
 def compare(

@@ -19,10 +19,20 @@ ENVIRONMENT = {"plataforma": "Linux aarch64", "cpus": "2"}
 
 
 def songs() -> list[VideoSongReport]:
-    fused = NoteReading(ReadingMethod.FUSED, SCALE)
+    keys = NoteReading(ReadingMethod.KEYS, SCALE)
     bars = NoteReading(ReadingMethod.BARS, HALF)
     read = VideoReading(
-        None, "88 teclas, A0-C8", 30.0, 900, 880, 240.0, True, (bars, fused), ReadingMethod.FUSED
+        failure=None,
+        keyboard="88 teclas, A0-C8",
+        fps=30.0,
+        frames=900,
+        frames_with_keyboard=880,
+        fall_speed_px_s=240.0,
+        lit_keys=True,
+        bar_key_agreement=0.667,
+        bar_delay_s=0.094,
+        readings=(bars, keys),
+        preferred=ReadingMethod.KEYS,
     )
     late = tuple(NoteEvent(n.pitch, n.start_s - 0.03, n.end_s, 80) for n in SCALE)
     return [
@@ -35,11 +45,14 @@ def songs() -> list[VideoSongReport]:
             video_mb=2.5,
             reading=read,
             reading_usage=ResourceUsage(3.2, 150.0),
-            models=(ModelResult("bytedance", 8, ResourceUsage(360.0, 2900.0)),),
+            models=(
+                ModelResult("bytedance", 8, ResourceUsage(360.0, 2900.0)),
+                ModelResult("basic-pitch", 8, reused=True),
+            ),
             comparisons=(
-                compare(TRUTH, SCALE, "video:fused", SCALE),
+                compare(TRUTH, SCALE, "video:keys", SCALE),
                 compare(TRUTH, SCALE, "video:bars", HALF),
-                compare("bytedance", late, "video:fused", SCALE),
+                compare("bytedance", late, "video:keys", SCALE),
                 compare("bytedance", late, "video:bars", HALF),
                 compare(TRUTH, SCALE, "bytedance", late),
             ),
@@ -50,7 +63,11 @@ def songs() -> list[VideoSongReport]:
             "Piano filmado",
             "bbbbbbbbbb",
             duration_s=60.0,
-            reading=VideoReading(failure="no se encontró un teclado dibujado", fps=30.0),
+            reading=VideoReading(
+                failure="no se encontró un teclado dibujado: no hay teclas negras sobre las "
+                "blancas",
+                fps=30.0,
+            ),
         ),
         VideoSongReport(3, "Bloqueada", "cccccccccc", error="blocked by fake"),
     ]
@@ -61,9 +78,13 @@ def test_the_summary_has_one_column_per_reference_truth_first() -> None:
 
     assert "| F1 vs verdad (alineado) | F1 vs bytedance (alineado) |" in report
     assert (
-        "| 1 | Leída | 88 teclas, A0-C8 | teclas + barras | 8 | 1.000 | 1.000 | +30 ms |" in report
+        "| 1 | Leída | 88 teclas, A0-C8 | teclas iluminadas | 8 | 1.000 | 1.000 | +30 ms |"
+        in report
     )
-    assert "| 2 | Piano filmado | — | no se encontró un teclado dibujado |" in report
+    assert (
+        "| 2 | Piano filmado | — | no se encontró un teclado dibujado: no hay teclas negras "
+        "sobre las blancas |" in report
+    )
     assert "| 3 | Bloqueada | — | error: blocked by fake |" in report
     assert "Entorno: plataforma Linux aarch64, cpus 2" in report
 
@@ -83,8 +104,14 @@ def test_the_details_show_every_comparison_and_the_hands() -> None:
     assert "### 01 · Leída (`aaaaaaaaaa`)" in report
     assert "880 de 900 con el teclado a la vista" in report
     assert "Manos por color: 90% de las notas" in report
+    assert (
+        "- Barras contra teclas iluminadas: F1 0.667 (inicio a menos de 100 ms); las barras "
+        "llegan 94 ms después de que la tecla se ilumine." in report
+    )
+    assert "- bytedance: 8 notas en 360 s, 2900 MB." in report
+    assert "- basic-pitch: 8 notas, de una corrida anterior." in report
     assert "| verdad | video:bars | 8 / 4 | 1.000 | 0.500 |" in report
-    assert "- No se leyó: no se encontró un teclado dibujado (teclado: no)." in report
+    assert "- No se leyó: no se encontró un teclado dibujado: no hay teclas negras" in report
     assert "- Error: blocked by fake" in report
 
 
@@ -93,10 +120,12 @@ def test_the_json_summary_keeps_the_numbers_but_not_the_notes() -> None:
 
     first = payload["songs"][0]
     assert payload["environment"] == ENVIRONMENT
-    assert first["reading"]["notes"] == {"bars": 4, "fused": 8}
-    assert first["reading"]["preferred"] == "fused"
+    assert first["reading"]["notes"] == {"bars": 4, "keys": 8}
+    assert first["reading"]["preferred"] == "keys"
+    assert first["reading"]["bar_delay_s"] == 0.094
+    assert [m["reused"] for m in first["models"]] == [False, True]
     assert first["comparisons"][0]["aligned_50ms"]["f1"] == 1.0
     assert first["comparisons"][2]["delay_s"] < 0.031
-    assert payload["songs"][1]["reading"]["failure"] == "no se encontró un teclado dibujado"
+    assert payload["songs"][1]["reading"]["failure"].startswith("no se encontró un teclado")
     assert payload["songs"][2]["error"] == "blocked by fake"
-    assert "pitch" not in json.dumps(payload)
+    assert '"pitch"' not in json.dumps(payload)  # no note made it into the summary

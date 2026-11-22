@@ -4,9 +4,13 @@ It works on the plate, the per-pixel median of many frames, where neither the fa
 nor the lit keys remain:
 
 * White-key rows: bright keys split by thin dark gaps at a regular step, at least two
-  octaves of them; the lowest such band of rows in the picture.
+  octaves of them. Every such band of rows is a candidate, lowest first: labels printed on
+  the keys or a strip under the keyboard can split the white keys into several bands.
 * Black-key rows, right above: dark blocks over some of those gaps while the middle of every
   white key stays bright. Which gaps carry a block names every key (``domain.keyboard``).
+
+When no candidate gives a keyboard, ``find_keyboard`` says which step failed, so a report can
+tell a filmed piano from a drawn keyboard the detector does not understand yet.
 """
 
 from __future__ import annotations
@@ -32,7 +36,15 @@ _GAP_WINDOW = 0.2  # half window around a gap, in white key widths, to look for 
 _DARK_SHARE = 0.6  # share of that window a black key darkens
 _MIN_BLACK_SHARE = 0.4  # share of gaps with a black key in a black-key row (5 of 6 normally)
 _BRIGHT_CENTRE_SHARE = 0.8  # white key centres that stay bright in a black-key row
+_MAX_BANDS = 4  # candidate bands of white-key rows tried, lowest first
+_MIN_VISIBLE_MIDDLE = 0.2  # of a white key width: an end key cut by the picture still counts
 _NOTE_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+
+# Why no keyboard was found, for the report (Spanish, like every text a person reads).
+NO_WHITE_KEYS = "ninguna fila cruza teclas blancas claras a paso regular"
+NO_GRID = "las teclas blancas no forman una fila regular"
+NO_BLACK_KEYS = "no hay teclas negras sobre las blancas"
+NO_PIANO_PATTERN = "las teclas negras no siguen el patrón de un piano"
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +85,14 @@ class Keyboard:
         return f"{len(self.keys)} teclas, {note_name(low)}-{note_name(high)}"
 
 
+@dataclass(frozen=True, slots=True)
+class KeyboardSearch:
+    """The keyboard found in a plate, or why there is none."""
+
+    keyboard: Keyboard | None
+    failure: str | None = None
+
+
 def note_name(pitch: int) -> str:
     return f"{_NOTE_NAMES[pitch % 12]}{pitch // 12 - 1}"
 
@@ -83,24 +103,40 @@ def luminance(image: Image) -> Gray:
 
 def detect_keyboard(plate: Image) -> Keyboard | None:
     """The keyboard drawn in ``plate`` (height x width x RGB), or None if there is none."""
+    return find_keyboard(plate).keyboard
+
+
+def find_keyboard(plate: Image) -> KeyboardSearch:
+    """The keyboard drawn in ``plate``, or why none was found (the lowest candidate's step)."""
     gray = luminance(plate)
-    band = _white_band(gray)
-    if band is None:
-        return None
+    bands = _white_bands(gray)
+    if not bands:
+        return KeyboardSearch(None, NO_WHITE_KEYS)
+    failures: list[str] = []
+    for band in bands:
+        found = _keyboard_on(gray, band)
+        if isinstance(found, Keyboard):
+            return KeyboardSearch(found)
+        failures.append(found)
+    return KeyboardSearch(None, failures[0])
+
+
+def _keyboard_on(gray: Gray, band: tuple[int, int, float]) -> Keyboard | str:
+    """The keyboard whose white keys fill ``band``, or the step that failed."""
     white_top, white_bottom, step = band
     grid = _white_edges(gray, white_top, white_bottom, step)
     if grid is None:
-        return None
+        return NO_GRID
     edges, key_level = grid
     edges = np.clip(edges, 0, gray.shape[1]).astype(np.float32)  # an edge key may touch the border
     top = _black_top(gray, edges, white_top, key_level)
     if top is None:
-        return None
+        return NO_BLACK_KEYS
     blacks = _black_keys(gray, edges, top, white_top, key_level)
     gaps = len(edges) - 2
     naming = name_keys([b is not None for b in blacks], max_mismatches=1 if gaps >= 20 else 0)
     if naming is None:
-        return None
+        return NO_PIANO_PATTERN
     width = float(np.median(np.diff(edges)))
     found = [b[1] - b[0] for b in blacks if b is not None]
     black_width = float(np.median(found)) if found else 0.6 * width
@@ -159,12 +195,19 @@ def _white_step(profile: Gray) -> float | None:
     return step if float(np.median(profile[middles])) >= _MIN_KEY_LEVEL else None
 
 
-def _white_band(gray: Gray) -> tuple[int, int, float] | None:
-    """Rows [top, bottom) of the lowest band of white-key rows, and the key width."""
+def _white_bands(gray: Gray) -> list[tuple[int, int, float]]:
+    """Rows [top, bottom) and key width of each band of white-key rows, lowest first."""
     height = gray.shape[0]
     min_rows = max(3, round(0.012 * height))
+    bands: list[tuple[int, int, float]] = []
     run: list[tuple[int, float]] = []
     misses = 0
+
+    def close() -> None:
+        if len(run) >= min_rows:
+            rows = [y for y, _ in run]
+            bands.append((min(rows), max(rows) + 1, float(np.median([s for _, s in run]))))
+
     for y in range(height - 1, int(height * _SEARCH_FROM) - 1, -1):
         step = _white_step(gray[y])
         # Rows through the black keys can show only the E|F and B|C gaps, regular enough to
@@ -176,13 +219,14 @@ def _white_band(gray: Gray) -> tuple[int, int, float] | None:
         if run:
             misses += 1
             if misses > 2:
-                if len(run) >= min_rows:
-                    break
+                close()
+                if len(bands) == _MAX_BANDS:
+                    return bands
                 run, misses = [], 0
-    if len(run) < min_rows:
-        return None
-    rows = [y for y, _ in run]
-    return min(rows), max(rows) + 1, float(np.median([s for _, s in run]))
+                if step is not None:  # this row may start the next band
+                    run.append((y, step))
+    close()
+    return bands[:_MAX_BANDS]
 
 
 def _white_edges(gray: Gray, top: int, bottom: int, step: float) -> tuple[Gray, float] | None:
@@ -209,8 +253,10 @@ def _white_edges(gray: Gray, top: int, bottom: int, step: float) -> tuple[Gray, 
     )
 
     def is_key(i: int) -> bool:  # the white key between grid lines i and i + 1
-        lo, hi = round(intercept + slope * (i + 0.2)), round(intercept + slope * (i + 0.8))
-        if lo < 0 or hi > profile.size or hi <= lo:
+        lo = max(round(intercept + slope * (i + 0.2)), 0)
+        hi = min(round(intercept + slope * (i + 0.8)), profile.size)
+        # the end keys are often cut by the edge of the picture: half a key on screen counts
+        if hi - lo < _MIN_VISIBLE_MIDDLE * slope:
             return False
         return float(np.median(profile[lo:hi])) >= max(_MIN_KEY_LEVEL, 0.75 * key_level)
 

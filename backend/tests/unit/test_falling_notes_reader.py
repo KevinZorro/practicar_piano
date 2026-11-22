@@ -15,8 +15,9 @@ from notacaida.domain.models import VideoFile
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import assign_hand
 from notacaida.domain.video_reading import ReadingMethod, VideoReading
-from notacaida.infrastructure.falling_notes_reader import FallingNotesReader
+from notacaida.infrastructure.falling_notes_reader import NO_KEYBOARD, FallingNotesReader
 from notacaida.infrastructure.ffmpeg_video import Crop, Frames, VideoInfo
+from notacaida.infrastructure.keyboard_detector import NO_WHITE_KEYS
 from tests.support.falling_video import MemoryFrames, Style
 from tests.support.pieces import ode_to_joy, stress
 
@@ -56,16 +57,20 @@ def test_lit_keys_and_bars_both_read_the_notes() -> None:
     assert reading.readable
     assert reading.keyboard == "88 teclas, A0-C8"
     assert reading.lit_keys
-    assert reading.preferred is ReadingMethod.FUSED
+    assert reading.preferred is ReadingMethod.KEYS
     assert reading.fall_speed_px_s == pytest.approx(180.0, rel=0.02)
     assert reading.frames == reading.frames_with_keyboard
+    assert reading.bar_key_agreement == pytest.approx(1.0)
+    assert reading.bar_delay_s is not None
+    assert abs(reading.bar_delay_s) <= 1.0 / LIT.fps
     for method in ReadingMethod:
         found = reading.reading(method)
         assert found is not None
         assert agreement(notes, found.notes).f1 >= 0.98, method
-    fused = reading.preferred_reading
-    assert fused is not None
-    assert abs(statistics.median(onset_errors(notes, fused.notes))) <= 0.015  # frame: 33 ms
+    keys = reading.preferred_reading
+    assert keys is not None
+    # a key lights on the first frame after its note starts: half a frame early on average
+    assert abs(statistics.median(onset_errors(notes, keys.notes))) <= 0.5 / LIT.fps + 0.001
 
 
 def test_without_lit_keys_only_the_bars_are_read() -> None:
@@ -76,6 +81,7 @@ def test_without_lit_keys_only_the_bars_are_read() -> None:
     assert not reading.lit_keys
     assert [r.method for r in reading.readings] == [ReadingMethod.BARS]
     assert reading.preferred is ReadingMethod.BARS
+    assert reading.bar_key_agreement is None
     bars = reading.preferred_reading
     assert bars is not None
     assert agreement(notes, bars.notes).f1 >= 0.98
@@ -87,22 +93,74 @@ def test_fast_repetitions_trills_and_chords_on_a_61_key_keyboard() -> None:
     reading = read(notes, SMALL_61)
 
     assert reading.keyboard == "61 teclas, C2-C7"
-    fused = reading.preferred_reading
-    assert fused is not None
-    assert agreement(notes, fused.notes).f1 >= 0.97
+    keys = reading.preferred_reading
+    assert keys is not None
+    assert keys.method is ReadingMethod.KEYS
+    # a repetition whose gap falls between two frames stays lit: one note instead of two
+    assert agreement(notes, keys.notes).f1 >= 0.98
+
+
+def test_lit_keys_count_even_when_the_bars_are_misread() -> None:
+    style = Style("misdrawn-bars", width=640, height=360, fall_px_s=180.0, bar_shift=1.0)
+    notes = drawn(ode_to_joy(), style)
+
+    reading = read(notes, style)
+
+    assert reading.lit_keys
+    assert reading.bar_key_agreement is not None
+    assert reading.bar_key_agreement < 0.3  # the bars land on the next key
+    assert reading.preferred is ReadingMethod.KEYS
+    keys = reading.preferred_reading
+    assert keys is not None
+    assert agreement(notes, keys.notes).f1 >= 0.98
+
+
+def test_a_logo_over_a_video_without_lit_keys_is_not_read_as_keys() -> None:
+    style = Style(
+        "logo",
+        width=640,
+        height=360,
+        fall_px_s=180.0,
+        light_keys=False,
+        logo_s=((2.0, 2.5), (7.0, 7.5), (12.0, 12.5), (17.0, 17.5)),  # 20 "lit" runs
+    )
+    notes = drawn(ode_to_joy(), style, until_s=30.0)  # 62 notes in 20 s
+
+    reading = read(notes, style)
+
+    assert not reading.lit_keys
+    assert reading.preferred is ReadingMethod.BARS
+    bars = reading.preferred_reading
+    assert bars is not None
+    assert agreement(notes, bars.notes).f1 >= 0.95
+
+
+def test_keys_with_printed_letters_are_still_read() -> None:
+    style = Style("labels", width=640, height=360, fall_px_s=180.0, key_labels=True)
+    notes = drawn(ode_to_joy(), style)
+
+    reading = read(notes, style)
+
+    assert reading.keyboard == "88 teclas, A0-C8"
+    assert reading.preferred is ReadingMethod.KEYS
+    keys = reading.preferred_reading
+    assert keys is not None
+    assert agreement(notes, keys.notes).f1 >= 0.98
 
 
 def test_two_bar_colours_give_the_hands() -> None:
     notes = drawn(ode_to_joy(), LIT)
 
-    fused = read(notes, LIT).preferred_reading
+    reading = read(notes, LIT)
 
-    assert fused is not None
-    assert len(fused.hands) == len(fused.notes)
-    same = sum(
-        hand is assign_hand(n.pitch) for n, hand in zip(fused.notes, fused.hands, strict=True)
-    )
-    assert same / len(fused.notes) >= 0.95  # the drawing colours the hands by that split
+    for method in ReadingMethod:  # the lit notes take the hand of the bar landing on them
+        found = reading.reading(method)
+        assert found is not None
+        assert len(found.hands) == len(found.notes)
+        same = sum(
+            hand is assign_hand(n.pitch) for n, hand in zip(found.notes, found.hands, strict=True)
+        )
+        assert same / len(found.notes) >= 0.95, method  # the drawing colours hands that way
 
 
 def test_one_bar_colour_gives_no_hands() -> None:
@@ -114,10 +172,11 @@ def test_one_bar_colour_gives_no_hands() -> None:
     assert all(r.hands == () for r in reading.readings)
 
 
-def test_the_keyboard_check_image_is_written(tmp_path: Path) -> None:
+def test_the_check_images_are_written(tmp_path: Path) -> None:
     read(drawn(ode_to_joy(), LIT), LIT, tmp_path)
 
-    assert (tmp_path / "keyboard.png").read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+    for name in ("plate.png", "frame.png", "keyboard.png"):
+        assert (tmp_path / name).read_bytes()[:8] == b"\x89PNG\r\n\x1a\n", name
 
 
 def test_a_keyboard_without_falling_bars_is_reported_not_raised() -> None:
@@ -150,12 +209,14 @@ class BlankFrames:
         raise AssertionError("nothing to stream without a keyboard")
 
 
-def test_a_video_without_a_drawn_keyboard_is_reported_not_raised() -> None:
-    reading = FallingNotesReader(BlankFrames()).read(VIDEO)
+def test_a_video_without_a_drawn_keyboard_is_reported_not_raised(tmp_path: Path) -> None:
+    reading = FallingNotesReader(BlankFrames()).read(VIDEO, tmp_path)
 
-    assert reading.failure == "no se encontró un teclado dibujado"
+    assert reading.failure == f"{NO_KEYBOARD}: {NO_WHITE_KEYS}"
     assert reading.keyboard is None
     assert reading.preferred_reading is None
+    # what the reader saw stays, to tell why: no keyboard drawn on it
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["frame.png", "plate.png"]
 
 
 def test_the_reader_can_be_sent_to_a_child_process() -> None:

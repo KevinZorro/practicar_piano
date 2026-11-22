@@ -174,10 +174,10 @@ SCALE = tuple(NoteEvent(60 + i, 1.0 + 0.5 * i, 1.4 + 0.5 * i, 80) for i in range
 
 
 def video_reading(notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True) -> VideoReading:
-    """A readable reading: bars only, or bars and fused (preferred) when keys light up."""
+    """A readable reading: bars only, or bars and lit keys (preferred) when keys light up."""
     readings = [NoteReading(ReadingMethod.BARS, tuple(notes))]
     if lit:
-        readings.append(NoteReading(ReadingMethod.FUSED, tuple(notes)))
+        readings.append(NoteReading(ReadingMethod.KEYS, tuple(notes)))
     return VideoReading(
         failure=None,
         keyboard="88 teclas, A0-C8",
@@ -186,6 +186,8 @@ def video_reading(notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True) -> Vi
         frames_with_keyboard=300,
         fall_speed_px_s=240.0,
         lit_keys=lit,
+        bar_key_agreement=1.0 if lit else None,
+        bar_delay_s=0.02 if lit else None,
         readings=tuple(readings),
         preferred=readings[-1].method,
     )
@@ -224,8 +226,11 @@ class FakeVideoReader:
         assert video.path.exists()
         if self._fails:
             raise VideoReadError("ffmpeg failed: moov atom not found")
-        if debug_dir is not None:
-            (debug_dir / "keyboard.png").write_bytes(b"PNG")
+        if debug_dir is not None:  # like the real reader: what it saw, and what it found
+            for name in ("plate.png", "frame.png"):
+                (debug_dir / name).write_bytes(b"PNG")
+            if self._result.keyboard is not None:
+                (debug_dir / "keyboard.png").write_bytes(b"PNG")
         return self._result
 
 
