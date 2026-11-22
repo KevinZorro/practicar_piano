@@ -34,6 +34,15 @@ class AudioFile:
 
 
 @dataclass(frozen=True, slots=True)
+class VideoFile:
+    """The picture of a video, without sound (ADR 0023)."""
+
+    path: Path
+    duration_seconds: float
+    megabytes: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
 class ResourceUsage:
     """Cost of running one model on one song, measured in an isolated process."""
 

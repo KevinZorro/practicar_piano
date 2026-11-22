@@ -41,6 +41,12 @@ class TranscriptionError(NotacaidaError):
     code = "transcription_failed"
 
 
+class VideoReadError(NotacaidaError):
+    """The video file could not be decoded."""
+
+    code = "video_read_failed"
+
+
 class QueueFullError(NotacaidaError):
     code = "queue_full"
 
