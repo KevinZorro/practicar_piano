@@ -1,4 +1,4 @@
-import type { PracticeView } from '../core/practice/prefs';
+import { isKeyboardOnly, type PracticeView } from '../core/practice/prefs';
 import { HIT_GAP } from './drawFrame';
 
 /** How the canvas is shared between the falling notes and the keyboard. */
@@ -23,7 +23,7 @@ const clamp = (value: number, low: number, high: number) => Math.min(Math.max(va
 
 /**
  * Splits a `width` x `height` canvas: keys as tall as their width suggests, the rest for the
- * falling notes. With the score view the canvas is only the keyboard strip under the score.
+ * falling notes. With the score or the video the canvas is only the keyboard strip under them.
  */
 export function stageLayout(
   width: number,
@@ -32,7 +32,7 @@ export function stageLayout(
   view: PracticeView,
 ): StageLayout {
   const usable = Math.max(0, height - HIT_GAP);
-  if (view === 'sheet') return { fallHeight: 0, keyboardHeight: usable, aheadS: MIN_AHEAD_S };
+  if (isKeyboardOnly(view)) return { fallHeight: 0, keyboardHeight: usable, aheadS: MIN_AHEAD_S };
   const keyWidth = width / Math.max(1, whiteKeys);
   const wanted = Math.round(keyWidth * KEY_LENGTH_PER_WIDTH);
   const ceiling = Math.max(MIN_KEYBOARD, Math.min(MAX_KEYBOARD, height * MAX_KEYBOARD_SHARE));

@@ -13,7 +13,7 @@ import type { Attempt, LibrarySong } from '../core/library/library';
 import type { Hand, HandFilter, Note } from '../core/notes/model';
 import { availableLevels, viewLevel, type LevelName } from '../core/practice/level';
 import { accuracy, DEFAULT_CONFIG, type PracticeState } from '../core/practice/machine';
-import type { PracticePrefs, PracticeView } from '../core/practice/prefs';
+import { isKeyboardOnly, type PracticePrefs, type PracticeView } from '../core/practice/prefs';
 import { SpeedControl } from '../core/practice/speed';
 import { expectedNow } from '../core/practice/expected';
 import {
@@ -29,7 +29,16 @@ import { drawFrame } from '../render/drawFrame';
 import { fitKeyRange, whiteKeyCount } from '../render/keyboardLayout';
 import { stageLayout } from '../render/stageLayout';
 import { KeyRow, Switch } from './controls';
-import { BackIcon, BookIcon, KeysIcon, PauseIcon, PlayIcon, RestartIcon } from './icons';
+import {
+  BackIcon,
+  BookIcon,
+  ExpandIcon,
+  KeysIcon,
+  PauseIcon,
+  PlayIcon,
+  RestartIcon,
+  ShrinkIcon,
+} from './icons';
 import { MicPanel } from './MicPanel';
 import { FollowHud, PracticePanel, ReadingPanel, WaitHud } from './PracticePanels';
 import { ReadingGuide } from './ReadingGuide';
@@ -59,6 +68,11 @@ const VIEW_OPTIONS: readonly (readonly [PracticeView, string])[] = [
   ['falling', 'Notas'],
   ['sheet', 'Partitura'],
   ['both', 'Ambas'],
+];
+// The video view is offered only while the song's video can be embedded.
+const VIEW_OPTIONS_WITH_VIDEO: readonly (readonly [PracticeView, string])[] = [
+  ...VIEW_OPTIONS,
+  ['video', 'Video'],
 ];
 const MIDI_MESSAGE: Record<InputStatus, string> = {
   idle: 'Teclado sin conectar.',
@@ -111,10 +125,17 @@ export function PracticeScreen({
   const canShowVideo = videoId !== null && createVideo !== undefined;
   const [video, setVideo] = useState<PlayerPort | null>(null);
   const [videoFailed, setVideoFailed] = useState(false);
+  const videoAvailable = canShowVideo && !videoFailed;
+  // Without the video, its view falls back to the falling notes; the saved choice stays.
+  const shownView: PracticeView =
+    prefs.view === 'video' && !videoAvailable ? 'falling' : prefs.view;
+  // The video view always shows the video; the other views follow "Mostrar el video".
+  const videoShown = prefs.showVideo || shownView === 'video';
   // The embed is created the first time the video is shown, and then kept.
-  const [videoWanted, setVideoWanted] = useState(prefs.showVideo);
+  const [videoWanted, setVideoWanted] = useState(videoShown);
   // The video carries the song's own sound; the synth is for songs without one.
-  const [sound, setSound] = useState(!canShowVideo || !prefs.showVideo);
+  const [sound, setSound] = useState(!canShowVideo || !videoShown);
+  const [fullscreen, setFullscreen] = useState(false);
   const [waitOn, setWaitOn] = useState(false);
   // Follow mode: the video keeps going and a wrong key sends it back; it excludes wait mode.
   const [followOn, setFollowOn] = useState(false);
@@ -163,14 +184,14 @@ export function PracticeScreen({
     seekSheet.current = seek;
   }, []);
   // What the frame loop reads every frame without re-subscribing.
-  const drawing = useRef({ view: prefs.view, naming: prefs.naming, dim: null as Hand | null });
+  const drawing = useRef({ view: shownView, naming: prefs.naming, dim: null as Hand | null });
   useEffect(() => {
     drawing.current = {
-      view: prefs.view,
+      view: shownView,
       naming: prefs.naming,
       dim: dimmedHand(waitOn || followOn, hand),
     };
-  }, [prefs.view, prefs.naming, waitOn, followOn, hand]);
+  }, [shownView, prefs.naming, waitOn, followOn, hand]);
 
   // On narrow screens the stage takes what the header and the sticky transport leave, so the
   // transport never covers the keyboard, even when wait mode makes it taller.
@@ -466,8 +487,28 @@ export function PracticeScreen({
   // A hidden video never plays: the clock moves to a synth counter and the app's piano sounds.
   useEffect(() => {
     if (!video) return;
-    player.attach(prefs.showVideo ? video : new SynthPlayer(wallMs));
-  }, [video, prefs.showVideo, player]);
+    player.attach(videoShown ? video : new SynthPlayer(wallMs));
+  }, [video, videoShown, player]);
+
+  // Full screen keeps the video, the keyboard strip and the transport; Escape leaves it.
+  useEffect(() => {
+    const onChange = () => {
+      const root = shell.current;
+      setFullscreen(root !== null && document.fullscreenElement === root);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+    };
+  }, []);
+
+  // Full screen belongs to the video view: if the video goes away, the window comes back.
+  useEffect(() => {
+    const root = shell.current;
+    if (shownView !== 'video' && root !== null && document.fullscreenElement === root) {
+      void document.exitFullscreen().catch(() => undefined);
+    }
+  }, [shownView]);
 
   useEffect(
     () => () => {
@@ -526,6 +567,25 @@ export function PracticeScreen({
     attemptInfo.current.reported = false;
     piano.current?.stopAll();
   }
+
+  // A click on the video moves the keyboard focus into YouTube's frame, where Space does nothing:
+  // the focus comes straight back, so Space keeps playing and pausing the practice.
+  useEffect(() => {
+    let timer = 0;
+    const onBlur = () => {
+      timer = window.setTimeout(() => {
+        const active = document.activeElement;
+        if (active instanceof HTMLIFrameElement && videoHost.current?.contains(active)) {
+          active.blur();
+        }
+      }, 0);
+    };
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   // A click on the video itself starts or stops it: the practice follows it.
   const controls = useRef({ start, stop, togglePlay });
@@ -590,10 +650,30 @@ export function PracticeScreen({
     setSpeed(speedControl.set(next));
   }
 
+  /** Shows or hides the video; while it is hidden the app's piano carries the song. */
+  function revealVideo(shown: boolean) {
+    if (shown === videoShown) return;
+    if (shown) setVideoWanted(true);
+    if (video) setSound(!shown);
+  }
+
   function showVideo(show: boolean) {
     onPrefs({ showVideo: show });
-    if (show) setVideoWanted(true);
-    if (video) setSound(!show);
+    revealVideo(show || shownView === 'video');
+  }
+
+  function chooseView(next: PracticeView) {
+    onPrefs({ view: next });
+    revealVideo(prefs.showVideo || next === 'video');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    // Refused (the browser or its settings): the practice simply stays in the window.
+    void shell.current?.requestFullscreen().catch(() => undefined);
   }
 
   function openGuide(opener: HTMLButtonElement) {
@@ -606,10 +686,10 @@ export function PracticeScreen({
     guideOpener.current?.focus();
   }, []);
 
-  const videoReady = video !== null && prefs.showVideo;
+  const videoReady = video !== null && videoShown;
 
   return (
-    <section ref={shell} aria-label="Práctica" className="practice">
+    <section ref={shell} aria-label="Práctica" className="practice" data-view={shownView}>
       <header ref={topBar} className="practice-bar">
         <button
           type="button"
@@ -627,11 +707,9 @@ export function PracticeScreen({
         <KeyRow
           legend="Vista"
           name="view"
-          value={prefs.view}
-          options={VIEW_OPTIONS}
-          onChange={(next) => {
-            onPrefs({ view: next });
-          }}
+          value={shownView}
+          options={videoAvailable ? VIEW_OPTIONS_WITH_VIDEO : VIEW_OPTIONS}
+          onChange={chooseView}
           className="view-switch"
         />
         <button
@@ -647,90 +725,108 @@ export function PracticeScreen({
         </button>
       </header>
 
-      <div className="practice-main">
-        <div className="stage" data-view={prefs.view}>
-          <div className="stage-sheet">
-            <SheetPane score={view.score} aids={aids} registerSeek={registerSeek} />
-          </div>
-          <div className="stage-fall" ref={fallBox}>
-            <canvas
-              ref={canvas}
-              role="img"
-              aria-label={prefs.view === 'sheet' ? 'Teclado' : 'Notas que caen'}
-            />
-          </div>
+      <div className="stage">
+        <div className="stage-sheet">
+          <SheetPane score={view.score} aids={aids} registerSeek={registerSeek} />
         </div>
-
-        <div ref={transportBox} className="transport">
-          <button
-            type="button"
-            className="key-primary transport-play"
-            onClick={() => void togglePlay()}
-          >
-            {playing ? <PauseIcon /> : <PlayIcon />}
-            {playing ? 'Pausar' : 'Reproducir'}
-          </button>
-          <button type="button" onClick={restart}>
-            <RestartIcon />
-            Reiniciar
-          </button>
-          <div className="timeline">
-            <span ref={timeNow} className="timeline-now">
-              0:00
-            </span>
-            <input
-              ref={timeline}
-              type="range"
-              min={0}
-              max={duration}
-              step={0.1}
-              defaultValue={0}
-              aria-label="Posición en la canción"
-              onPointerDown={() => {
-                scrubbing.current = true;
-              }}
-              onPointerUp={() => {
-                scrubbing.current = false;
-              }}
-              onBlur={() => {
-                scrubbing.current = false;
-              }}
-              onChange={(e) => {
-                seekTo(Number(e.target.value));
-              }}
-            />
-            <span>{formatClock(duration)}</span>
-          </div>
-          {lastMeasure !== null && (
-            <span className="transport-measure">
-              Compás <span ref={measureNow}>1</span> de {lastMeasure}
-            </span>
-          )}
-          <span className="transport-hint">
-            <kbd>Espacio</kbd> reproduce o pausa
-          </span>
-          {followStats && <FollowHud stats={followStats} />}
-          {waitOn && practiceState && (
-            <WaitHud
-              state={practiceState}
-              expected={wait?.expectedPitches() ?? []}
-              naming={prefs.naming}
-            />
-          )}
+        <div className="stage-fall" ref={fallBox}>
+          <canvas
+            ref={canvas}
+            role="img"
+            aria-label={isKeyboardOnly(shownView) ? 'Teclado' : 'Notas que caen'}
+          />
         </div>
       </div>
 
+      <div ref={transportBox} className="transport">
+        <button
+          type="button"
+          className="key-primary transport-play"
+          onClick={() => void togglePlay()}
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+          {playing ? 'Pausar' : 'Reproducir'}
+        </button>
+        <button type="button" onClick={restart}>
+          <RestartIcon />
+          Reiniciar
+        </button>
+        <div className="timeline">
+          <span ref={timeNow} className="timeline-now">
+            0:00
+          </span>
+          <input
+            ref={timeline}
+            type="range"
+            min={0}
+            max={duration}
+            step={0.1}
+            defaultValue={0}
+            aria-label="Posición en la canción"
+            onPointerDown={() => {
+              scrubbing.current = true;
+            }}
+            onPointerUp={() => {
+              scrubbing.current = false;
+            }}
+            onBlur={() => {
+              scrubbing.current = false;
+            }}
+            onChange={(e) => {
+              seekTo(Number(e.target.value));
+            }}
+          />
+          <span>{formatClock(duration)}</span>
+        </div>
+        {lastMeasure !== null && (
+          <span className="transport-measure">
+            Compás <span ref={measureNow}>1</span> de {lastMeasure}
+          </span>
+        )}
+        <span className="transport-hint">
+          <kbd>Espacio</kbd> reproduce o pausa
+        </span>
+        {followStats && <FollowHud stats={followStats} />}
+        {waitOn && practiceState && (
+          <WaitHud
+            state={practiceState}
+            expected={wait?.expectedPitches() ?? []}
+            naming={prefs.naming}
+          />
+        )}
+      </div>
+
+      {/* One element for every view: moving an embedded video reloads it, so CSS places it. */}
+      {canShowVideo && (
+        <div className="video-frame" hidden={!videoReady && shownView !== 'video'}>
+          <div className="video" role="region" aria-label="Video" hidden={!videoReady}>
+            <div ref={videoHost} className="video-player" />
+            {/* Where video players keep it, on the picture, so it also brings the window back. */}
+            {shownView === 'video' && document.fullscreenEnabled && (
+              <button
+                type="button"
+                className="video-screen"
+                aria-label="Pantalla completa"
+                aria-pressed={fullscreen}
+                title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                // A mouse click leaves the focus where it was, so Space still plays and pauses.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                onClick={toggleFullscreen}
+              >
+                {fullscreen ? <ShrinkIcon /> : <ExpandIcon />}
+              </button>
+            )}
+          </div>
+          {!videoReady && <p className="video-wait">Cargando el video…</p>}
+        </div>
+      )}
+
       <aside className="inspector" aria-label="Ajustes de la práctica">
-        {canShowVideo && (
+        {canShowVideo && shownView !== 'video' && (
           <section className="panel panel-video">
             <h3 className="sr-only">Video</h3>
-            <div
-              ref={videoHost}
-              className="video"
-              role="region"
-              aria-label="Vídeo"
-              hidden={!videoReady}
-            />
             {!videoFailed && (
               <Switch label="Mostrar el video" checked={prefs.showVideo} onChange={showVideo} />
             )}

@@ -833,18 +833,35 @@ input[type='range']:focus-visible {
 
 /* ---------- Practice ---------- */
 
+/* The stage and its transport on the left; on the right the video, while it shows, stays in view
+   over the settings that scroll. The video view moves it onto the stage, over the keyboard strip
+   (the same element in every view: moving an embedded video would reload it). */
 .practice {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'bar bar'
+    'stage video'
+    'stage inspector'
+    'transport inspector';
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
   background: var(--bg);
 }
 
+.practice[data-view='video'] {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'bar bar'
+    'video inspector'
+    'stage inspector'
+    'transport inspector';
+}
+
 .practice-bar {
-  grid-column: 1 / -1;
+  grid-area: bar;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -879,17 +896,12 @@ input[type='range']:focus-visible {
   clip: rect(0 0 0 0);
 }
 
-.practice-main {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-width: 0;
-  min-height: 0;
-}
-
 .stage {
+  grid-area: stage;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
   min-height: 0;
   padding: 8px;
 }
@@ -912,14 +924,16 @@ input[type='range']:focus-visible {
 }
 
 /* Hidden but laid out at full width, so the score is ready the moment it comes back. */
-.stage[data-view='falling'] .stage-sheet {
+.practice[data-view='falling'] .stage-sheet,
+.practice[data-view='video'] .stage-sheet {
   flex: 0 0 0;
   overflow: hidden;
   visibility: hidden;
   margin-bottom: -8px;
 }
 
-.stage[data-view='sheet'] .stage-fall {
+.practice[data-view='sheet'] .stage-fall,
+.practice[data-view='video'] .stage-fall {
   flex: 0 0 auto;
   height: clamp(72px, 8vw, 116px);
 }
@@ -962,6 +976,7 @@ input[type='range']:focus-visible {
 
 /* Transport */
 .transport {
+  grid-area: transport;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1068,8 +1083,7 @@ kbd {
 
 /* Inspector */
 .inspector {
-  grid-row: 2;
-  grid-column: 2;
+  grid-area: inspector;
   min-height: 0;
   overflow-y: auto;
   border-left: 1px solid var(--line);
@@ -1139,31 +1153,79 @@ kbd {
   text-align: center;
 }
 
+/* The video's own switch sits right under the picture; alone, it gets a panel's room. */
 .panel-video {
-  padding: 0 0 16px;
   gap: 0;
+  padding: 4px 20px 16px;
 }
 
-.panel-video .switch {
-  padding: 4px 20px 0;
+.video-frame[hidden] + .inspector > .panel-video {
+  padding-top: 18px;
+}
+
+.video-frame {
+  grid-area: video;
+  min-width: 0;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .video {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   min-height: 200px;
   background: #000;
 }
 
-.video iframe {
+.video-player,
+.video-player iframe {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
 }
 
+.video-screen {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  padding: 0 0 2px;
+}
+
+.video-wait {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-m);
+  background: var(--stage);
+  color: var(--text-2);
+}
+
+/* Video view: the largest 16:9 picture that fits the stage, the keyboard strip under it. */
+.practice[data-view='video'] .video-frame {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 8px 8px 0;
+  border-left: 0;
+  background: none;
+  container-type: size;
+}
+
+.practice[data-view='video'] .video {
+  width: min(100cqw, 100cqh * 16 / 9);
+  height: min(100cqh, 100cqw * 9 / 16);
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+}
+
 .video-note {
-  padding: 8px 20px 0;
+  padding-top: 4px;
 }
 
 /* Microphone */
@@ -1302,9 +1364,16 @@ kbd {
 
 @media (max-width: 1023px) {
   .practice {
-    display: block;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: 'bar' 'stage' 'transport' 'video' 'inspector';
     height: auto;
     overflow: visible;
+  }
+
+  .practice[data-view='video'] {
+    grid-template-rows: none;
+    grid-template-areas: 'bar' 'video' 'stage' 'transport' 'inspector';
   }
 
   .practice-bar {
@@ -1332,13 +1401,32 @@ kbd {
     min-height: 340px;
   }
 
+  /* On a narrow screen the picture keeps its own shape and the page goes on under it. */
+  .practice[data-view='video'] .stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  .practice[data-view='video']:not(:fullscreen) .video-frame {
+    display: block;
+    container-type: normal;
+  }
+
+  .practice[data-view='video']:not(:fullscreen) .video,
+  .practice[data-view='video']:not(:fullscreen) .video-wait {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
   .transport {
     position: sticky;
     bottom: 0;
     z-index: 5;
   }
 
-  .inspector {
+  .inspector,
+  .video-frame {
     border-left: 0;
   }
 
@@ -1372,6 +1460,20 @@ kbd {
   .transport-hint {
     display: none;
   }
+}
+
+/* Full screen (video view only): the picture, the keyboard strip and the transport. */
+.practice:fullscreen {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'video' 'stage' 'transport';
+  height: 100%;
+  overflow: hidden;
+}
+
+.practice:fullscreen > .practice-bar,
+.practice:fullscreen > .inspector {
+  display: none;
 }
 
 @media (pointer: coarse) {

@@ -82,7 +82,7 @@ test('wait mode stops the song until the right key arrives from the keyboard', a
 test('the video is shown and follows play and pause', async ({ page }) => {
   await fakeYouTube(page);
   await openPractice(page);
-  await expect(page.getByRole('region', { name: 'Vídeo' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Video' })).toBeVisible();
   await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
   // With the video the song's own sound plays, so the synth starts off.
   await expect(page.getByLabel('Sonido')).not.toBeChecked();
@@ -95,7 +95,7 @@ test('the video is shown and follows play and pause', async ({ page }) => {
 test('hiding the video keeps the practice on screen with the app piano', async ({ page }) => {
   await fakeYouTube(page);
   await openPractice(page);
-  const video = page.getByRole('region', { name: 'Vídeo' });
+  const video = page.getByRole('region', { name: 'Video' });
   await expect(video).toBeVisible();
 
   await page.getByLabel('Mostrar el video').uncheck();
@@ -112,11 +112,91 @@ test('hiding the video keeps the practice on screen with the app piano', async (
   await expect(page.getByLabel('Sonido')).not.toBeChecked();
 });
 
+test('the video view puts the video on the stage and can fill the screen', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  const practice = page.getByRole('region', { name: 'Práctica' });
+  const video = page.getByRole('region', { name: 'Video' });
+  const settings = page.getByRole('complementary', { name: 'Ajustes de la práctica' });
+  await expect(video).toBeVisible();
+  const inColumn = await video.boundingBox();
+
+  await page.getByRole('radio', { name: 'Video', exact: true }).check();
+  await expect(practice).toHaveAttribute('data-view', 'video');
+  await expect(page.getByRole('img', { name: 'Teclado' })).toBeVisible();
+  await expect(page.locator('.stage-sheet')).toBeHidden();
+  await expect(page.getByLabel('Mostrar el video')).toHaveCount(0);
+  // The same player (moving an embed would reload it), now as wide as the stage allows.
+  await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
+  const onStage = await video.boundingBox();
+  expect(onStage?.width ?? 0).toBeGreaterThan((inColumn?.width ?? 0) * 1.5);
+
+  const screen = page.getByRole('button', { name: 'Pantalla completa' });
+  await screen.click();
+  await expect(screen).toHaveAttribute('aria-pressed', 'true');
+  await expect(settings).toBeHidden();
+  await expect(page.getByRole('img', { name: 'Teclado' })).toBeVisible();
+  await screen.click();
+  await expect(screen).toHaveAttribute('aria-pressed', 'false');
+  await expect(settings).toBeVisible();
+
+  await page.getByRole('radio', { name: 'Notas', exact: true }).check();
+  await expect(page.getByRole('img', { name: 'Notas que caen' })).toBeVisible();
+  await expect(video).toBeVisible();
+  await expect(screen).toHaveCount(0);
+});
+
+test('the video view shows a hidden video and hides it again on leaving', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  const video = page.getByRole('region', { name: 'Video' });
+  await page.getByLabel('Mostrar el video').uncheck();
+  await expect(video).toBeHidden();
+  await expect(page.getByLabel('Sonido')).toBeChecked();
+
+  await page.getByRole('radio', { name: 'Video', exact: true }).check();
+  await expect(video).toBeVisible();
+  await expect(page.getByLabel('Sonido')).not.toBeChecked();
+
+  await page.getByRole('radio', { name: 'Ambas', exact: true }).check();
+  await expect(video).toBeHidden();
+  await expect(page.getByLabel('Mostrar el video')).not.toBeChecked();
+  await expect(page.getByLabel('Sonido')).toBeChecked();
+});
+
+test('after a click on the video or its full-screen key, Space still plays', async ({ page }) => {
+  await fakeYouTube(page);
+  await openPractice(page);
+  await page.getByRole('radio', { name: 'Video', exact: true }).check();
+  const frame = page.locator('.video iframe');
+  await expect(frame).toHaveAttribute('tabindex', '-1');
+
+  await page.frameLocator('.video iframe').locator('body').click();
+  // The focus leaves YouTube's frame right after the click (a person presses Space later).
+  await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('BODY');
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+
+  const screen = page.getByRole('button', { name: 'Pantalla completa' });
+  await screen.click();
+  await expect(screen).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
+  await expect(screen).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('without a video to embed there is no video view', async ({ page }) => {
+  await page.route('https://www.youtube.com/iframe_api', (route) => route.abort());
+  await openPractice(page);
+  await expect(page.getByText('El video no se puede mostrar aquí')).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Video', exact: true })).toHaveCount(0);
+});
+
 test('a click on the video itself starts and stops the practice', async ({ page }) => {
   await fakeYouTube(page);
   await openPractice(page);
   await expect(page.locator('[data-video="dQw4w9WgXcQ"]')).toHaveCount(1);
-  await expect(page.getByRole('region', { name: 'Vídeo' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Video' })).toBeVisible();
 
   await clickVideo(page, 1); // YT.PlayerState.PLAYING, not asked for by the app
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
