@@ -3,7 +3,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from notacaida.infrastructure.keyboard_detector import detect_keyboard, note_name
+from notacaida.infrastructure.keyboard_detector import (
+    NO_BLACK_KEYS,
+    NO_WHITE_KEYS,
+    detect_keyboard,
+    find_keyboard,
+    note_name,
+)
 from tests.support.falling_video import Style, key_span, keyboard_rows, plate
 
 FULL = Style("full")
@@ -63,6 +69,9 @@ def test_the_rows_of_the_keys_are_found() -> None:
         Style("centred-black-keys", offset_black_keys=False),
         Style("no-felt-lanes", felt_px=0, lanes=True),
         Style("tall-keys", keyboard_height=0.3),
+        # the letters split the white keys in two bands; the lower one has no black keys
+        Style("letters-on-the-keys", key_labels=True),
+        Style("letters-720p", width=1280, height=720, key_labels=True),
     ],
     ids=lambda s: s.name,
 )
@@ -73,6 +82,17 @@ def test_drawing_variations_still_give_88_keys(style: Style) -> None:
     assert keyboard.describe() == "88 teclas, A0-C8"
 
 
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_an_end_key_cut_by_the_picture_is_still_a_key(side: str) -> None:
+    full = plate(FULL)
+    picture = full[:, 8:] if side == "left" else full[:, :-8]  # half of A0 or of C8
+
+    keyboard = detect_keyboard(picture)
+
+    assert keyboard is not None
+    assert keyboard.describe() == "88 teclas, A0-C8"  # it read 87 or 86 keys on the VPS
+
+
 def test_no_keyboard_in_a_plain_or_noisy_picture() -> None:
     rng = np.random.default_rng(3)
     blank = np.full((480, 854, 3), 20, np.uint8)
@@ -80,6 +100,7 @@ def test_no_keyboard_in_a_plain_or_noisy_picture() -> None:
 
     assert detect_keyboard(blank) is None
     assert detect_keyboard(noise) is None
+    assert find_keyboard(blank).failure == NO_WHITE_KEYS
 
 
 def test_white_keys_without_black_keys_are_not_a_keyboard() -> None:
@@ -87,7 +108,9 @@ def test_white_keys_without_black_keys_are_not_a_keyboard() -> None:
     top, black_bottom = keyboard_rows(FULL)
     picture[top:black_bottom] = picture[black_bottom + 4]  # paint the black keys over
 
-    assert detect_keyboard(picture) is None
+    search = find_keyboard(picture)
+    assert search.keyboard is None
+    assert search.failure == NO_BLACK_KEYS  # says which step failed, for the report
 
 
 def test_note_names_follow_scientific_pitch_notation() -> None:

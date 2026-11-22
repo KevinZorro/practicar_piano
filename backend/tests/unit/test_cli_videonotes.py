@@ -107,11 +107,16 @@ def test_the_options_have_sensible_defaults() -> None:
     args = main_args(["videonotes", "run", "--video-dir", "v", "--out", "o"])
     bare = main_args(["videonotes", "run", "--links", "l", "--out", "o", "--models"])
     sized = main_args(["videonotes", "run", "--links", "l", "--out", "o", "--max-height", "360"])
+    reusing = main_args(["videonotes", "run", "--links", "l", "--out", "o", "--reuse"])
+    phase0 = main_args(["videonotes", "run", "--links", "l", "--out", "o", "--reuse", "/data/out"])
 
     assert args.models == ["basic-pitch", "bytedance"]
     assert args.max_height == 480
+    assert args.reuse is None  # a run transcribes again unless asked not to
     assert bare.models == []
     assert sized.max_height == 360
+    assert reusing.reuse == []  # only what --out already holds
+    assert phase0.reuse == [Path("/data/out")]
 
 
 def test_the_real_benchmark_is_wired_without_touching_the_network(tmp_path: Path) -> None:

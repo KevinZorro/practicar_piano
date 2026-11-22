@@ -65,6 +65,14 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help="audio models to compare with (none: only read the videos)",
     )
     run.add_argument(
+        "--reuse",
+        nargs="*",
+        type=Path,
+        metavar="DIR",
+        help="take the model MIDI an earlier run left in --out, or in each DIR (such as the "
+        "phase0 output), instead of transcribing the song again",
+    )
+    run.add_argument(
         "--max-height",
         type=int,
         default=DEFAULT_VIDEO_HEIGHT,
@@ -115,7 +123,9 @@ def build_benchmark(args: argparse.Namespace) -> CompareVideoReading:
         synthesizer=AdditiveSynthesizer(),
         plotter=PngRollPlotter(),
     )
-    return CompareVideoReading(media, FallingNotesReader(), transcribers, tools)
+    return CompareVideoReading(
+        media, FallingNotesReader(), transcribers, tools, reuse_from=args.reuse
+    )
 
 
 def handle(args: argparse.Namespace, benchmark_factory: BenchmarkFactory = build_benchmark) -> int:

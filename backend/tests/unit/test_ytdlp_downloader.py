@@ -200,6 +200,49 @@ def test_missing_video_file_is_reported(tmp_path: Path, monkeypatch: pytest.Monk
         make(tmp_path).download_video(URL, tmp_path)
 
 
+class FlakyVideoDL(FakeYoutubeDL):
+    """Answers 403 to the first picture-only format, like YouTube did for one song."""
+
+    def download(self, urls: list[str]) -> None:
+        if self.options["format"].startswith("bestvideo"):
+            Path(self.options["outtmpl"].replace("%(ext)s", "f135.mp4.part")).write_bytes(b"x")
+            raise RuntimeError(
+                f"ERROR: [download] {VIDEO_ID}: unable to download video data: HTTP Error 403"
+            )
+        self.downloaded.extend(urls)
+        Path(self.options["outtmpl"].replace("%(ext)s", "mp4")).write_bytes(b"mp4")
+
+
+def flaky(tmp_path: Path, *, always: bool = False) -> YtDlpDownloader:
+    FakeYoutubeDL.instances = []
+
+    def factory(options: dict[str, Any]) -> FakeYoutubeDL:
+        if always and "format" in options:
+            options = {**options, "format": "bestvideo-always-fails"}
+        return FlakyVideoDL(options, {"duration": 200}, None)
+
+    return YtDlpDownloader(max_duration_seconds=600.0, ydl_factory=factory)
+
+
+def test_a_failed_picture_download_is_retried_once_with_the_progressive_file(
+    tmp_path: Path,
+) -> None:
+    video = flaky(tmp_path).download_video(URL, tmp_path / "picture")
+
+    formats = [i.options.get("format") for i in FakeYoutubeDL.instances]
+    assert formats[1:] == [formats[1], "18/best[height<=480]"]
+    assert video.path == tmp_path / "picture" / "video.mp4"  # not the failed attempt's part
+    assert [p.name for p in (tmp_path / "picture").iterdir()] == ["video.mp4"]
+
+
+def test_a_picture_that_fails_twice_is_reported_without_the_link(tmp_path: Path) -> None:
+    with pytest.raises(DownloadError, match="403") as caught:
+        flaky(tmp_path, always=True).download_video(URL, tmp_path)
+
+    assert VIDEO_ID not in str(caught.value)
+    assert len(FakeYoutubeDL.instances) == 3  # the probe and two attempts
+
+
 def test_media_source_keeps_picture_and_sound_apart(tmp_path: Path) -> None:
     media = YtDlpMediaSource(make(tmp_path)).fetch(URL, tmp_path)
 

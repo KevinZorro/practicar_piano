@@ -88,9 +88,9 @@ def test_the_reader_gets_the_notes_back_from_a_compressed_video(silent_video: Pa
     reading = FallingNotesReader().read(VideoFile(silent_video, 10.0))
 
     assert reading.keyboard == "88 teclas, A0-C8"
-    fused = reading.preferred_reading
-    assert fused is not None
-    assert agreement(NOTES, fused.notes).f1 >= 0.95
+    keys = reading.preferred_reading
+    assert keys is not None
+    assert agreement(NOTES, keys.notes).f1 >= 0.95
 
 
 def test_videonotes_on_a_folder_of_synthetic_videos(tmp_path: Path) -> None:
@@ -106,13 +106,15 @@ def test_videonotes_on_a_folder_of_synthetic_videos(tmp_path: Path) -> None:
     assert code == 0
     [song] = json.loads((out / "results.json").read_text())["songs"]
     assert song["error"] is None
-    assert song["reading"]["preferred"] == "fused"
-    truth = next(c for c in song["comparisons"] if c["estimate"] == "video:fused")
+    assert song["reading"]["preferred"] == "keys"
+    truth = next(c for c in song["comparisons"] if c["estimate"] == "video:keys")
     assert truth["reference"] == "verdad"
     assert truth["aligned_50ms"]["f1"] >= 0.95
     assert song["reading_usage"]["peak_mb"] > 0
     [song_dir] = [p for p in out.iterdir() if p.is_dir()]
     assert {p.name for p in song_dir.iterdir()} == {
+        "plate.png",
+        "frame.png",
         "keyboard.png",
         "roll.png",
         "video.mid",

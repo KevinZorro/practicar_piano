@@ -2,7 +2,8 @@
 
 Generic styles, not a copy of any product's look. They vary what real tutorials vary: bar
 width and gaps, outlines, one colour per hand, lit keys or not, glow and sparks over the hit
-line, a felt strip, lane lines, keyboard size, frame rate, resolution and compression.
+line, a felt strip, lane lines, letters printed on the keys, a logo over the keyboard,
+keyboard size, frame rate, resolution and compression.
 """
 
 from __future__ import annotations
@@ -52,6 +53,12 @@ class Style:
     glow: bool = False
     sparks: bool = False
     offset_black_keys: bool = True
+    #: A dark letter near the bottom of every white key, as beginner tutorials print.
+    key_labels: bool = False
+    #: Bars drawn this many white keys to the right of their key: bars the reader misreads.
+    bar_shift: float = 0.0
+    #: A logo over a few keys during these (start, end) seconds.
+    logo_s: tuple[tuple[float, float], ...] = ()
     crf: int = 26
 
 
@@ -71,6 +78,7 @@ STYLES = (
     Style("61-teclas-un-color", low=36, high=96, left_colour=(90, 200, 110), fall_px_s=200.0),
     Style("360p-comprimido", width=640, height=360, crf=33, fall_px_s=180.0),
     Style("720p-60fps", width=1280, height=720, fps=60.0, fall_px_s=420.0),
+    Style("letras-en-las-teclas", key_labels=True),
 )
 
 
@@ -115,6 +123,7 @@ class _Geometry:
         left, right = self.key_span(pitch)
         share = self.style.black_bar if pitch not in self.whites else self.style.white_bar
         centre, half = (left + right) / 2, (right - left) * share / 2
+        centre += self.style.bar_shift * self.step
         return round(centre - half), round(centre + half)
 
     @property
@@ -145,6 +154,8 @@ def render_frames(
             _light_keys(frame, geometry, sounding)
         if style.sparks:
             _sparks(frame, geometry, sounding, rng)
+        if any(start <= t < end for start, end in style.logo_s):
+            _logo(frame, geometry)
         yield frame
 
 
@@ -182,9 +193,38 @@ def _plate(geometry: _Geometry) -> Image:
     for pitch in geometry.whites[1:]:
         x = round(geometry.key_span(pitch)[0])
         image[geometry.top :, max(0, x - 1) : x + 1] = (70, 70, 74)
+    if style.key_labels:
+        for pitch in geometry.whites:
+            _label(image, geometry, pitch)
     for pitch in geometry.blacks:
         _fill(image, geometry, pitch, (24, 24, 28), lit=False)
     return image
+
+
+def _label(image: Image, geometry: _Geometry, pitch: int) -> None:
+    """An "H"-like dark letter in the lower part of a white key, clear of its bottom edge."""
+    left, right = geometry.key_span(pitch)
+    lower = geometry.style.height - geometry.black_bottom
+    bottom = geometry.style.height - round(0.3 * lower)
+    top = bottom - max(4, round(0.3 * lower))
+    centre, half = (left + right) / 2, max(2.0, 0.2 * (right - left))
+    first, last = round(centre - half), round(centre + half)
+    ink = (60, 60, 64)
+    image[top:bottom, first : first + 2] = ink
+    image[top:bottom, last - 1 : last + 1] = ink
+    middle = (top + bottom) // 2
+    image[middle : middle + 2, first:last] = ink
+
+
+def _logo(frame: Image, geometry: _Geometry) -> None:
+    """A light badge over the white keys from C4 to G4, as channels overlay their logo."""
+    left, _ = geometry.key_span(60)
+    _, right = geometry.key_span(67)
+    frame[geometry.black_bottom + 2 : geometry.style.height - 3, round(left) : round(right)] = (
+        235,
+        190,
+        60,
+    )
 
 
 def _fill(image: Image, geometry: _Geometry, pitch: int, colour: Colour, *, lit: bool) -> None:

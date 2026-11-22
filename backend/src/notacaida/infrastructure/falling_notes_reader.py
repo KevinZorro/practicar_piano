@@ -13,8 +13,10 @@ Per video:
      because the row ``d`` pixels above the hit line shows what lands ``d / speed`` seconds
      later; a key sounds while a bar covers the middle of its column;
    * keys: a key sounds while its own surface differs from the plate (it is lit).
-5. Notes: runs of covered or lit time per key. The fused reading keeps the bar notes whose key
-   lights up, plus lit notes no bar explains. Bar colours split the hands when there are two.
+5. Notes: runs of covered or lit time per key. When the keys light up, their notes are the
+   reading: on real tutorials they agree with the audio far better than the bars, whose
+   drawing varies more (2026-11-22, docs/phase-1/lectura-de-video.md). Bar colours split the
+   hands when there are two; a lit note takes the hand of the bar that lands on it.
 """
 
 from __future__ import annotations
@@ -28,13 +30,13 @@ from typing import Protocol
 import numpy as np
 from numpy.typing import NDArray
 
-from notacaida.domain.agreement import ONSET_100MS, agreement
+from notacaida.domain.agreement import ONSET_100MS, agreement, estimate_delay
 from notacaida.domain.models import VideoFile
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import Hand
 from notacaida.domain.video_reading import NoteReading, ReadingMethod, VideoReading
 from notacaida.infrastructure.ffmpeg_video import Crop, FfmpegFrames, Frames, VideoInfo
-from notacaida.infrastructure.keyboard_detector import Keyboard, detect_keyboard
+from notacaida.infrastructure.keyboard_detector import Keyboard, find_keyboard
 from notacaida.infrastructure.png import write_png
 
 Mask = NDArray[np.bool_]
@@ -46,8 +48,18 @@ _MIN_THRESHOLD, _MAX_THRESHOLD = 30, 110
 _MIN_SPEED_PX_S, _MAX_SPEED_PX_S = 20.0, 4000.0
 _MIN_BAR_SHARE = 0.003  # share of bar pixels for a frame to count when measuring the speed
 _MAX_LIT_SHARE = 0.4  # more keys "lit" than this: the keyboard is not on screen
-_MIN_LIT_AGREEMENT = 0.3  # lit keys that agree with the bars at least this much are real
+_MIN_LIT_NOTES = 8  # fewer lit notes: nothing lights up, or only a passing glitch
+#: Median number of keys lit at once while any is: notes light a few, a hand over a filmed
+#: keyboard or an overlay changes many.
+_MAX_TYPICAL_LIT = 8
+_MIN_LIT_AGREEMENT = 0.3  # lit keys the bars agree with at least this much are confirmed
+#: Lit keys the bars do not confirm still count when they are this many, and at least this
+#: share of the bar notes (a logo passing over a few keys of a video that lights none).
+_MIN_UNCONFIRMED_LIT_NOTES = 20
+_MIN_LIT_PER_BAR = 0.5
 _HAND_SEPARATION = 0.05  # chromaticity distance between the two hand colours
+
+NO_KEYBOARD = "no se encontró un teclado dibujado"
 
 
 class FrameSource(Protocol):
@@ -128,10 +140,14 @@ class FallingNotesReader:
         info = self._frames.probe(video.path)
         key_frames = self._frames.key_frames(video.path, info, self._settings.plate_frames)
         plate = np.median(key_frames, axis=0).astype(np.uint8)
+        if debug_dir is not None:  # what the reader saw, to tell why a video was not read
+            write_png(debug_dir / "plate.png", plate)
+            write_png(debug_dir / "frame.png", key_frames[len(key_frames) // 2])
         del key_frames
-        keyboard = detect_keyboard(plate)
+        search = find_keyboard(plate)
+        keyboard = search.keyboard
         if keyboard is None:
-            return VideoReading(failure="no se encontró un teclado dibujado", fps=info.fps)
+            return VideoReading(failure=f"{NO_KEYBOARD}: {search.failure}", fps=info.fps)
         calibration = self._calibrate(video.path, info, plate, keyboard)
         if debug_dir is not None:
             write_png(debug_dir / "keyboard.png", _overlay(plate, keyboard, calibration))
@@ -458,18 +474,29 @@ def _readings(
     ]
     bars.sort(key=lambda pair: (pair[0].start_s, pair[0].pitch))
     lit = (signals.lit >= settings.lit_share) & signals.valid[:, None]
+    shortest = max(1, round(settings.min_note_s * fps))
     keys = [
         (NoteEvent(pitches[k], origin + (a - 0.5) / fps, origin + (b - 0.5) / fps, _VELOCITY), k)
         for k in range(len(pitches))
-        for a, b in _runs(lit[:, k], max_gap=0, min_length=1)
+        for a, b in _runs(lit[:, k], max_gap=0, min_length=shortest)
     ]
     keys.sort(key=lambda pair: (pair[0].start_s, pair[0].pitch))
+    bar_notes, lit_notes = [n for n, _ in bars], [n for n, _ in keys]
     hands = _hands(bars, signals, layout, calibration, info)
-    readings = [NoteReading(ReadingMethod.BARS, tuple(n for n, _ in bars), hands)]
-    lit_keys = _lit_keys_are_real([n for n, _ in bars], [n for n, _ in keys])
+    readings = [NoteReading(ReadingMethod.BARS, tuple(bar_notes), hands)]
+    delay = agreeing = None
+    if bar_notes and lit_notes:
+        delay = estimate_delay(lit_notes, bar_notes)
+        agreeing = agreement(lit_notes, bar_notes, ONSET_100MS, time_shift_s=-(delay or 0.0)).f1
+    lit_keys = _lit_keys_look_real(lit_notes, bar_notes, lit, agreeing)
     if lit_keys:
-        readings.append(NoteReading(ReadingMethod.KEYS, tuple(n for n, _ in keys)))
-        readings.append(_fused(bars, hands, keys, fps))
+        readings.append(
+            NoteReading(
+                ReadingMethod.KEYS,
+                tuple(lit_notes),
+                _hands_of_lit_notes(keys, bars, hands, delay or 0.0, fps),
+            )
+        )
     return VideoReading(
         failure=None,
         keyboard=keyboard.describe(),
@@ -478,63 +505,57 @@ def _readings(
         frames_with_keyboard=int(signals.valid.sum()),
         fall_speed_px_s=speed,
         lit_keys=lit_keys,
+        bar_key_agreement=agreeing,
+        bar_delay_s=delay,
         readings=tuple(readings),
-        preferred=ReadingMethod.FUSED if lit_keys else ReadingMethod.BARS,
+        preferred=ReadingMethod.KEYS if lit_keys else ReadingMethod.BARS,
     )
 
 
-def _lit_keys_are_real(bars: list[NoteEvent], keys: list[NoteEvent]) -> bool:
-    """Lit keys count when they mostly agree with the bars (hands on a filmed piano do not)."""
-    if not keys or not bars:
+def _lit_keys_look_real(
+    lit_notes: list[NoteEvent], bar_notes: list[NoteEvent], lit: Mask, agreeing: float | None
+) -> bool:
+    """Whether the keys light up as notes do: often enough and only a few at a time.
+
+    The bars confirm them when both agree. Bars that disagree do not overrule them: on real
+    tutorials the bars are the reading that goes wrong, unless the keys light up far less
+    often than bars land.
+    """
+    if len(lit_notes) < _MIN_LIT_NOTES:
         return False
-    return agreement(bars, keys, ONSET_100MS).f1 >= _MIN_LIT_AGREEMENT
+    at_once = lit.sum(axis=1)
+    if float(np.median(at_once[at_once > 0])) > _MAX_TYPICAL_LIT:
+        return False
+    if agreeing is not None and agreeing >= _MIN_LIT_AGREEMENT:
+        return True
+    return len(lit_notes) >= max(_MIN_UNCONFIRMED_LIT_NOTES, _MIN_LIT_PER_BAR * len(bar_notes))
 
 
-def _fused(
+def _hands_of_lit_notes(
+    keys: list[tuple[NoteEvent, int]],
     bars: list[tuple[NoteEvent, int]],
     hands: tuple[Hand | None, ...],
-    keys: list[tuple[NoteEvent, int]],
+    delay: float,
     fps: float,
-) -> NoteReading:
-    """Lit keys decide which notes exist; bars give them their finer timing.
-
-    Every bar that starts while its key is lit is kept (several of them split a key that
-    stayed lit through a fast repetition); a lit key with no bar keeps its own timing; bars
-    whose key never lights up are dropped (a neighbour's bar or a spark).
-    """
-    slack = 1.5 / fps
-    by_key: dict[int, list[int]] = {}
-    for index, (_, key) in enumerate(bars):
-        by_key.setdefault(key, []).append(index)
-    kept: list[tuple[NoteEvent, Hand | None]] = []
-    used: set[int] = set()
-    for lit_note, key in keys:
-        inside = [
-            i
-            for i in by_key.get(key, [])
-            if i not in used
-            # a bar starting after its key went dark belongs to the next lit run
-            and lit_note.start_s - slack <= bars[i][0].start_s < lit_note.end_s - 0.25 / fps
-        ]
-        if not inside:
-            kept.append((lit_note, None))
-            continue
-        for i in inside:
-            note = bars[i][0]
-            end = min(note.end_s, lit_note.end_s + slack)
-            kept.append(
-                (
-                    NoteEvent(note.pitch, note.start_s, end, note.velocity),
-                    hands[i] if hands else None,
-                )
-            )
-            used.add(i)
-    kept.sort(key=lambda pair: (pair[0].start_s, pair[0].pitch))
-    return NoteReading(
-        ReadingMethod.FUSED,
-        tuple(n for n, _ in kept),
-        tuple(h for _, h in kept) if hands else (),
-    )
+) -> tuple[Hand | None, ...]:
+    """Hand of each lit note: that of the bar landing on its key when it lights up, once the
+    constant ``delay`` of the bars against the keys is removed; () without hand colours."""
+    if not hands:
+        return ()
+    tolerance = max(2.0 / fps, 0.06)
+    landings: dict[int, list[tuple[float, Hand | None]]] = {}
+    for (bar, key), hand in zip(bars, hands, strict=True):
+        landings.setdefault(key, []).append((bar.start_s - delay, hand))
+    found: list[Hand | None] = []
+    for note, key in keys:
+        nearest = min(
+            landings.get(key, []), key=lambda pair: abs(pair[0] - note.start_s), default=None
+        )
+        if nearest is not None and abs(nearest[0] - note.start_s) <= tolerance:
+            found.append(nearest[1])
+        else:
+            found.append(None)
+    return tuple(found)
 
 
 def _hands(

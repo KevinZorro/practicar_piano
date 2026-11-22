@@ -18,7 +18,6 @@ _PREFERRED_AUDIO = ("bytedance", "basic-pitch")
 _METHOD_TEXT = {
     "bars": "barras",
     "keys": "teclas iluminadas",
-    "fused": "teclas + barras",
 }
 
 
@@ -44,6 +43,12 @@ def render_video_report(songs: Sequence[VideoSongReport], environment: dict[str,
         "las columnas *alineado* lo descuentan.",
         "- **Transposición** distinta de 0: el teclado del video se nombró corrido (por ejemplo, "
         "+12 es una octava).",
+        "- **Lectura**: *teclas iluminadas* cuando el video ilumina las teclas que suenan (se "
+        "prefiere: en los tutoriales reales coincide mucho mejor con el audio); si no, "
+        "*barras*, las que caen.",
+        "- `plate.png`: el fondo del video, sin barras ni teclas iluminadas, que es donde se "
+        "busca el teclado; `frame.png`: un fotograma de la mitad del video. Están aunque el "
+        "video no se haya leído, para ver por qué.",
         "- `keyboard.png`: lo detectado sobre el fondo del video (línea roja: donde caen las "
         "barras; marca verde: Do central; azul: los demás Do). `roll.png`: rojo es la "
         "referencia, verde la lectura del video y amarillo donde coinciden (primeros 30 s).",
@@ -166,6 +171,11 @@ def _details(song: VideoSongReport) -> list[str]:
             f"las barras caen a {reading.fall_speed_px_s:.0f} px/s; teclas iluminadas: "
             f"{'sí' if reading.lit_keys else 'no'}."
         )
+        if reading.bar_key_agreement is not None:
+            lines.append(
+                f"- Barras contra teclas iluminadas: F1 {reading.bar_key_agreement:.3f} "
+                f"(inicio a menos de 100 ms){_bar_delay(reading.bar_delay_s)}."
+            )
     if song.hand_split_agreement is not None:
         lines.append(
             f"- Manos por color: {song.hand_split_agreement:.0%} de las notas coinciden con la "
@@ -174,6 +184,8 @@ def _details(song: VideoSongReport) -> list[str]:
     for model in song.models:
         if model.error:
             lines.append(f"- {model.name}: error: {model.error}")
+        elif model.reused:
+            lines.append(f"- {model.name}: {model.note_count} notas, de una corrida anterior.")
         elif model.usage:
             lines.append(
                 f"- {model.name}: {model.note_count} notas en {model.usage.wall_seconds:.0f} s, "
@@ -198,6 +210,13 @@ def _comparison_row(c: Comparison) -> str:
         f"{_f1(c.onset)} | {_f1(c.aligned)} | {_f1(c.aligned_100ms)} | {_f1(c.with_offsets)} | "
         f"{_ms(c.delay_s)} | {shift} |"
     )
+
+
+def _bar_delay(seconds: float | None) -> str:
+    if seconds is None:
+        return ""
+    when = "después" if seconds >= 0 else "antes"
+    return f"; las barras llegan {abs(seconds) * 1000:.0f} ms {when} de que la tecla se ilumine"
 
 
 def _find(comparisons: Sequence[Comparison], reference: str, estimate: str) -> Comparison | None:
@@ -234,6 +253,8 @@ def _song_json(song: VideoSongReport) -> dict[str, object]:
             "frames_with_keyboard": reading.frames_with_keyboard,
             "fall_speed_px_s": reading.fall_speed_px_s,
             "lit_keys": reading.lit_keys,
+            "bar_key_agreement": reading.bar_key_agreement,
+            "bar_delay_s": reading.bar_delay_s,
             "preferred": reading.preferred,
             "notes": {r.method: len(r.notes) for r in reading.readings},
         },
@@ -245,6 +266,7 @@ def _song_json(song: VideoSongReport) -> dict[str, object]:
                 "name": m.name,
                 "notes": m.note_count,
                 "error": m.error,
+                "reused": m.reused,
                 "wall_s": m.usage.wall_seconds if m.usage else None,
                 "peak_mb": m.usage.peak_rss_mb if m.usage else None,
             }

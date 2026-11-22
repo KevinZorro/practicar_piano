@@ -19,6 +19,7 @@ _AUDIO_BASENAME = "audio"
 _VIDEO_BASENAME = "video"
 _SAMPLE_RATE_HZ = "44100"
 _BYTES_PER_MB = 1024 * 1024
+_PARTIAL_SUFFIXES = (".part", ".ytdl")  # what yt-dlp leaves while (or after failing) writing
 DEFAULT_VIDEO_HEIGHT = 480
 
 
@@ -87,20 +88,34 @@ class YtDlpDownloader:
     def download_video(self, source: SongSource, dest_dir: Path) -> VideoFile:
         """Get only the picture, at most ``video_height`` rows and 30 frames per second.
 
-        H.264 is preferred: it is the cheapest to decode on the VPS. Raises like ``download``.
+        H.264 is preferred: it is the cheapest to decode on the VPS. When that download fails
+        (YouTube answered 403 to one song on the VPS), the 360p file with picture and sound is
+        tried once: another format, which may still be served. Raises like ``download``.
         """
         if not isinstance(source, VideoUrl):
             raise DownloadError("this downloader only handles YouTube links")
         dest_dir.mkdir(parents=True, exist_ok=True)
         try:
             duration = self._probe_duration(source)
-            with contextlib.closing(self._open(self._video_options(dest_dir))) as ydl:
-                ydl.download([source.canonical])
         except DurationLimitExceededError:
             raise
         except Exception as exc:
             raise DownloadError(_scrub(str(exc), source)) from None
-        found = sorted(dest_dir.glob(f"{_VIDEO_BASENAME}.*"))
+        for attempt, options in enumerate(
+            (self._video_options(dest_dir), self._video_options(dest_dir, progressive=True))
+        ):
+            try:
+                with contextlib.closing(self._open(options)) as ydl:
+                    ydl.download([source.canonical])
+                break
+            except Exception as exc:
+                if attempt:
+                    raise DownloadError(_scrub(str(exc), source)) from None
+                for leftover in dest_dir.glob(f"{_VIDEO_BASENAME}.*"):
+                    leftover.unlink(missing_ok=True)  # left by the failed attempt
+        found = sorted(
+            p for p in dest_dir.glob(f"{_VIDEO_BASENAME}.*") if p.suffix not in _PARTIAL_SUFFIXES
+        )
         if not found:
             raise DownloadError("yt-dlp finished but produced no video file")
         path = found[0]
@@ -155,15 +170,17 @@ class YtDlpDownloader:
             "postprocessor_args": {"extractaudio": ["-ac", "1", "-ar", _SAMPLE_RATE_HZ]},
         }
 
-    def _video_options(self, dest_dir: Path) -> dict[str, Any]:
+    def _video_options(self, dest_dir: Path, *, progressive: bool = False) -> dict[str, Any]:
         height = self._video_height
+        picture_only = (
+            f"bestvideo[height<={height}][fps<=30][vcodec^=avc1]"
+            f"/bestvideo[height<={height}][fps<=30]"
+            f"/bestvideo[height<={height}]/best[height<={height}]"
+        )
         return {
             **self._base_options(),
-            "format": (
-                f"bestvideo[height<={height}][fps<=30][vcodec^=avc1]"
-                f"/bestvideo[height<={height}][fps<=30]"
-                f"/bestvideo[height<={height}]/best[height<={height}]"
-            ),
+            # 18 is the 360p MP4 with picture and sound: the reader ignores the sound
+            "format": f"18/best[height<={height}]" if progressive else picture_only,
             "outtmpl": str(dest_dir / f"{_VIDEO_BASENAME}.%(ext)s"),
         }
 
