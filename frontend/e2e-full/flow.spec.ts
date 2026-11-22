@@ -22,6 +22,10 @@ test('paste a link, close and reopen, practice with the keyboard and keep the so
     };
   });
 
+  // Offline means no YouTube either: where CI reaches it, the real embed would set the clock
+  // by a video that may never start. Without it, the app counts the time itself.
+  await page.route('https://www.youtube.com/iframe_api', (route) => route.abort());
+
   // 1. Paste the link: the job enters the queue.
   await page.goto('/');
   await page.getByLabel('Enlace de YouTube').fill('https://youtu.be/dQw4w9WgXcQ');

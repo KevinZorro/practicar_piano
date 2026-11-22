@@ -43,6 +43,26 @@ export const RestartIcon = () => (
   </Icon>
 );
 
+/** Four corners pointing out: take the whole screen. */
+export const ExpandIcon = () => (
+  <Icon>
+    <path d="M4 9V5a1 1 0 0 1 1-1h4" />
+    <path d="M15 4h4a1 1 0 0 1 1 1v4" />
+    <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
+    <path d="M9 20H5a1 1 0 0 1-1-1v-4" />
+  </Icon>
+);
+
+/** Four corners pointing in: back to the window. */
+export const ShrinkIcon = () => (
+  <Icon>
+    <path d="M9 4v4a1 1 0 0 1-1 1H4" />
+    <path d="M20 9h-4a1 1 0 0 1-1-1V4" />
+    <path d="M15 20v-4a1 1 0 0 1 1-1h4" />
+    <path d="M4 15h4a1 1 0 0 1 1 1v4" />
+  </Icon>
+);
+
 export const BackIcon = () => (
   <Icon>
     <path d="M14.5 6 8.5 12l6 6" />

@@ -22,6 +22,7 @@ describe('parsePrefs', () => {
     expect(parsePrefs({ rewindS: 2.5 }).rewindS).toBe(5);
     expect(parsePrefs({ rewindS: 0 }).rewindS).toBe(5);
     expect(parsePrefs({ view: 'falling' }).view).toBe('falling');
+    expect(parsePrefs({ view: 'video' }).view).toBe('video');
   });
 
   it('returns the defaults for anything that is not an object', () => {

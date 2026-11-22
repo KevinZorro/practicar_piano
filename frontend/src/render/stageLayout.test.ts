@@ -18,11 +18,13 @@ describe('stageLayout', () => {
     expect(stageLayout(390, 420, 36, 'falling').keyboardHeight).toBe(56);
   });
 
-  it('shows only the keyboard strip under the score', () => {
-    expect(stageLayout(900, 90, 22, 'sheet')).toMatchObject({
-      fallHeight: 0,
-      keyboardHeight: 90 - HIT_GAP,
-    });
+  it('shows only the keyboard strip under the score or the video', () => {
+    for (const view of ['sheet', 'video'] as const) {
+      expect(stageLayout(900, 90, 22, view)).toMatchObject({
+        fallHeight: 0,
+        keyboardHeight: 90 - HIT_GAP,
+      });
+    }
   });
 
   it('shows more seconds ahead on a taller stage, within limits', () => {

@@ -3,11 +3,11 @@ import { openPractice } from './support';
 
 test('the chosen view is kept for the next visit', async ({ page }) => {
   await openPractice(page);
-  const stage = page.locator('.stage');
-  await expect(stage).toHaveAttribute('data-view', 'both');
+  const practice = page.getByRole('region', { name: 'Práctica' });
+  await expect(practice).toHaveAttribute('data-view', 'both');
 
   await page.getByRole('radio', { name: 'Notas', exact: true }).check();
-  await expect(stage).toHaveAttribute('data-view', 'falling');
+  await expect(practice).toHaveAttribute('data-view', 'falling');
   await expect(page.locator('.stage-sheet')).toBeHidden();
   await expect(page.getByRole('img', { name: 'Notas que caen' })).toBeVisible();
 
@@ -17,7 +17,7 @@ test('the chosen view is kept for the next visit', async ({ page }) => {
     .getByRole('button', { name: 'Practicar' })
     .click();
   await expect(page.getByRole('radio', { name: 'Notas', exact: true })).toBeChecked();
-  await expect(stage).toHaveAttribute('data-view', 'falling');
+  await expect(practice).toHaveAttribute('data-view', 'falling');
 
   await page.getByRole('radio', { name: 'Partitura', exact: true }).check();
   await expect(page.locator('.sheet svg')).toBeVisible({ timeout: 20_000 });
