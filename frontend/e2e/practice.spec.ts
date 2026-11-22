@@ -276,6 +276,9 @@ test('automatic rewind goes back the chosen seconds on a wrong key, without wait
   await expect(page.getByLabel('Modo espera')).not.toBeChecked();
   await page.getByLabel('Segundos que retrocede').fill('2');
   await expect(page.getByText('2 s', { exact: true })).toBeVisible();
+  // Silence rewinds by default; this test is about the wrong key alone.
+  await expect(page.getByLabel('También si no toco o me salto un acorde')).toBeChecked();
+  await page.getByLabel('También si no toco o me salto un acorde').uncheck();
   await page.getByRole('button', { name: 'Conectar teclado' }).click();
   await expect(page.getByText('Teclado conectado.')).toBeVisible();
   await page.getByRole('button', { name: 'Reproducir' }).click();
@@ -287,4 +290,18 @@ test('automatic rewind goes back the chosen seconds on a wrong key, without wait
   await expect(progress).toContainText('Fallos: 1');
   await expect(progress).toContainText('Retrocesos: 1');
   await expect(page.locator('.timeline-now')).toHaveText(/0:0[0-3]/);
+});
+
+test('automatic rewind also goes back when the keyboard hears nothing', async ({ page }) => {
+  await fakeKeyboard(page);
+  await openPractice(page);
+  const progress = page.getByLabel('Progreso del retroceso automático');
+
+  await page.getByLabel('Retroceso automático').check();
+  await page.getByRole('button', { name: 'Conectar teclado' }).click();
+  await expect(page.getByText('Teclado conectado.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+
+  // No key is pressed at all: the first chords go by unheard and the song goes back.
+  await expect(progress).toContainText(/Retrocesos: [1-9]/, { timeout: 15_000 });
 });

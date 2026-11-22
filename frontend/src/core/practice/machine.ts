@@ -15,6 +15,12 @@ export const DEFAULT_CONFIG: PracticeConfig = {
   earlyWindowS: 0.25,
 };
 
+/**
+ * A pause that lands this close after the chord needs no seek back: a seek makes a video
+ * reload (a visible hiccup at every chord) for a difference nobody can see.
+ */
+const SETTLE_WITHOUT_SEEK_S = 0.15;
+
 export type PracticeStatus = 'playing' | 'waiting' | 'finished';
 
 export interface PracticeStats {
@@ -91,10 +97,14 @@ function onTick(state: PracticeState, chord: Chord, timeS: number, total: number
   if (state.status !== 'playing' || timeS < chord.startS) return { state, actions: [] };
   const expected = expectedPitches(chord);
   if (hasAll(state.pressed, expected)) return advance(state, total, []);
-  // The clock may overshoot; go back to the exact chord time so nothing is skipped.
+  // A big overshoot (a lagging tab) goes back to the exact chord time so nothing is skipped.
+  const overshoot = timeS - chord.startS;
   return {
     state: { ...state, status: 'waiting' },
-    actions: [{ type: 'pause' }, { type: 'seek', timeS: chord.startS }],
+    actions:
+      overshoot <= SETTLE_WITHOUT_SEEK_S
+        ? [{ type: 'pause' }]
+        : [{ type: 'pause' }, { type: 'seek', timeS: chord.startS }],
   };
 }
 

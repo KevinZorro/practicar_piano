@@ -28,7 +28,7 @@ export interface PracticePrefs {
   /** Seconds the song goes back after a wrong key (wait mode and follow mode). */
   readonly rewindS: number;
   /** Follow mode: a skipped chord also rewinds, not only a wrong key. */
-  readonly rewindOnMiss: boolean;
+  readonly rewindOnSilence: boolean;
 }
 
 export const REWIND_MIN_S = 1;
@@ -45,7 +45,7 @@ export const DEFAULT_PREFS: PracticePrefs = {
   naming: 'letters',
   sheetZoom: 1,
   rewindS: 5,
-  rewindOnMiss: false,
+  rewindOnSilence: true,
 };
 
 const VIEWS: readonly PracticeView[] = ['falling', 'sheet', 'both', 'video'];
@@ -84,7 +84,7 @@ export function parsePrefs(value: unknown): PracticePrefs {
     naming: pick(v['naming'], NAMINGS, DEFAULT_PREFS.naming),
     sheetZoom: pick(v['sheetZoom'], SHEET_ZOOM_STEPS, DEFAULT_PREFS.sheetZoom),
     rewindS: whole(v['rewindS'], REWIND_MIN_S, REWIND_MAX_S, DEFAULT_PREFS.rewindS),
-    rewindOnMiss: flag(v['rewindOnMiss'], DEFAULT_PREFS.rewindOnMiss),
+    rewindOnSilence: flag(v['rewindOnSilence'], DEFAULT_PREFS.rewindOnSilence),
   };
 }
 

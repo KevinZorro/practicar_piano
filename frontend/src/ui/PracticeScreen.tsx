@@ -240,10 +240,14 @@ export function PracticeScreen({
     soundRef.current = appSound && !micSilence;
     player.setMuted(micSilence);
   }, [appSound, micSilence, player]);
+  const inputReadyRef = useRef(false);
   const micRef = useRef<MicInput | null>(null);
   useEffect(() => {
     micRef.current = mic;
   }, [mic]);
+  useEffect(() => {
+    inputReadyRef.current = source !== null && inputStatus === 'ready';
+  }, [source, inputStatus]);
   const judge = useMemo(() => new Judge(view.notes), [view]);
   const judgeRef = useRef(judge);
   const attemptInfo = useRef({ level, onAttempt, reported: false });
@@ -306,10 +310,10 @@ export function PracticeScreen({
       (stats) => {
         setFollowTally({ source: holder.current, stats });
       },
-      { ...DEFAULT_FOLLOW_CONFIG, rewindS: prefs.rewindS, rewindOnMiss: prefs.rewindOnMiss },
+      { ...DEFAULT_FOLLOW_CONFIG, rewindS: prefs.rewindS, rewindOnMiss: prefs.rewindOnSilence },
     );
     return holder.current;
-  }, [followOn, hand, view, clock, prefs.rewindS, prefs.rewindOnMiss]);
+  }, [followOn, hand, view, clock, prefs.rewindS, prefs.rewindOnSilence]);
   const followRef = useRef<FollowMode | null>(null);
   useEffect(() => {
     followRef.current = follow;
@@ -427,7 +431,7 @@ export function PracticeScreen({
       seekSheet.current?.(now);
       if (sessionRef.current) {
         waitRef.current?.tick();
-        followRef.current?.tick();
+        followRef.current?.tick(inputReadyRef.current);
       }
       const listening = micRef.current;
       if (listening) {
@@ -880,9 +884,9 @@ export function PracticeScreen({
           onRewindS={(rewindS) => {
             onPrefs({ rewindS });
           }}
-          rewindOnMiss={prefs.rewindOnMiss}
+          rewindOnMiss={prefs.rewindOnSilence}
           onRewindOnMiss={(rewindOnMiss) => {
-            onPrefs({ rewindOnMiss });
+            onPrefs({ rewindOnSilence: rewindOnMiss });
           }}
           hand={hand}
           onHand={setHand}

@@ -11,7 +11,7 @@ describe('parsePrefs', () => {
       naming: 'solfege',
       sheetZoom: 1.3,
       rewindS: 12,
-      rewindOnMiss: true,
+      rewindOnSilence: false,
     };
     expect(parsePrefs(stored)).toEqual(stored);
   });

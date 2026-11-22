@@ -10,7 +10,7 @@ import {
 export interface FollowConfig {
   /** Seconds the song goes back after a mistake. */
   readonly rewindS: number;
-  /** A chord of which no note was played also counts as a mistake. */
+  /** A chord of which no note was heard also counts as a mistake (silence is a mistake). */
   readonly rewindOnMiss: boolean;
   /** A key counts for a note when it lands within this many seconds of it. */
   readonly windowS: number;
@@ -19,13 +19,16 @@ export interface FollowConfig {
    * landing point. A video that is still loading cannot trigger a string of rewinds.
    */
   readonly coolOffS: number;
+  /** Silence only counts once the song has run this long since listening began. */
+  readonly leadInS: number;
 }
 
 export const DEFAULT_FOLLOW_CONFIG: FollowConfig = {
   rewindS: 5,
-  rewindOnMiss: false,
+  rewindOnMiss: true,
   windowS: 0.3,
   coolOffS: 0.6,
+  leadInS: 1,
 };
 
 export interface FollowStats {
@@ -46,8 +49,10 @@ export class FollowMode {
   private readonly matched = new Set<number>();
   private pointer = 0;
   private coolUntilS = -Infinity;
-  /** Missed chords only count once the player has pressed a key in this run. */
+  /** Missed chords count once a key was pressed in this run, or the keyboard is listening. */
   private armed = false;
+  /** Where silence starts to count when nothing has been played yet. */
+  private silenceFromS: number | null = null;
   private stats: FollowStats = { hits: 0, mistakes: 0, rewinds: 0 };
 
   constructor(
@@ -78,13 +83,25 @@ export class FollowMode {
     this.mistake();
   }
 
-  /** Call every frame while the player is practicing. */
-  tick(): void {
-    if (!this.config.rewindOnMiss || !this.armed) return;
+  /**
+   * Call every frame while the player is practicing. `listening` says the keyboard (or the
+   * microphone) is connected and ready: then a chord that goes by unheard is a mistake even
+   * if no key was pressed yet, after a short lead-in so the first chord is not missed.
+   */
+  tick(listening = false): void {
+    if (!this.config.rewindOnMiss) return;
     const now = this.clock.now();
+    if (!this.armed) {
+      if (!listening) return;
+      this.silenceFromS ??= now + this.config.leadInS;
+    }
     while (this.pointer < this.chords.length) {
       const chord = this.chords[this.pointer];
       if (!chord || chord.startS + this.config.windowS >= now) return;
+      if (!this.armed && chord.startS < (this.silenceFromS ?? 0)) {
+        this.pointer++;
+        continue;
+      }
       this.pointer++;
       if (!chord.notes.some((n) => this.matched.has(n.id))) {
         this.mistake();
@@ -99,6 +116,7 @@ export class FollowMode {
     this.pointer = this.firstChordFrom(timeS);
     this.coolUntilS = -Infinity;
     this.armed = false;
+    this.silenceFromS = null;
   }
 
   private mistake(): void {

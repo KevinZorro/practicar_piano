@@ -41,10 +41,16 @@ describe('wait mode', () => {
     expect(actions).toEqual([]);
   });
 
-  it('pauses exactly at the chord time, even if the clock overshot', () => {
+  it('goes back to the chord time when the clock overshot a lot', () => {
     const { state, actions } = run([tick(10.2)]);
     expect(state.status).toBe('waiting');
     expect(actions).toEqual([{ type: 'pause' }, { type: 'seek', timeS: 10 }]);
+  });
+
+  it('only pauses, without a seek, when the overshoot is a frame or two', () => {
+    const { state, actions } = run([tick(10.03)]);
+    expect(state.status).toBe('waiting');
+    expect(actions).toEqual([{ type: 'pause' }]);
   });
 
   it('resumes and advances when the right key is played', () => {

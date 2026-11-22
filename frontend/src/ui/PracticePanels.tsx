@@ -144,10 +144,10 @@ export function PracticePanel(props: PracticePanelProps) {
           )}
           {props.followOn && (
             <Switch
-              label="También si me salto un acorde"
+              label="También si no toco o me salto un acorde"
               checked={props.rewindOnMiss}
               onChange={props.onRewindOnMiss}
-              hint="La transcripción no es perfecta: si el video toca algo que ella no tiene, déjalo apagado."
+              hint="Si el teclado conectado no oye nada cuando suena un acorde, vuelve atrás. Si el video toca algo que la transcripción no tiene, apágalo."
             />
           )}
           {(props.followOn || props.rewindOnWrong) && (
