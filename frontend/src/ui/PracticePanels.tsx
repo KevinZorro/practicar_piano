@@ -9,6 +9,7 @@ import {
   REWIND_MIN_S,
   SHEET_ZOOM_STEPS,
   stepZoom,
+  type AudioSource,
   type PracticePrefs,
 } from '../core/practice/prefs';
 import { SPEED_PRESETS } from '../core/practice/speed';
@@ -21,6 +22,18 @@ const HAND_LABEL: Record<HandFilter, string> = {
   both: 'Las dos',
   right: 'Derecha',
   left: 'Izquierda',
+};
+
+const AUDIO_OPTIONS: readonly (readonly [AudioSource, string])[] = [
+  ['video', 'Del video'],
+  ['piano', 'Piano de la app'],
+  ['both', 'Los dos'],
+];
+
+const AUDIO_HINT: Record<AudioSource, string> = {
+  video: 'Suena el video; el piano de la app calla.',
+  piano: 'El video queda en pausa y el piano de la app toca la canción.',
+  both: 'Suena el video y, encima, el piano de la app.',
 };
 
 const percent = (value: number) => `${String(Math.round(value * 100))} %`;
@@ -44,20 +57,20 @@ interface PracticePanelProps {
   onHand: (hand: HandFilter) => void;
   rewindOnWrong: boolean;
   onRewind: (on: boolean) => void;
+  /** With a video: what is heard. Without one (null) the app's piano has an on/off switch. */
+  audio: AudioSource | null;
+  onAudio: (audio: AudioSource) => void;
   sound: boolean;
   /** The microphone is listening without headphones: the app must stay silent. */
   soundLocked: boolean;
   onSound: (on: boolean) => void;
-  videoSound: boolean;
 }
 
 /** How the song is played: level, speed, wait mode and the app's own piano. */
 export function PracticePanel(props: PracticePanelProps) {
   const soundHint = props.soundLocked
     ? 'Apagado mientras el micrófono escucha sin audífonos.'
-    : props.videoSound
-      ? 'El piano de la app. El video ya trae el sonido de la canción.'
-      : 'El piano de la app toca las notas de la canción.';
+    : 'El piano de la app toca las notas de la canción.';
   return (
     <section className="panel">
       <h3>Cómo tocarla</h3>
@@ -160,13 +173,32 @@ export function PracticePanel(props: PracticePanelProps) {
           )}
         </div>
       )}
-      <Switch
-        label="Sonido"
-        checked={props.sound && !props.soundLocked}
-        disabled={props.soundLocked}
-        onChange={props.onSound}
-        hint={soundHint}
-      />
+      {props.audio !== null ? (
+        <KeyRow
+          legend="Sonido"
+          name="audio"
+          value={props.audio}
+          options={AUDIO_OPTIONS}
+          onChange={props.onAudio}
+          disabled={props.soundLocked}
+          className="audio-row"
+        />
+      ) : (
+        <Switch
+          label="Sonido"
+          checked={props.sound && !props.soundLocked}
+          disabled={props.soundLocked}
+          onChange={props.onSound}
+          hint={soundHint}
+        />
+      )}
+      {props.audio !== null && (
+        <p className="fine-print">
+          {props.soundLocked
+            ? 'Apagado mientras el micrófono escucha sin audífonos.'
+            : AUDIO_HINT[props.audio]}
+        </p>
+      )}
     </section>
   );
 }

@@ -5,6 +5,7 @@ describe('parsePrefs', () => {
     const stored = {
       view: 'sheet',
       showVideo: false,
+      audio: 'both',
       sheetColors: false,
       sheetLetters: true,
       naming: 'solfege',
@@ -17,12 +18,21 @@ describe('parsePrefs', () => {
 
   it('falls back field by field on unknown or broken values', () => {
     expect(
-      parsePrefs({ view: 'piano-roll', naming: 3, sheetZoom: 7, showVideo: 'yes', rewindS: 99 }),
+      parsePrefs({
+        view: 'piano-roll',
+        naming: 3,
+        sheetZoom: 7,
+        showVideo: 'yes',
+        audio: 'cd',
+        rewindS: 99,
+      }),
     ).toEqual(DEFAULT_PREFS);
     expect(parsePrefs({ rewindS: 2.5 }).rewindS).toBe(5);
     expect(parsePrefs({ rewindS: 0 }).rewindS).toBe(5);
     expect(parsePrefs({ view: 'falling' }).view).toBe('falling');
     expect(parsePrefs({ view: 'video' }).view).toBe('video');
+    expect(parsePrefs({ audio: 'piano' }).audio).toBe('piano');
+    expect(parsePrefs({}).audio).toBe('video');
   });
 
   it('returns the defaults for anything that is not an object', () => {

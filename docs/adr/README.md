@@ -27,3 +27,4 @@ Una ADR por decisión del registro del 14 de noviembre de 2026. El estado vigent
 | [0021](0021-fuente-atkinson-hyperlegible.md) | Fuente Atkinson Hyperlegible Next con licencia SIL OFL 1.1 (nueva, complementa D-12) | Aceptada |
 | [0022](0022-practica-con-el-video-y-retroceso-configurable.md) | Práctica guiada por el video y retroceso configurable (nueva) | Aceptada |
 | [0023](0023-transcripcion-leyendo-las-notas-del-video.md) | Transcripción leyendo las notas que caen del video (nueva, modifica D-04) | Propuesta |
+| [0024](0024-piano-acustico-y-fuente-de-sonido.md) | Piano acústico con muestras y fuente de sonido elegible (nueva) | Aceptada |
