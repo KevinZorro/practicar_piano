@@ -16,7 +16,7 @@ Web app to practice piano from a YouTube cover link (falling notes, sheet music,
 - API contract: `uv run python -m notacaida.api.openapi` rewrites `docs/api/openapi.json` (a test fails if stale)
 - Frontend (from `frontend/`): `npm ci`, `npm run typecheck && npm run lint && npm run format:check && npm test`; e2e: `npm run e2e` (`PW_CHROMIUM_PATH` reuses a local Chromium); full flow with the real backend, offline: `npm run e2e:full` (needs the `synth`, `basic-pitch`, `score` extras; server in `backend/tests/e2e_server.py`)
 - Phase 0: `uv run notacaida phase0 run --links links.txt --out phase0-output` then `... phase0 gate`
-- Video notes prototype (ADR 0023): `uv run notacaida videonotes run --links links.txt --out videonotes-output` (or `--video-dir DIR`); synthetic videos with known notes: `uv run python -m tests.synthetic_videos --out ../synthetic-videos`
+- Video notes prototype (ADR 0023): `uv run notacaida videonotes run --links links.txt --out videonotes-output` (or `--video-dir DIR`; `--reuse [DIR...]` takes the model MIDI an earlier run or phase0 left instead of transcribing again); synthetic videos with known notes: `uv run python -m tests.synthetic_videos --out ../synthetic-videos`
 
 ## Structure
 - `backend/src/notacaida/{domain,application,infrastructure,api,cli}`: hexagonal; domain imports nothing external

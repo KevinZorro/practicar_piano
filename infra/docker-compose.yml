@@ -7,7 +7,8 @@
 #   docker compose -f infra/docker-compose.yml run --rm phase0 phase0 gate --out /data/out
 #
 # Video reading prototype (ADR 0023), same service; steps in docs/phase-1/lectura-de-video.md:
-#   docker compose -f infra/docker-compose.yml run --rm phase0 videonotes run --links /data/links.txt --out /data/out/videonotes --models bytedance
+#   docker compose -f infra/docker-compose.yml run --rm phase0 videonotes run --links /data/links.txt --out /data/out/videonotes --models bytedance --reuse /data/out
+#   (--reuse takes the bytedance.mid an earlier run, or phase0, left for each song instead of transcribing again)
 #
 # Home proxy over WireGuard (when YouTube blocks the VPS): set it once in infra/.env (git-ignored)
 #   NOTACAIDA_PROXY_URL=socks5h://10.8.0.2:1080
