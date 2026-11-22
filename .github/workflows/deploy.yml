@@ -1,9 +1,12 @@
 name: deploy
 
-# Deploys to the VPS over SSH after a merge to main. The key is restricted on the VPS to
+# Deploys to the VPS over SSH once CI has passed on a push to main (one deploy per merge,
+# never on a red or cancelled CI). infra/deploy.sh pulls the latest main. The key is restricted on the VPS to
 # run only infra/deploy.sh (see docs/phase-1/despliegue-vps.md, "Despliegue automático").
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -19,7 +22,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Without the secrets (forks, or before the setup) the job is skipped instead of failing.
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    # Also requires CI to have passed on a push (not a PR) when triggered by workflow_run.
+    if: >-
+      ${{ vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')) }}
     steps:
       - name: Prepare SSH
         env:

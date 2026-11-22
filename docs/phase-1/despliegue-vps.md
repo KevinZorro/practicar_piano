@@ -10,7 +10,7 @@ Pasos para publicar la API y el frontend en la VPS de Oracle (Ubuntu, arm64). To
 Una vez instalado todo (secciones 2 a 4), cada versión nueva se despliega con `bash ~/practicar_piano/infra/deploy.sh` (hace `git pull`, reconstruye la API, construye el frontend con Docker y lo publica). No cambia Nginx ni el certificado.
 
 ## Despliegue automático (GitHub Actions)
-Cada fusión a `main` ejecuta `.github/workflows/deploy.yml`, que entra por SSH a la VPS y corre `infra/deploy.sh`. La llave queda restringida: solo puede ejecutar ese script. Configuración única:
+Cuando la CI termina en verde tras una fusión a `main`, se ejecuta (un solo despliegue, nunca con la CI en rojo o cancelada) `.github/workflows/deploy.yml`, que entra por SSH a la VPS y corre `infra/deploy.sh`. La llave queda restringida: solo puede ejecutar ese script. Configuración única:
 
 1. **En la VPS** (como el usuario que despliega; cambia `RUTA` si el repo no está en `~/practicar_piano`):
 ```bash
