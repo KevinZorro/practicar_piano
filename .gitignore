@@ -39,6 +39,8 @@ models/
 *.opus
 *.webm
 *.flac
+*.f32
+frontend/.piano-samples/
 
 # Phase 0 run artifacts (contain copyrighted material and song titles)
 phase0-work/

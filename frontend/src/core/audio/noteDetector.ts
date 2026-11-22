@@ -37,8 +37,15 @@ export interface DetectorTuning {
 }
 
 export interface DetectorOptions {
+  /** Range in which a note that the song did not expect is reported as wrong. */
   lowPitch: number;
   highPitch: number;
+  /**
+   * Lowest pitch considered as an explanation of what sounds. Below the keyboard's range on
+   * a 61-key keyboard, but on a bigger one the octave below its C2 must still be able to take
+   * an expected note's place.
+   */
+  lowestRival: number;
   /** Time constant of the background estimate: sustained sounds fade into it after ~3 of these. */
   floorTauS: number;
   /** Upper limit of how fast the background may rise, in dB per second. */
@@ -69,6 +76,7 @@ export interface DetectorOptions {
 export const DEFAULT_OPTIONS: DetectorOptions = {
   lowPitch: 36, // C2, lowest key of a 61-key keyboard
   highPitch: 96, // C7
+  lowestRival: 24, // C1
   floorTauS: 0.5,
   floorMaxRiseDbPerS: 10,
   attackLagS: 0.25,
@@ -87,6 +95,8 @@ export const DEFAULT_OPTIONS: DetectorOptions = {
 };
 
 const MIN_DB = -120;
+/** From this many bins up, neighbouring semitones are at least 3 bins apart (they resolve). */
+const RESOLVING_BINS = 50;
 
 export function pitchToHz(pitch: number, cents = 0): number {
   return 440 * 2 ** ((pitch - 69) / 12 + cents / 1200);
@@ -102,11 +112,21 @@ export interface PartialReading {
   readonly prominenceDb: number;
   /** Where the peak really is, in cents from the nominal frequency. */
   readonly offsetCents: number;
+  /**
+   * The loudest bin of the window is a real peak. When it is not, it lies on the skirt of a
+   * stronger peak just outside the window: that energy belongs to a neighbouring note.
+   */
+  readonly peak: boolean;
   readonly present: boolean;
   readonly strict: boolean;
   /** Rise is there and the point is not on a skirt, but crowded chords can hide the peak. */
   readonly loose: boolean;
   readonly looseStrict: boolean;
+  /**
+   * Already sounding a moment ago (the previous bass note, the pedal) and still sounding: a new
+   * note adds too little to it to rise, so this partial neither confirms nor denies the note.
+   */
+  readonly masked: boolean;
 }
 
 export interface Reading {
@@ -114,6 +134,11 @@ export interface Reading {
   readonly partials: readonly PartialReading[];
   /** Mean position of the present partials against their nominal frequency, in cents. */
   readonly meanOffsetCents: number;
+  /**
+   * The same, over the partials that resolve semitones only: below ~300 Hz one FFT bin spans
+   * more than a semitone, so the low partials only add noise to the pitch stability check.
+   */
+  readonly steadyOffsetCents: number;
   /** Taken by the note hypothesis that explains the most energy (see `explain`). */
   readonly present: boolean;
   readonly presentStrict: boolean;
@@ -128,10 +153,42 @@ interface PitchState {
   /** Range of the pitch position while the note stays satisfied. */
   minCents: number;
   maxCents: number;
+  /** Frames in a row without the note while an expected note is being confirmed. */
+  gap: number;
 }
 
 function needed(count: number): number {
   return Math.min(count, Math.max(3, Math.ceil(count / 2)));
+}
+
+/**
+ * From here up (D#5) a piano note is mostly its fundamental: the 3rd and higher partials are
+ * 20–40 dB down and the 4.5 kHz limit leaves only 2–4 of them. Asking for half of them
+ * (at least 3) lost every note above G5 on real keyboards.
+ */
+export const TREBLE_HZ = 600;
+
+/**
+ * From here up (F6) even the 2nd partial is often 25–40 dB down, under the background of a
+ * normal room: a clear, steady fundamental alone is accepted, if it rises at least this much
+ * over the background and stands out this much from its surroundings.
+ */
+export const TOP_HZ = 1400;
+const TOP_ALONE_RISE_DB = 20;
+const TOP_ALONE_PROMINENCE_DB = 15;
+/** How much weaker than the shared partials the octave below's own odd partials may be. */
+const OWN_ODD_MARGIN_DB = 12;
+
+/**
+ * True when every partial of `upper` falls on a partial of `lower`: an octave, a twelfth,
+ * two octaves... (the k-th harmonic of `lower`, k >= 2). Such a note cannot explain the odd
+ * partials of `lower`, so on its own it can never be what the player pressed instead.
+ */
+export function isHarmonicOf(upper: number, lower: number, toleranceCents: number): boolean {
+  if (upper <= lower) return false;
+  const ratio = 2 ** ((upper - lower) / 12);
+  const k = Math.round(ratio);
+  return k >= 2 && Math.abs(1200 * Math.log2(ratio / k)) <= toleranceCents;
 }
 
 interface Evaluation {
@@ -156,7 +213,7 @@ export function evaluate(
   let score = 0;
   for (const [i, p] of partials.entries()) {
     if (p.bin < 0 || consumed[p.bin]) continue;
-    const resolves = p.hz >= 50 * binHz; // a semitone is >= 3 bins apart only from here up
+    const resolves = p.hz >= RESOLVING_BINS * binHz; // a semitone is >= 3 bins apart only from here up
     const isOdd = (i + 1) % 2 === 1; // the octave below has no partial at odd positions
     // The octave below has no energy at odd positions; there a crowded chord may hide the
     // sharp peak, so the looser test is enough.
@@ -172,12 +229,37 @@ export function evaluate(
       if (resolves) discStrict++;
     }
   }
-  const need = needed(count);
+  // Masked partials are left out of the count, so a bass note struck while the previous one
+  // rings is judged on the partials that note does not share; never on fewer than three.
+  const masked = partials.filter((p) => p.masked && p.bin >= 0 && !consumed[p.bin]).length;
+  const need = needed(Math.max(count - masked, Math.min(count, 3)));
+  const needStrict = needed(count);
   const needDisc = Math.min(2, count);
-  const needOdd = Math.ceil(need / 3);
+  let isPresent = present >= need && disc >= needDisc && odd >= Math.ceil(need / 3);
+  const fundamental = partials[0];
+  if (
+    !isPresent &&
+    fundamental &&
+    fundamental.hz >= TREBLE_HZ &&
+    fundamental.bin >= 0 &&
+    !consumed[fundamental.bin] &&
+    fundamental.present
+  ) {
+    // High notes: a clear fundamental (it resolves semitones easily up here) plus one more
+    // partial, or at the very top a strong fundamental alone. Playing the octave below still
+    // loses: it explains all of this and more, so it takes the note's place in `readAll`.
+    // Wrong notes keep the stricter rule.
+    isPresent =
+      partials.slice(1).some((p) => p.bin >= 0 && !consumed[p.bin] && p.loose) ||
+      (fundamental.hz >= TOP_HZ &&
+        fundamental.riseDb >= TOP_ALONE_RISE_DB &&
+        fundamental.prominenceDb >= TOP_ALONE_PROMINENCE_DB);
+  }
+  // Wrong notes keep the full count: nothing is reported on the strength of a guess.
   return {
-    present: present >= need && disc >= needDisc && odd >= needOdd,
-    strict: strict >= need && discStrict >= needDisc && oddStrict >= needOdd,
+    present: isPresent,
+    strict:
+      strict >= needStrict && discStrict >= needDisc && oddStrict >= Math.ceil(needStrict / 3),
     score,
   };
 }
@@ -290,7 +372,8 @@ export class NoteDetector {
 
   private candidates(): number[] {
     const out = new Set<number>(this.expected);
-    for (let p = this.options.lowPitch; p <= this.options.highPitch; p++) out.add(p);
+    const low = Math.min(this.options.lowPitch, this.options.lowestRival);
+    for (let p = low; p <= this.options.highPitch; p++) out.add(p);
     return [...out].sort((a, b) => a - b);
   }
 
@@ -315,12 +398,20 @@ export class NoteDetector {
     for (const pitch of this.candidates()) raw.set(pitch, this.readPartials(frame, pitch));
     const none = new Uint8Array(frame.db.length);
     const out = new Map<number, Reading>();
+    const mean = (ps: readonly PartialReading[]): number =>
+      ps.length === 0 ? 0 : ps.reduce((a, p) => a + p.offsetCents, 0) / ps.length;
     const mark = (pitch: number, present: boolean, strict: boolean) => {
       const partials = raw.get(pitch) ?? [];
       const heard = partials.filter((p) => p.present);
-      const meanOffsetCents =
-        heard.length === 0 ? 0 : heard.reduce((a, p) => a + p.offsetCents, 0) / heard.length;
-      out.set(pitch, { pitch, partials, meanOffsetCents, present, presentStrict: strict });
+      const resolved = heard.filter((p) => p.hz >= RESOLVING_BINS * binHz);
+      out.set(pitch, {
+        pitch,
+        partials,
+        meanOffsetCents: mean(heard),
+        steadyOffsetCents: mean(resolved.length > 0 ? resolved : heard),
+        present,
+        presentStrict: strict,
+      });
     };
 
     const accepted = new Map<number, Evaluation>();
@@ -331,7 +422,7 @@ export class NoteDetector {
     const consumed = new Uint8Array(frame.db.length);
     for (const pitch of accepted.keys()) this.consumeComb(consumed, pitch, binHz);
 
-    const unexpected = new Map<number, { ev: Evaluation; comb: Uint8Array }>();
+    const unexpected = new Map<number, Evaluation>();
     const remaining = new Set([...raw.keys()].filter((p) => !this.expected.has(p)));
     for (;;) {
       let best: { pitch: number; ev: Evaluation } | null = null;
@@ -341,10 +432,8 @@ export class NoteDetector {
       }
       if (!best) break;
       remaining.delete(best.pitch);
-      const comb = new Uint8Array(frame.db.length);
-      this.consumeComb(comb, best.pitch, binHz);
-      for (let k = 0; k < comb.length; k++) if (comb[k]) consumed[k] = 1;
-      unexpected.set(best.pitch, { ev: best.ev, comb });
+      this.consumeComb(consumed, best.pitch, binHz);
+      unexpected.set(best.pitch, best.ev);
     }
 
     const combs = new Map<number, Uint8Array>();
@@ -356,10 +445,23 @@ export class NoteDetector {
     const rivals = [...raw.keys()].filter((p) => !this.expected.has(p));
     const winners = new Map<number, Evaluation>();
     for (const [pitch, ev] of accepted) {
-      const own = (raw.get(pitch) ?? []).filter((p) => p.present && p.bin >= 0);
+      const partials = raw.get(pitch) ?? [];
+      const own = partials.filter((p) => p.present && p.bin >= 0);
       const shares = (comb: Uint8Array): boolean =>
         own.filter((p) => comb[p.bin]).length * 2 > own.length;
-      let contested = [...unexpected.values()].some(({ comb }) => shares(comb));
+      // What no note above this one can produce: its fundamental, or its odd partials
+      // (3rd, 5th, 7th). Small speakers lose the fundamental of low notes, so the odd partials
+      // must do; three of them, so that the octave, twelfth and seventeenth above played
+      // together cannot pass for it either. Those still ringing from the previous note (a bass
+      // line going up an octave) cannot be heard again, so the ones that remain must do.
+      const odd = partials.filter((_, i) => i > 0 && i % 2 === 0);
+      const oddHeard = odd.filter((p) => p.loose).length;
+      const oddOpen = odd.filter((p) => !p.masked).length;
+      const ownedBelow =
+        partials[0]?.present === true || (oddHeard >= 1 && oddHeard >= Math.min(3, oddOpen));
+      let contested = [...unexpected.keys()].some((u) =>
+        shares(this.windowComb(u, binHz, frame.db.length)),
+      );
       if (!contested) {
         // Would another key, judged without this note's claim, explain it better? The other
         // expected notes keep their claims, so a real chord is not mistaken for rivals.
@@ -368,14 +470,35 @@ export class NoteDetector {
           if (q === pitch) continue;
           for (let k = 0; k < comb.length; k++) if (comb[k]) others[k] = 1;
         }
-        const mine = evaluate(raw.get(pitch) ?? [], others, binHz);
+        const mine = evaluate(partials, others, binHz);
         contested = rivals.some((u) => {
-          const theirs = evaluate(raw.get(u) ?? [], others, binHz);
-          if (!theirs.present || theirs.score < mine.score) return false;
-          const comb = new Uint8Array(frame.db.length);
-          this.consumeComb(comb, u, binHz);
-          if (!shares(comb)) return false;
-          winners.set(u, theirs);
+          // The octave above explains the even partials of a low note whose fundamental the
+          // speakers lost, and used to win: a correct bass note was rejected and its octave
+          // reported as wrong.
+          const above = isHarmonicOf(u, pitch, this.options.centsTolerance);
+          if (above && ownedBelow) return false;
+          const theirPartials = raw.get(u) ?? [];
+          const theirs = evaluate(theirPartials, others, binHz);
+          if (!theirs.present) return false;
+          // The octave below explains every partial of this note, and its own odd partials
+          // (which this note cannot produce) say it was pressed: it wins even when this note,
+          // whose partials reach higher, adds up a little more. Only when those odd partials
+          // are about as strong as the shared ones: some recorded notes carry a faint copy of
+          // the octave below, and the note really played must not lose to it.
+          const oddOfTheirs = theirPartials.filter(
+            (p, i) => i % 2 === 0 && p.present && p.bin >= 0 && !others[p.bin],
+          );
+          const loudest = (ps: readonly PartialReading[]): number =>
+            Math.max(-Infinity, ...ps.map((p) => p.riseDb));
+          const ownsMine =
+            isHarmonicOf(pitch, u, this.options.centsTolerance) &&
+            (theirPartials[0]?.present === true || oddOfTheirs.length >= 2) &&
+            loudest(oddOfTheirs) >= loudest(own) - OWN_ODD_MARGIN_DB;
+          if (theirs.score < mine.score && !ownsMine) return false;
+          if (!shares(this.windowComb(u, binHz, frame.db.length))) return false;
+          // A note above explains none of this note's own partials, so it cannot prove it was
+          // pressed instead: the expected note is withheld, nothing is reported as wrong.
+          if (!above) winners.set(u, theirs);
           return true;
         });
       }
@@ -385,8 +508,26 @@ export class NoteDetector {
     for (const pitch of remaining) mark(pitch, false, false);
     // The key that took an expected note's place is the wrong note the player pressed.
     for (const [pitch, ev] of winners) mark(pitch, true, ev.strict);
-    for (const [pitch, { ev }] of unexpected) mark(pitch, true, ev.strict);
+    for (const [pitch, ev] of unexpected) mark(pitch, true, ev.strict);
     return out;
+  }
+
+  /**
+   * Where the partials of a note would peak: the same windows `readPartial` searches. Used to
+   * ask whether another note explains a peak. The consumption comb is wider (it also takes the
+   * window function's spread), and at low frequencies it spans more than a semitone: a note
+   * a semitone off then seemed to explain this one.
+   */
+  private windowComb(pitch: number, binHz: number, length: number): Uint8Array {
+    const comb = new Uint8Array(length);
+    const f0 = pitchToHz(pitch, this.tuning.cents);
+    for (let h = 1; h * f0 <= this.options.maxPartialHz * 1.5; h++) {
+      const tol = this.options.centsTolerance + 2 * h;
+      const lo = Math.max(0, Math.floor((h * f0 * 2 ** (-tol / 1200)) / binHz));
+      const hi = Math.min(length - 1, Math.ceil((h * f0 * 2 ** (tol / 1200)) / binHz));
+      for (let k = lo; k <= hi; k++) comb[k] = 1;
+    }
+    return comb;
   }
 
   /** Marks every partial position of a note (not only the evaluated ones) as explained. */
@@ -422,10 +563,13 @@ export class NoteDetector {
         riseDb: p.riseDb,
         prominenceDb: p.prominenceDb,
         offsetCents: p.offsetCents,
-        present: loud && p.riseDb >= normal && p.prominenceDb >= o.prominenceDb,
-        strict: loud && p.riseDb >= o.wrongRiseDb && p.prominenceDb >= o.wrongProminenceDb,
+        peak: p.peak,
+        present: loud && p.peak && p.riseDb >= normal && p.prominenceDb >= o.prominenceDb,
+        strict:
+          loud && p.peak && p.riseDb >= o.wrongRiseDb && p.prominenceDb >= o.wrongProminenceDb,
         loose: loud && p.riseDb >= normal && p.prominenceDb >= 0,
         looseStrict: loud && p.riseDb >= o.wrongRiseDb && p.prominenceDb >= 0,
+        masked: loud && p.riseDb < normal && p.wasDb >= normal && p.overFloorDb >= normal,
       });
     }
     return partials;
@@ -436,7 +580,18 @@ export class NoteDetector {
     binHz: number,
     hz: number,
     h: number,
-  ): { bin: number; riseDb: number; peakDb: number; prominenceDb: number; offsetCents: number } {
+  ): {
+    bin: number;
+    riseDb: number;
+    /** Level over the background now. */
+    overFloorDb: number;
+    /** Level over the background `attackLagS` ago, when a partial stood right here then. */
+    wasDb: number;
+    peakDb: number;
+    prominenceDb: number;
+    offsetCents: number;
+    peak: boolean;
+  } {
     const floor = this.floor;
     const tol = this.options.centsTolerance + 2 * h; // partials of a real string are slightly sharp
     const lo = Math.max(1, Math.floor((hz * 2 ** (-tol / 1200)) / binHz));
@@ -451,7 +606,19 @@ export class NoteDetector {
       }
     }
     if (best < 0 || !floor)
-      return { bin: -1, riseDb: -Infinity, peakDb: MIN_DB, prominenceDb: 0, offsetCents: 0 };
+      return {
+        bin: -1,
+        riseDb: -Infinity,
+        overFloorDb: -Infinity,
+        wasDb: -Infinity,
+        peakDb: MIN_DB,
+        prominenceDb: 0,
+        offsetCents: 0,
+        peak: false,
+      };
+    // A loud neighbour leaks into this window through the window function's main lobe; then
+    // the loudest bin here sits on its slope, at the edge, and the bin beyond is louder still.
+    const peak = (db[best - 1] ?? MIN_DB) <= bestDb && (db[best + 1] ?? MIN_DB) <= bestDb;
     // Parabolic interpolation on the dB values gives the peak position below bin size.
     const a = db[best - 1] ?? bestDb;
     const c = db[best + 1] ?? bestDb;
@@ -460,25 +627,50 @@ export class NoteDetector {
     const peakHz = (best + Math.max(-0.5, Math.min(0.5, shift))) * binHz;
     const floorDb = 10 * Math.log10((floor[best] ?? 1e-12) + 1e-12);
     let before = MIN_DB;
+    // A partial that was already there, in the same place: a peak within one bin back then.
+    let wasHere = MIN_DB;
+    let peakThen = false;
     const lagged = this.lagged;
     if (lagged) {
-      // The partial may have glided a little since: look at the whole neighbourhood.
-      for (let k = Math.max(0, best - 3); k <= Math.min(lagged.length - 1, best + 3); k++) {
-        before = Math.max(before, lagged[k] ?? MIN_DB);
+      // The partial may have glided a little since (a voice): look up to 3 bins around. But
+      // not past a valley before another peak: in the bass the previous note's partials still
+      // ring 3–4 bins away, and counting them made the new note seem not to rise at all.
+      const climbs = (from: number, to: number): boolean =>
+        (db[to] ?? MIN_DB) >= (db[from] ?? MIN_DB) + 6 && (db[to] ?? MIN_DB) >= bestDb - 20;
+      for (let k = Math.max(0, best - 1); k <= Math.min(lagged.length - 1, best + 1); k++) {
+        const v = lagged[k] ?? MIN_DB;
+        before = Math.max(before, v);
+        if (v >= (lagged[k - 1] ?? MIN_DB) && v >= (lagged[k + 1] ?? MIN_DB)) peakThen = true;
+      }
+      wasHere = before;
+      for (const dir of [-1, 1]) {
+        for (let j = 2; j <= 3; j++) {
+          const k = best + j * dir;
+          if (k < 0 || k >= lagged.length || climbs(k - dir, k) || climbs(k, k + dir)) break;
+          before = Math.max(before, lagged[k] ?? MIN_DB);
+        }
       }
     }
-    const side = Math.max(
-      db[Math.max(0, best - 4)] ?? MIN_DB,
-      db[Math.min(db.length - 1, best + 4)] ?? MIN_DB,
-    );
+    const at = (k: number): number => db[Math.min(db.length - 1, Math.max(0, k))] ?? MIN_DB;
+    // How far the peak stands out from the bins 4 away. When the spectrum climbs again before
+    // that, another partial sits there (in the bass, partials of neighbouring notes are 3–4
+    // bins apart): then the peak is measured against the valley between the two.
+    const side = (dir: number): number => {
+      if (at(best + 4 * dir) <= at(best + 3 * dir)) return at(best + 4 * dir);
+      let valley = bestDb;
+      for (let j = 1; j <= 4; j++) valley = Math.min(valley, at(best + j * dir));
+      return valley;
+    };
+    const overFloorDb = bestDb - Math.max(floorDb, MIN_DB);
     return {
       bin: best,
-      prominenceDb: bestDb - side,
-      riseDb: lagged
-        ? Math.min(bestDb - Math.max(floorDb, MIN_DB), bestDb - before)
-        : bestDb - Math.max(floorDb, MIN_DB),
+      prominenceDb: bestDb - Math.max(side(-1), side(1)),
+      riseDb: lagged ? Math.min(overFloorDb, bestDb - before) : overFloorDb,
+      overFloorDb,
+      wasDb: peakThen ? wasHere - Math.max(floorDb, MIN_DB) : -Infinity,
       peakDb: bestDb,
       offsetCents: 1200 * Math.log2(peakHz / hz),
+      peak,
     };
   }
 
@@ -503,25 +695,35 @@ export class NoteDetector {
       }
       const st = this.pitchState(pitch, timeS);
       if (kind === null) {
+        if (st.kind === 'hit' && st.armed && st.satisfiedSinceS !== null && st.gap < 1) {
+          // One frame without an expected note while it is being confirmed: the weak upper
+          // partials of high notes flicker around the thresholds during the attack. Keep
+          // counting, but decide nothing on this frame.
+          st.gap++;
+          continue;
+        }
         st.satisfiedSinceS = null;
         st.kind = null;
+        st.gap = 0;
         st.quietSinceS ??= timeS;
         if (timeS - st.quietSinceS >= o.rearmS) st.armed = true;
         continue;
       }
       if (st.kind !== kind) st.satisfiedSinceS = null;
       st.kind = kind;
+      st.gap = 0;
       st.quietSinceS = null;
+      const cents = reading.steadyOffsetCents;
       if (st.satisfiedSinceS === null) {
         st.satisfiedSinceS = timeS;
-        st.minCents = st.maxCents = reading.meanOffsetCents;
+        st.minCents = st.maxCents = cents;
       }
-      st.minCents = Math.min(st.minCents, reading.meanOffsetCents);
-      st.maxCents = Math.max(st.maxCents, reading.meanOffsetCents);
+      st.minCents = Math.min(st.minCents, cents);
+      st.maxCents = Math.max(st.maxCents, cents);
       // A string holds its pitch; a voice or a siren glides. Gliding sounds are not notes.
       if (st.maxCents - st.minCents > o.maxPitchDriftCents) {
         st.satisfiedSinceS = timeS;
-        st.minCents = st.maxCents = reading.meanOffsetCents;
+        st.minCents = st.maxCents = cents;
       }
       const persist = kind === 'hit' ? o.hitPersistS : o.wrongPersistS;
       if (st.armed && timeS - st.satisfiedSinceS >= persist) {
@@ -542,6 +744,7 @@ export class NoteDetector {
         kind: null,
         minCents: 0,
         maxCents: 0,
+        gap: 0,
       };
       this.state.set(pitch, st);
     }

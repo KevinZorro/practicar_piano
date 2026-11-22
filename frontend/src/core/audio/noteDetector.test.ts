@@ -1,4 +1,4 @@
-import { NoteDetector } from './noteDetector';
+import { isHarmonicOf, NoteDetector } from './noteDetector';
 import { afterStrike, runTrial } from './testing/evaluate';
 import { analyserFrames, renderRoom } from './testing/simulate';
 
@@ -79,5 +79,109 @@ describe('NoteDetector (simulated piano and room)', () => {
     const r = runTrial({ expected: [60], played: [67], amplitude: 0.0002, room, seed: 7 });
     expect(afterStrike(r, 'wrong')).toEqual([]);
     expect(afterStrike(r, 'hit')).toEqual([]);
+  });
+});
+
+// Found with recorded pianos and Kevin's keyboard (2026-11-22): nothing below C3 or above G5
+// was heard. See docs/phase-1/microfono-mediciones.md.
+describe('NoteDetector at both ends of the keyboard', () => {
+  const speaker = { noiseRms: 0.002, speakerCornerHz: 220 };
+
+  it.each([36, 37, 38, 40, 43])(
+    'confirms low note %i through small speakers and does not report its octave as wrong',
+    (pitch) => {
+      const r = runTrial({
+        expected: [pitch],
+        played: [pitch],
+        amplitude: 0.2,
+        room: speaker,
+        seed: pitch,
+      });
+      expect(afterStrike(r, 'hit').map((e) => e.pitch)).toEqual([pitch]);
+      expect(afterStrike(r, 'wrong')).toEqual([]);
+    },
+  );
+
+  it.each([36, 38, 41])('a loud low note %i does not lose to its neighbour key', (pitch) => {
+    const r = runTrial({
+      expected: [pitch],
+      played: [pitch],
+      amplitude: 0.6,
+      room,
+      seed: pitch + 1,
+    });
+    expect(afterStrike(r, 'hit').map((e) => e.pitch)).toEqual([pitch]);
+    expect(afterStrike(r, 'wrong')).toEqual([]);
+  });
+
+  it.each([81, 84, 86, 88, 91, 93, 96])('confirms high note %i', (pitch) => {
+    const r = runTrial({ expected: [pitch], played: [pitch], amplitude: 0.15, room, seed: pitch });
+    expect(afterStrike(r, 'hit').map((e) => e.pitch)).toEqual([pitch]);
+    expect(afterStrike(r, 'wrong')).toEqual([]);
+  });
+
+  it.each([
+    ['C2 after F2', 41, 36],
+    ['E2 after A2', 45, 40],
+    ['G2 after C2', 36, 43],
+    ['G2 after D2', 38, 43],
+    ['B2 after G2', 43, 47],
+  ])('hears %s while the previous bass note still rings', (_, before, after) => {
+    const r = runTrial({
+      expected: [after],
+      played: [after],
+      previous: [before],
+      amplitude: 0.2,
+      room: speaker,
+      seed: before + after,
+    });
+    expect(afterStrike(r, 'hit').map((e) => e.pitch)).toEqual([after]);
+    expect(afterStrike(r, 'wrong')).toEqual([]);
+  });
+
+  it.each([
+    ['G2 expected after C2, A2 played', 36, 43, 45],
+    ['C2 expected after F2, C#2 played', 41, 36, 37],
+    ['E2 expected after A2, E3 played', 45, 40, 52],
+  ])('%s: the expected note is not accepted', (_, before, expected, played) => {
+    const r = runTrial({
+      expected: [expected],
+      played: [played],
+      previous: [before],
+      amplitude: 0.2,
+      room: speaker,
+      seed: before + played,
+    });
+    expect(afterStrike(r, 'hit')).toEqual([]);
+  });
+
+  it.each([
+    ['C6 expected, C5 played (octave below)', 84, 72],
+    ['C6 expected, C#6 played', 84, 85],
+    ['G6 expected, G5 played', 91, 79],
+    ['A6 expected, G6 played', 93, 91],
+    ['C2 expected, C3 played (octave above)', 36, 48],
+    ['C3 expected, C2 played (octave below)', 48, 36],
+    ['E2 expected, F2 played', 40, 41],
+  ])('%s: the expected note is not accepted', (_, expected, played) => {
+    const r = runTrial({
+      expected: [expected],
+      played: [played],
+      amplitude: 0.15,
+      room: speaker,
+      seed: played,
+    });
+    expect(afterStrike(r, 'hit')).toEqual([]);
+  });
+});
+
+describe('isHarmonicOf', () => {
+  it('knows the octave, twelfth and two octaves above, not the fifth or the octave below', () => {
+    expect(isHarmonicOf(48, 36, 35)).toBe(true);
+    expect(isHarmonicOf(55, 36, 35)).toBe(true);
+    expect(isHarmonicOf(60, 36, 35)).toBe(true);
+    expect(isHarmonicOf(43, 36, 35)).toBe(false);
+    expect(isHarmonicOf(24, 36, 35)).toBe(false);
+    expect(isHarmonicOf(49, 36, 35)).toBe(false);
   });
 });
