@@ -10,8 +10,9 @@ git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
 # The VPS disk is small and image builds leave layers behind: free what nothing uses first.
-docker image prune -f >/dev/null
-docker builder prune -f --filter until=24h >/dev/null
+# Aggressive on purpose: a 24h filter left the disk full (deploy #20 failed with "no space left on device").
+docker image prune -af >/dev/null
+docker builder prune -af >/dev/null
 df -h / | tail -1
 
 export HOST_UID="$(id -u)" HOST_GID="$(id -g)"
