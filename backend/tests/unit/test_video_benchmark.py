@@ -16,17 +16,24 @@ from notacaida.application.video_benchmark import (
 from notacaida.domain.models import LocalAudio
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import Hand
-from notacaida.domain.video_reading import NoteReading, ReadingMethod, VideoReading
+from notacaida.domain.video_reading import (
+    NoteReading,
+    OctaveEstimate,
+    ReadingMethod,
+    VideoReading,
+)
 from tests.support.fakes import (
     SCALE,
     FakeMidiReader,
     FakeMidiWriter,
+    FakeOctaveEstimator,
     FakeRollPlotter,
     FakeSongMedia,
     FakeSynthesizer,
     FakeTranscriber,
     FakeVideoReader,
     InlineMeter,
+    video_reading,
 )
 
 
@@ -40,6 +47,7 @@ def run(
     midi_notes: tuple[NoteEvent, ...] = SCALE,
     reuse_from: Sequence[Path] | None = None,
     synthesizer: FakeSynthesizer | None = None,
+    octave: FakeOctaveEstimator | None = None,
 ) -> list[VideoSongReport]:
     tools = BenchmarkTools(
         midi_reader=FakeMidiReader(midi_notes),
@@ -47,6 +55,7 @@ def run(
         meter=InlineMeter(),
         synthesizer=synthesizer or FakeSynthesizer(),
         plotter=FakeRollPlotter(),
+        octave=octave,
     )
     entries = [
         SongEntry(i, stem, LocalAudio(tmp_path / f"{stem}.mp4"))
@@ -243,3 +252,78 @@ def test_compare_measures_the_delay_of_a_late_reading() -> None:
     assert result.delay_s == pytest.approx(0.08)
     assert result.aligned.f1 == 1.0
     assert result.with_offsets.f1 == 1.0
+
+
+def lowered(semitones: int) -> VideoReading:
+    """A reading of a keyboard whose octave was guessed, naming the keys too low."""
+    return video_reading(
+        tuple(NoteEvent(n.pitch - semitones, n.start_s, n.end_s, n.velocity) for n in SCALE),
+        octave_guessed=True,
+    )
+
+
+def heard(shift: int, margin: float = 2.0) -> OctaveEstimate:
+    return OctaveEstimate(shift=shift, margin=margin, notes_used=8, scores=((0, 0.0), (shift, 1.0)))
+
+
+def test_a_guessed_octave_is_corrected_with_the_one_heard_in_the_song(tmp_path: Path) -> None:
+    estimator = FakeOctaveEstimator(heard(24))
+
+    [song] = run(
+        tmp_path,
+        reader=FakeVideoReader(lowered(24)),
+        transcribers=[FakeTranscriber("bytedance")],
+        octave=estimator,
+    )
+
+    assert song.octave == heard(24)
+    assert song.reading is not None and song.reading.octave_shift == 24
+    assert [n.pitch for n in estimator.asked[0]] == [n.pitch - 24 for n in SCALE]  # as read
+    # the comparison is made on the corrected notes: the models hear 24 semitones higher
+    assert all(c.best_shift == 0 and c.aligned.f1 == 1.0 for c in song.comparisons)
+
+
+def test_a_standard_keyboard_is_checked_but_never_moved(tmp_path: Path) -> None:
+    standard = video_reading(octave_guessed=False)
+
+    [song] = run(tmp_path, reader=FakeVideoReader(standard), octave=FakeOctaveEstimator(heard(12)))
+
+    assert song.octave == heard(12)  # measured, so the check itself can be judged
+    assert song.reading is not None and song.reading.octave_shift == 0
+    assert all(c.aligned.f1 == 1.0 for c in song.comparisons)
+
+
+def test_an_octave_heard_with_little_margin_is_reported_but_not_applied(tmp_path: Path) -> None:
+    [song] = run(
+        tmp_path,
+        reader=FakeVideoReader(lowered(12)),
+        octave=FakeOctaveEstimator(heard(12, margin=0.05)),
+    )
+
+    assert song.octave == heard(12, margin=0.05)
+    assert song.reading is not None and song.reading.octave_shift == 0
+
+
+def test_an_octave_check_that_fails_leaves_the_reading_as_it_was(tmp_path: Path) -> None:
+    [song] = run(
+        tmp_path, reader=FakeVideoReader(lowered(12)), octave=FakeOctaveEstimator(fails=True)
+    )
+
+    assert song.error is None
+    assert song.octave is None
+    assert song.reading is not None and song.reading.octave_shift == 0
+    assert song.comparisons
+
+
+def test_without_sound_the_octave_is_not_checked(tmp_path: Path) -> None:
+    estimator = FakeOctaveEstimator(heard(12))
+
+    [song] = run(
+        tmp_path,
+        media=FakeSongMedia(audio=False),
+        reader=FakeVideoReader(lowered(12)),
+        octave=estimator,
+    )
+
+    assert song.octave is None
+    assert estimator.asked == []
