@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from notacaida.application.video_benchmark import (
     TRUTH,
@@ -11,7 +12,12 @@ from notacaida.application.video_benchmark import (
 from notacaida.application.video_report import dump_video_results, render_video_report
 from notacaida.domain.models import ResourceUsage
 from notacaida.domain.notes import NoteEvent
-from notacaida.domain.video_reading import NoteReading, ReadingMethod, VideoReading
+from notacaida.domain.video_reading import (
+    NoteReading,
+    OctaveEstimate,
+    ReadingMethod,
+    VideoReading,
+)
 
 SCALE = tuple(NoteEvent(60 + i, 1.0 + 0.5 * i, 1.4 + 0.5 * i, 80) for i in range(8))
 HALF = SCALE[::2]
@@ -33,6 +39,7 @@ def songs() -> list[VideoSongReport]:
         bar_delay_s=0.094,
         readings=(bars, keys),
         preferred=ReadingMethod.KEYS,
+        confirmed=True,
     )
     late = tuple(NoteEvent(n.pitch, n.start_s - 0.03, n.end_s, 80) for n in SCALE)
     return [
@@ -78,8 +85,8 @@ def test_the_summary_has_one_column_per_reference_truth_first() -> None:
 
     assert "| F1 vs verdad (alineado) | F1 vs bytedance (alineado) |" in report
     assert (
-        "| 1 | Leída | 88 teclas, A0-C8 | teclas iluminadas | 8 | 1.000 | 1.000 | +30 ms |"
-        in report
+        "| 1 | Leída | 88 teclas, A0-C8 | teclas iluminadas (confirmada) | 8 | 1.000 | 1.000 "
+        "| +30 ms |" in report
     )
     assert (
         "| 2 | Piano filmado | — | no se encontró un teclado dibujado: no hay teclas negras "
@@ -93,6 +100,8 @@ def test_the_totals_count_the_videos_read_and_the_median_agreement() -> None:
     report = render_video_report(songs(), ENVIRONMENT)
 
     assert "Videos con notas que caen leídos: **1 de 3**" in report
+    assert "Lecturas confirmadas (las teclas iluminadas y las barras leen las mismas" in report
+    assert "notas): **1 de 1**" in report
     assert "contra verdad: mediana **1.000**" in report
     assert "Tiempo, leer el video: 3 s en total" in report
     assert "Tiempo, bytedance: 360 s en total" in report
@@ -129,3 +138,39 @@ def test_the_json_summary_keeps_the_numbers_but_not_the_notes() -> None:
     assert payload["songs"][1]["reading"]["failure"].startswith("no se encontró un teclado")
     assert payload["songs"][2]["error"] == "blocked by fake"
     assert '"pitch"' not in json.dumps(payload)  # no note made it into the summary
+
+
+def heard_song(
+    shift: int, margin: float = 2.0, *, guessed: bool = False, applied: int = 0
+) -> VideoSongReport:
+    first = songs()[0]
+    assert first.reading is not None
+    estimate = OctaveEstimate(shift, margin, notes_used=120, scores=((0, 0.1), (shift, 1.3)))
+    reading = replace(first.reading, octave_guessed=guessed, octave_shift=applied)
+    return replace(first, reading=reading, octave=estimate)
+
+
+def test_the_octave_heard_in_the_song_says_what_was_done_with_it() -> None:
+    applied = render_video_report([heard_song(24, guessed=True, applied=24)], ENVIRONMENT)
+    standard = render_video_report([heard_song(12)], ENVIRONMENT)
+    agrees = render_video_report([heard_song(0, guessed=True)], ENVIRONMENT)
+    weak = render_video_report([heard_song(12, 0.1, guessed=True)], ENVIRONMENT)
+
+    assert "- Octava según el audio: +24 semitonos (margen 2.00, 120 notas)" in applied
+    assert "; se corrigió +24." in applied
+    assert "(margen 2.00, 120 notas); el teclado es de tamaño estándar, no se toca." in standard
+    assert "la octava supuesta coincide." in agrees
+    assert "no se aplicó: el margen no llega a 0.3." in weak
+    assert "Octava supuesta: este tamaño de teclado no es estándar" in applied
+
+
+def test_the_json_summary_keeps_the_octave_check_and_the_confirmation() -> None:
+    song = heard_song(24, guessed=True, applied=24)
+
+    payload = json.loads(dump_video_results([song], ENVIRONMENT))["songs"][0]
+
+    assert payload["octave"]["shift"] == 24
+    assert payload["octave"]["scores"] == {"0": 0.1, "24": 1.3}
+    assert payload["reading"]["octave_shift"] == 24
+    assert payload["reading"]["confirmed"] is True
+    assert payload["reading"]["octave_guessed"] is True

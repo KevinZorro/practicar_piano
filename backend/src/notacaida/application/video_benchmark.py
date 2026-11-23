@@ -25,6 +25,7 @@ from notacaida.application.links import SongEntry
 from notacaida.application.ports import (
     MidiNoteReader,
     MidiNoteWriter,
+    OctaveEstimator,
     ResourceMeter,
     RollPlotter,
     SongMedia,
@@ -43,15 +44,20 @@ from notacaida.domain.agreement import (
     estimate_delay,
 )
 from notacaida.domain.errors import NotacaidaError
-from notacaida.domain.models import ResourceUsage
+from notacaida.domain.models import AudioFile, ResourceUsage
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import assign_hand
-from notacaida.domain.video_reading import VideoReading
+from notacaida.domain.video_reading import NoteReading, OctaveEstimate, VideoReading
 
 logger = logging.getLogger(__name__)
 
 TRUTH = "verdad"
 VIDEO_PREFIX = "video:"
+#: Suffix of a reading that was made but not trusted, measured so the rule can be checked.
+DISCARDED = " (descartada)"
+#: The octave heard in the song replaces the guessed one only when it beats the runner-up by
+#: this much (log10 units; synthetic audio gives ~2, real audio is yet to be measured).
+OCTAVE_MIN_MARGIN = 0.3
 _SHIFTS = range(-24, 25)
 _ROLL_SECONDS = 30.0
 
@@ -97,6 +103,8 @@ class VideoSongReport:
     comparisons: tuple[Comparison, ...] = ()
     #: Share of the read notes whose bar colour gives the hand the pitch split gives (D-08).
     hand_split_agreement: float | None = None
+    #: Which octave the song sounds in, according to its audio (None: not checked).
+    octave: OctaveEstimate | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,6 +114,7 @@ class BenchmarkTools:
     meter: ResourceMeter
     synthesizer: Synthesizer | None = None
     plotter: RollPlotter | None = None
+    octave: OctaveEstimator | None = None
 
 
 class CompareVideoReading:
@@ -178,6 +187,12 @@ class CompareVideoReading:
         preferred = reading.preferred_reading
         if preferred is None:
             return read  # nothing to compare with: the models would only cost time
+        octave = self._hear_octave(preferred.notes, media.audio, base.fingerprint)
+        if octave is not None and reading.octave_guessed and _worth_applying(octave):
+            reading = _shifted(reading, octave.shift)
+            preferred = reading.preferred_reading
+            assert preferred is not None  # noqa: S101 - it was there before the shift
+            read = replace(read, reading=reading)
         references: dict[str, tuple[NoteEvent, ...]] = {}
         if media.truth is not None:
             references[TRUTH] = media.truth
@@ -200,7 +215,20 @@ class CompareVideoReading:
             models=tuple(models),
             comparisons=tuple(_comparisons(reading, references)),
             hand_split_agreement=_hand_split(reading),
+            octave=octave,
         )
+
+    def _hear_octave(
+        self, notes: Sequence[NoteEvent], audio: AudioFile | None, fingerprint: str
+    ) -> OctaveEstimate | None:
+        estimator = self._tools.octave
+        if estimator is None or audio is None:
+            return None
+        try:
+            return estimator.estimate(notes, audio)
+        except NotacaidaError as exc:  # the reading is still reported, as it was read
+            logger.warning("song %s: octave check failed: %s", fingerprint, exc)
+            return None
 
     def _synthesize(self, song_out: Path, names: Sequence[str]) -> None:
         """A WAV of each MIDI with the same synthesizer, to compare them by ear."""
@@ -281,15 +309,35 @@ def compare(
     )
 
 
+def _worth_applying(estimate: OctaveEstimate) -> bool:
+    return estimate.shift != 0 and estimate.margin >= OCTAVE_MIN_MARGIN
+
+
+def _shifted(reading: VideoReading, semitones: int) -> VideoReading:
+    """The same reading with every pitch moved by ``semitones``."""
+
+    def move(found: NoteReading) -> NoteReading:
+        notes = tuple(replace(n, pitch=n.pitch + semitones) for n in found.notes)
+        return replace(found, notes=notes)
+
+    return replace(
+        reading,
+        readings=tuple(move(r) for r in reading.readings),
+        discarded=tuple(move(r) for r in reading.discarded),
+        octave_shift=semitones,
+    )
+
+
 def _comparisons(
     reading: VideoReading, references: dict[str, tuple[NoteEvent, ...]]
 ) -> list[Comparison]:
     result = []
-    for note_reading in reading.readings:
+    shown = [(r, VIDEO_PREFIX + r.method) for r in reading.readings] + [
+        (r, VIDEO_PREFIX + r.method + DISCARDED) for r in reading.discarded
+    ]
+    for note_reading, estimate in shown:
         for name, notes in references.items():
-            result.append(
-                compare(name, notes, VIDEO_PREFIX + note_reading.method, note_reading.notes)
-            )
+            result.append(compare(name, notes, estimate, note_reading.notes))
     truth = references.get(TRUTH)
     if truth is not None:
         result.extend(

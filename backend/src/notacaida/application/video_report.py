@@ -7,12 +7,14 @@ import statistics
 from collections.abc import Sequence
 
 from notacaida.application.video_benchmark import (
+    OCTAVE_MIN_MARGIN,
     TRUTH,
     VIDEO_PREFIX,
     Comparison,
     VideoSongReport,
 )
 from notacaida.domain.agreement import Agreement
+from notacaida.domain.video_reading import OctaveEstimate, ReadingMethod, VideoReading
 
 _PREFERRED_AUDIO = ("bytedance", "basic-pitch")
 _METHOD_TEXT = {
@@ -108,7 +110,8 @@ def _summary_row(song: VideoSongReport) -> str:
                 str(song.index),
                 song.label,
                 reading.keyboard or "—",
-                _METHOD_TEXT.get(preferred.method, preferred.method),
+                _METHOD_TEXT.get(preferred.method, preferred.method)
+                + (" (confirmada)" if reading.confirmed else ""),
                 str(len(preferred.notes)),
                 *f1s,
                 _ms(delay),
@@ -124,6 +127,11 @@ def _summary_row(song: VideoSongReport) -> str:
 def _totals(songs: Sequence[VideoSongReport]) -> list[str]:
     readable = [s for s in songs if s.reading and s.reading.readable]
     lines = [f"- Videos con notas que caen leídos: **{len(readable)} de {len(songs)}**."]
+    confirmed = [s for s in readable if s.reading and s.reading.confirmed]
+    lines.append(
+        f"- Lecturas confirmadas (las teclas iluminadas y las barras leen las mismas notas): "
+        f"**{len(confirmed)} de {len(readable)}**."
+    )
     for name in _audio_names(songs):
         f1s = []
         for song in readable:
@@ -176,6 +184,22 @@ def _details(song: VideoSongReport) -> list[str]:
                 f"- Barras contra teclas iluminadas: F1 {reading.bar_key_agreement:.3f} "
                 f"(inicio a menos de 100 ms){_bar_delay(reading.bar_delay_s)}."
             )
+        if reading.lit_keys:
+            state = "confirmadas" if reading.confirmed else "sin confirmar"
+            lines.append(f"- Teclas iluminadas {state} por las barras.")
+        for dropped in reading.discarded:
+            bars = reading.reading(ReadingMethod.BARS)
+            lines.append(
+                f"- Teclas iluminadas descartadas: {len(dropped.notes)} notas (las barras: "
+                f"{len(bars.notes) if bars else 0}); se miden igual abajo para comprobar la regla."
+            )
+        if reading.octave_guessed:
+            lines.append(
+                "- Octava supuesta: este tamaño de teclado no es estándar, así que se centró en "
+                "el Do central y puede estar corrido en octavas (ver la columna Transposición)."
+            )
+        if song.octave is not None:
+            lines.append(_octave_line(song.octave, reading))
     if song.hand_split_agreement is not None:
         lines.append(
             f"- Manos por color: {song.hand_split_agreement:.0%} de las notas coinciden con la "
@@ -200,6 +224,20 @@ def _details(song: VideoSongReport) -> list[str]:
         ]
         lines += [_comparison_row(c) for c in song.comparisons]
     return lines
+
+
+def _octave_line(octave: OctaveEstimate, reading: VideoReading) -> str:
+    text = (
+        f"- Octava según el audio: {octave.shift:+d} semitonos (margen {octave.margin:.2f}, "
+        f"{octave.notes_used} notas)"
+    )
+    if reading.octave_shift:
+        return f"{text}; se corrigió {reading.octave_shift:+d}."
+    if not reading.octave_guessed:
+        return f"{text}; el teclado es de tamaño estándar, no se toca."
+    if octave.shift == 0:
+        return f"{text}; la octava supuesta coincide."
+    return f"{text}; no se aplicó: el margen no llega a {OCTAVE_MIN_MARGIN}."
 
 
 def _comparison_row(c: Comparison) -> str:
@@ -257,6 +295,18 @@ def _song_json(song: VideoSongReport) -> dict[str, object]:
             "bar_delay_s": reading.bar_delay_s,
             "preferred": reading.preferred,
             "notes": {r.method: len(r.notes) for r in reading.readings},
+            "confirmed": reading.confirmed,
+            "octave_guessed": reading.octave_guessed,
+            "discarded_notes": {r.method: len(r.notes) for r in reading.discarded},
+            "octave_shift": reading.octave_shift,
+        },
+        "octave": None
+        if song.octave is None
+        else {
+            "shift": song.octave.shift,
+            "margin": song.octave.margin,
+            "notes_used": song.octave.notes_used,
+            "scores": {str(shift): score for shift, score in song.octave.scores},
         },
         "reading_usage": None
         if song.reading_usage is None

@@ -11,6 +11,7 @@ from notacaida.application.ports import Measured, SongMedia
 from notacaida.domain.errors import (
     DownloadError,
     JobNotFoundError,
+    NotacaidaError,
     ResultNotReadyError,
     TranscriptionError,
     VideoReadError,
@@ -27,7 +28,12 @@ from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import QuantizedPiece
 from notacaida.domain.result import SongResult
 from notacaida.domain.score import Score
-from notacaida.domain.video_reading import NoteReading, ReadingMethod, VideoReading
+from notacaida.domain.video_reading import (
+    NoteReading,
+    OctaveEstimate,
+    ReadingMethod,
+    VideoReading,
+)
 from notacaida.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -173,7 +179,9 @@ class FakeScoreBuilder:
 SCALE = tuple(NoteEvent(60 + i, 1.0 + 0.5 * i, 1.4 + 0.5 * i, 80) for i in range(8))
 
 
-def video_reading(notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True) -> VideoReading:
+def video_reading(
+    notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True, octave_guessed: bool = False
+) -> VideoReading:
     """A readable reading: bars only, or bars and lit keys (preferred) when keys light up."""
     readings = [NoteReading(ReadingMethod.BARS, tuple(notes))]
     if lit:
@@ -190,7 +198,24 @@ def video_reading(notes: Sequence[NoteEvent] = SCALE, *, lit: bool = True) -> Vi
         bar_delay_s=0.02 if lit else None,
         readings=tuple(readings),
         preferred=readings[-1].method,
+        confirmed=lit,
+        octave_guessed=octave_guessed,
     )
+
+
+class FakeOctaveEstimator:
+    """Hears a fixed octave (or fails, or cannot tell) and remembers what it was asked."""
+
+    def __init__(self, estimate: OctaveEstimate | None = None, *, fails: bool = False) -> None:
+        self._estimate = estimate
+        self._fails = fails
+        self.asked: list[tuple[NoteEvent, ...]] = []
+
+    def estimate(self, notes: Sequence[NoteEvent], audio: AudioFile) -> OctaveEstimate | None:
+        self.asked.append(tuple(notes))
+        if self._fails:
+            raise NotacaidaError("could not read the audio")
+        return self._estimate
 
 
 class FakeSongMedia:

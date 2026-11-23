@@ -31,11 +31,15 @@ _SEARCH_FROM = 0.2  # keyboards sit in the lower 80 % of the picture
 _SEPARATOR_REACH = 3  # px compared on each side of a gap between white keys
 _MIN_SEPARATOR_DEPTH = 18.0  # luminance (0-255) a gap must be darker than its sides
 _REGULAR_STEP = 0.2  # tolerated deviation from the white key width, as a fraction
-_MIN_KEY_LEVEL = 110.0  # luminance of a white key
+_MIN_KEY_LEVEL = 90.0  # luminance of a white key (a dim video reaches only ~105)
 _GAP_WINDOW = 0.2  # half window around a gap, in white key widths, to look for a black key
 _DARK_SHARE = 0.6  # share of that window a black key darkens
 _MIN_BLACK_SHARE = 0.4  # share of gaps with a black key in a black-key row (5 of 6 normally)
-_BRIGHT_CENTRE_SHARE = 0.8  # white key centres that stay bright in a black-key row
+_BRIGHT_CENTRE_SHARE = 0.65  # white key centres that stay bright in a black-key row
+#: An end key counts when it is at least this share as bright as the key before it (lighting
+#: fades along some keyboards) and not darker than a dim key.
+_END_KEY_SHARE = 0.75
+_MIN_END_KEY_LEVEL = 70.0
 _MAX_BANDS = 4  # candidate bands of white-key rows tried, lowest first
 _MIN_VISIBLE_MIDDLE = 0.2  # of a white key width: an end key cut by the picture still counts
 _NOTE_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
@@ -71,6 +75,8 @@ class Keyboard:
     bottom: int  # one past the last row of the white keys
     white_width: float
     mismatches: int = 0
+    #: False when the keyboard is not a standard size: its octave is a guess.
+    octave_known: bool = True
 
     @property
     def left(self) -> int:
@@ -158,6 +164,7 @@ def _keyboard_on(gray: Gray, band: tuple[int, int, float]) -> Keyboard | str:
         bottom=white_bottom,
         white_width=width,
         mismatches=naming.mismatches,
+        octave_known=naming.octave_known,
     )
 
 
@@ -252,17 +259,22 @@ def _white_edges(gray: Gray, top: int, bottom: int, step: float) -> tuple[Gray, 
         np.median(profile[np.clip(np.rint(centres).astype(int), 0, profile.size - 1)])
     )
 
-    def is_key(i: int) -> bool:  # the white key between grid lines i and i + 1
+    def brightness(i: int) -> float | None:  # of the white key between grid lines i and i + 1
         lo = max(round(intercept + slope * (i + 0.2)), 0)
         hi = min(round(intercept + slope * (i + 0.8)), profile.size)
-        # the end keys are often cut by the edge of the picture: half a key on screen counts
+        # the end keys are often cut by the edge of the picture: part of a key on screen counts
         if hi - lo < _MIN_VISIBLE_MIDDLE * slope:
-            return False
-        return float(np.median(profile[lo:hi])) >= max(_MIN_KEY_LEVEL, 0.75 * key_level)
+            return None
+        return float(np.median(profile[lo:hi]))
 
-    while is_key(first - 1):
+    def continues(i: int, neighbour: int) -> bool:  # key i is as bright as its neighbour's
+        level, before = brightness(i), brightness(neighbour)
+        reference = key_level if before is None else before
+        return level is not None and level >= max(_MIN_END_KEY_LEVEL, _END_KEY_SHARE * reference)
+
+    while continues(first - 1, first):
         first -= 1
-    while is_key(last):
+    while continues(last, last - 1):
         last += 1
     if last - first < MIN_WHITE_KEYS:
         return None

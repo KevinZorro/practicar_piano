@@ -25,6 +25,7 @@ from notacaida.infrastructure.basic_pitch_transcriber import BasicPitchTranscrib
 from notacaida.infrastructure.bytedance_transcriber import DEFAULT_CHECKPOINT, ByteDanceTranscriber
 from notacaida.infrastructure.midi_reader import PrettyMidiReader
 from notacaida.infrastructure.midi_writer import PrettyMidiWriter
+from notacaida.infrastructure.octave_check import AudioOctaveEstimator
 from notacaida.infrastructure.process_meter import SubprocessResourceMeter
 from notacaida.infrastructure.synthesizer import AdditiveSynthesizer
 from notacaida.infrastructure.ytdlp_downloader import (
@@ -122,6 +123,7 @@ def build_benchmark(args: argparse.Namespace) -> CompareVideoReading:
         meter=SubprocessResourceMeter(),
         synthesizer=AdditiveSynthesizer(),
         plotter=PngRollPlotter(),
+        octave=AudioOctaveEstimator(),
     )
     return CompareVideoReading(
         media, FallingNotesReader(), transcribers, tools, reuse_from=args.reuse

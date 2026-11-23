@@ -24,7 +24,7 @@ from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import QuantizedPiece
 from notacaida.domain.result import SongResult
 from notacaida.domain.score import Score
-from notacaida.domain.video_reading import VideoReading
+from notacaida.domain.video_reading import OctaveEstimate, VideoReading
 from notacaida.domain.video_url import VideoUrl
 
 T = TypeVar("T")
@@ -144,6 +144,14 @@ class VideoNoteReader(Protocol):
         Must be picklable (the meter may run it in a child process). Raises
         ``VideoReadError`` when the file cannot be decoded; a video without a drawn keyboard
         is not an error but a reading with ``failure`` set.
+        """
+
+
+class OctaveEstimator(Protocol):
+    def estimate(self, notes: Sequence[NoteEvent], audio: AudioFile) -> OctaveEstimate | None:
+        """Which octave shift makes ``notes`` sound like ``audio``; None when it cannot tell.
+
+        Raises ``NotacaidaError`` when the audio cannot be read.
         """
 
 
