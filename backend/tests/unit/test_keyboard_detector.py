@@ -93,6 +93,25 @@ def test_an_end_key_cut_by_the_picture_is_still_a_key(side: str) -> None:
     assert keyboard.describe() == "88 teclas, A0-C8"  # it read 87 or 86 keys on the VPS
 
 
+def test_a_dim_keyboard_is_still_found() -> None:
+    dim = (plate(FULL).astype(np.float32) * 0.42).astype(np.uint8)  # white keys near 100
+
+    keyboard = detect_keyboard(dim)
+
+    assert keyboard is not None
+    assert keyboard.describe() == "88 teclas, A0-C8"
+
+
+def test_a_keyboard_whose_lighting_fades_along_the_keys_is_found_to_its_last_key() -> None:
+    fade = np.linspace(1.0, 0.45, FULL.width, dtype=np.float32)  # the right end is half as bright
+    faded = (plate(FULL).astype(np.float32) * fade[None, :, None]).astype(np.uint8)
+
+    keyboard = detect_keyboard(faded)
+
+    assert keyboard is not None
+    assert keyboard.describe() == "88 teclas, A0-C8"  # it stopped 4 keys short on the VPS
+
+
 def test_no_keyboard_in_a_plain_or_noisy_picture() -> None:
     rng = np.random.default_rng(3)
     blank = np.full((480, 854, 3), 20, np.uint8)

@@ -40,6 +40,9 @@ class KeyNaming:
     black_pitches: tuple[int | None, ...]
     #: Gaps where the drawing disagreed with the octave pattern (0 for a clean detection).
     mismatches: int
+    #: False when the keyboard is not a standard size and its octave is only a guess
+    #: (centred on middle C).
+    octave_known: bool = True
 
 
 def letter_offset(black_between: Sequence[bool], max_mismatches: int = 0) -> tuple[int, int] | None:
@@ -109,4 +112,9 @@ def name_keys(black_between: Sequence[bool], max_mismatches: int = 0) -> KeyNami
     if whites[0] < 0 or whites[-1] > 127:
         return None
     blacks = tuple(low + 1 if high - low == 2 else None for low, high in pairwise(whites))
-    return KeyNaming(white_pitches=whites, black_pitches=blacks, mismatches=mismatches)
+    return KeyNaming(
+        white_pitches=whites,
+        black_pitches=blacks,
+        mismatches=mismatches,
+        octave_known=(len(whites), start) in _STANDARD_KEYBOARDS,
+    )
