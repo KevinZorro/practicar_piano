@@ -37,6 +37,12 @@ Kevin corrió el prototipo en la VPS (Ampere A1, 2 OCPU) con las 10 canciones de
 
 Falta para decidir: que el detector encuentre los tutoriales que no encontró (el informe ahora dice qué paso falló y guarda la imagen de fondo), entender el video sin teclas iluminadas y oír en dos o tres canciones dónde difieren el video y ByteDance (`video.wav` frente a `bytedance.wav`).
 
+### Segunda medición (2026-11-22)
+
+Con el detector corregido según las imágenes de la primera corrida, **7 de 10 leídos** (antes 4). Los tutoriales con teclas iluminadas coinciden con ByteDance en F1 0,978, 0,958, 0,952 (teclado de 47 teclas con letras, antes no encontrado) y 0,887. Los videos con manos y chispas sobre el teclado dan lecturas malas (F1 0,05 y menos): el lector ahora las marca como no confirmadas (teclas y barras deben coincidir con F1 ≥ 0,4) y solo una lectura confirmada podría usarse sin ByteDance. En un teclado de 40 teclas la octava salió corrida dos octavas (F1 0,02; con +24, 0,47): se añadió un estimador de octava con el sonido, que se aplica solo si el teclado no es de tamaño estándar y el margen llega a 0,3. Quedan sin leer el piano filmado y dos videos con teclado cubierto por manos.
+
+Sin verificar: el estimador con audio real y la lectura descartada de un teclado de 55 teclas. El ADR sigue en **Propuesta** hasta ver una tercera corrida con esos dos puntos.
+
 ## Costo medido
 
 - **En la VPS** (Ampere A1, 10 canciones reales de 2 a 4 min): leer el video tardó de 6,7 a 16,2 s por canción (mediana **12,9 s**) con 134–177 MB. ByteDance tardó de 239 a 550 s (mediana **413 s**) con 1,4–1,6 GB: leer la imagen es unas 30 veces más rápido y usa una décima parte de la memoria.
