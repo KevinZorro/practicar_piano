@@ -15,7 +15,11 @@ from notacaida.domain.models import VideoFile
 from notacaida.domain.notes import NoteEvent
 from notacaida.domain.quantize import assign_hand
 from notacaida.domain.video_reading import ReadingMethod, VideoReading
-from notacaida.infrastructure.falling_notes_reader import NO_KEYBOARD, FallingNotesReader
+from notacaida.infrastructure.falling_notes_reader import (
+    NO_KEYBOARD,
+    FallingNotesReader,
+    _lit_keys_look_real,
+)
 from notacaida.infrastructure.ffmpeg_video import Crop, Frames, VideoInfo
 from notacaida.infrastructure.keyboard_detector import NO_WHITE_KEYS
 from tests.support.falling_video import MemoryFrames, Style
@@ -61,6 +65,9 @@ def test_lit_keys_and_bars_both_read_the_notes() -> None:
     assert reading.fall_speed_px_s == pytest.approx(180.0, rel=0.02)
     assert reading.frames == reading.frames_with_keyboard
     assert reading.bar_key_agreement == pytest.approx(1.0)
+    assert reading.confirmed  # two independent readings of the same notes
+    assert not reading.octave_guessed  # 88 keys is a standard size
+    assert reading.discarded == ()
     assert reading.bar_delay_s is not None
     assert abs(reading.bar_delay_s) <= 1.0 / LIT.fps
     for method in ReadingMethod:
@@ -79,6 +86,8 @@ def test_without_lit_keys_only_the_bars_are_read() -> None:
     reading = read(notes, BARS_ONLY)
 
     assert not reading.lit_keys
+    assert not reading.confirmed  # nothing to confirm the bars with
+    assert reading.discarded == ()
     assert [r.method for r in reading.readings] == [ReadingMethod.BARS]
     assert reading.preferred is ReadingMethod.BARS
     assert reading.bar_key_agreement is None
@@ -108,7 +117,8 @@ def test_lit_keys_count_even_when_the_bars_are_misread() -> None:
 
     assert reading.lit_keys
     assert reading.bar_key_agreement is not None
-    assert reading.bar_key_agreement < 0.3  # the bars land on the next key
+    assert reading.bar_key_agreement < 0.4  # the bars land on the next key
+    assert not reading.confirmed  # read, but not by two readings that agree
     assert reading.preferred is ReadingMethod.KEYS
     keys = reading.preferred_reading
     assert keys is not None
@@ -133,6 +143,36 @@ def test_a_logo_over_a_video_without_lit_keys_is_not_read_as_keys() -> None:
     bars = reading.preferred_reading
     assert bars is not None
     assert agreement(notes, bars.notes).f1 >= 0.95
+    # what was thrown away stays, so the report can measure it
+    [dropped] = reading.discarded
+    assert dropped.method is ReadingMethod.KEYS
+    assert len(dropped.notes) >= 20
+
+
+def _notes(count: int) -> list[NoteEvent]:
+    return [NoteEvent(60 + i % 12, float(i), i + 0.4, 80) for i in range(count)]
+
+
+def test_lit_keys_flashing_far_more_often_than_bars_land_are_not_notes() -> None:
+    lit = np.zeros((300, 88), dtype=bool)
+    lit[np.arange(300), np.arange(300) % 88] = True  # one key lit at a time
+
+    # 100 lit runs against 10 bars (a video whose keys flicker): not notes, unless confirmed
+    assert not _lit_keys_look_real(_notes(100), _notes(10), lit, agreeing=0.02)
+    assert _lit_keys_look_real(_notes(100), _notes(10), lit, agreeing=0.6)
+    assert _lit_keys_look_real(_notes(25), _notes(10), lit, agreeing=0.02)  # 2.5 times: within
+    assert _lit_keys_look_real(_notes(25), [], lit, agreeing=None)  # no bars at all
+
+
+def test_a_keyboard_of_a_size_no_piano_has_is_flagged_as_an_octave_guess() -> None:
+    style = Style("40-keys", width=640, height=360, low=40, high=79, fall_px_s=180.0)
+    notes = drawn(ode_to_joy(), style)
+
+    reading = read(notes, style)
+
+    assert reading.keyboard == "40 teclas, E2-G5"
+    assert reading.octave_guessed
+    assert reading.readable
 
 
 def test_keys_with_printed_letters_are_still_read() -> None:

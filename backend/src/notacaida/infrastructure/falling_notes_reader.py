@@ -52,11 +52,17 @@ _MIN_LIT_NOTES = 8  # fewer lit notes: nothing lights up, or only a passing glit
 #: Median number of keys lit at once while any is: notes light a few, a hand over a filmed
 #: keyboard or an overlay changes many.
 _MAX_TYPICAL_LIT = 8
-_MIN_LIT_AGREEMENT = 0.3  # lit keys the bars agree with at least this much are confirmed
+#: Lit keys the bars agree with at least this much are confirmed. The real tutorials measured
+#: so far agree 0.55-0.69; the two videos whose lit keys were not notes agreed 0.02 and 0.23.
+_MIN_LIT_AGREEMENT = 0.4
 #: Lit keys the bars do not confirm still count when they are this many, and at least this
-#: share of the bar notes (a logo passing over a few keys of a video that lights none).
+#: share of the bar notes (a logo passing over a few keys of a video that lights none), and
+#: not more than ``_MAX_LIT_PER_BAR`` times the bar notes. Bars invent notes (1.4-2.4 times the
+#: lit ones on real tutorials); a video whose keys flash 12 times as often as bars land lights
+#: something other than notes.
 _MIN_UNCONFIRMED_LIT_NOTES = 20
 _MIN_LIT_PER_BAR = 0.5
+_MAX_LIT_PER_BAR = 3.0
 _HAND_SEPARATION = 0.05  # chromaticity distance between the two hand colours
 
 NO_KEYBOARD = "no se encontró un teclado dibujado"
@@ -489,14 +495,17 @@ def _readings(
         delay = estimate_delay(lit_notes, bar_notes)
         agreeing = agreement(lit_notes, bar_notes, ONSET_100MS, time_shift_s=-(delay or 0.0)).f1
     lit_keys = _lit_keys_look_real(lit_notes, bar_notes, lit, agreeing)
-    if lit_keys:
-        readings.append(
-            NoteReading(
-                ReadingMethod.KEYS,
-                tuple(lit_notes),
-                _hands_of_lit_notes(keys, bars, hands, delay or 0.0, fps),
-            )
+    lit_reading = (
+        NoteReading(
+            ReadingMethod.KEYS,
+            tuple(lit_notes),
+            _hands_of_lit_notes(keys, bars, hands, delay or 0.0, fps),
         )
+        if lit_notes
+        else None
+    )
+    if lit_keys and lit_reading is not None:
+        readings.append(lit_reading)
     return VideoReading(
         failure=None,
         keyboard=keyboard.describe(),
@@ -509,6 +518,9 @@ def _readings(
         bar_delay_s=delay,
         readings=tuple(readings),
         preferred=ReadingMethod.KEYS if lit_keys else ReadingMethod.BARS,
+        confirmed=lit_keys and agreeing is not None and agreeing >= _MIN_LIT_AGREEMENT,
+        octave_guessed=not keyboard.octave_known,
+        discarded=(lit_reading,) if lit_reading is not None and not lit_keys else (),
     )
 
 
@@ -528,6 +540,8 @@ def _lit_keys_look_real(
         return False
     if agreeing is not None and agreeing >= _MIN_LIT_AGREEMENT:
         return True
+    if bar_notes and len(lit_notes) > _MAX_LIT_PER_BAR * len(bar_notes):
+        return False
     return len(lit_notes) >= max(_MIN_UNCONFIRMED_LIT_NOTES, _MIN_LIT_PER_BAR * len(bar_notes))
 
 

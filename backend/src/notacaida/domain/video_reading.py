@@ -26,6 +26,19 @@ class NoteReading:
 
 
 @dataclass(frozen=True, slots=True)
+class OctaveEstimate:
+    """Which octave shift makes the notes read from a video sound like its audio."""
+
+    #: Semitones (a multiple of 12) to add to the pitches that were read.
+    shift: int
+    #: How much better the best shift scored than the runner-up (log10 units).
+    margin: float
+    notes_used: int
+    #: (shift, average score) of every shift that could be tried.
+    scores: tuple[tuple[int, float], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class VideoReading:
     """Notes read from a falling-notes video, or why the video could not be read."""
 
@@ -44,6 +57,15 @@ class VideoReading:
     bar_delay_s: float | None = None
     readings: tuple[NoteReading, ...] = ()
     preferred: ReadingMethod | None = None
+    #: The lit keys agree with the bars (an independent reading of the same notes), so the
+    #: reading can be trusted without a transcription of the audio to check it against.
+    confirmed: bool = False
+    #: The keyboard is not a standard size: which octave its keys are in is a guess.
+    octave_guessed: bool = False
+    #: Readings that were made but not trusted, kept so the report can measure them anyway.
+    discarded: tuple[NoteReading, ...] = ()
+    #: Semitones the pitches were moved after hearing the song (the octave was a guess).
+    octave_shift: int = 0
 
     @property
     def readable(self) -> bool:
