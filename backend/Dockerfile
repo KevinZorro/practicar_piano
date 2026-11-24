@@ -15,21 +15,31 @@ FROM denoland/deno:bin-${DENO_VERSION} AS deno
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 # ---- build: resolve and install locked dependencies into a venv ----------------------
+# torch from PyPI on Linux depends on ~4 GB of CUDA wheels (cudnn, cublas, nccl, triton...)
+# that a CPU-only VPS never uses; together with the build cache they filled its disk on
+# every deploy. So everything locked is installed except torch and the CUDA family, and
+# torch comes from PyTorch's CPU index at the locked version (~200 MB instead of ~4 GB).
 FROM python:${PYTHON_VERSION}-slim-bookworm AS build
 COPY --from=uv /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy VIRTUAL_ENV=/opt/venv PATH="/opt/venv/bin:${PATH}"
+ARG EXTRAS="--extra synth --extra basic-pitch --extra bytedance --extra score"
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-install-project \
-        --extra synth --extra basic-pitch --extra bytedance --extra score
+    uv venv /opt/venv \
+    && uv export --locked --no-dev --no-hashes --no-emit-project ${EXTRAS} -o /tmp/req.txt \
+    && TORCH_VERSION="$(sed -n 's/^torch==\([^ ;]*\).*/\1/p' /tmp/req.txt)" \
+    && test -n "$TORCH_VERSION" \
+    && grep -vE '^(torch|triton)==|^(cuda|nvidia)-' /tmp/req.txt > /tmp/req-nocuda.txt \
+    && uv pip install --no-deps -r /tmp/req-nocuda.txt \
+    && uv pip install --no-deps --index-url https://download.pytorch.org/whl/cpu "torch==${TORCH_VERSION}"
 COPY src ./src
-# --reinstall-package: uv keeps the wheel it built for a local project in its cache and only
-# rebuilds it when pyproject.toml changes, so on a host with a persistent cache (the VPS) the
-# image kept shipping old code after a merge. Always rebuild the project from ./src.
+# Always rebuild the project from ./src: uv keeps the wheel it built for a local project in its
+# cache, so on a host with a persistent cache (the VPS) the image kept shipping old code.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable --reinstall-package notacaida \
-        --extra synth --extra basic-pitch --extra bytedance --extra score
+    uv pip install --no-deps --no-cache --reinstall ./ \
+    && python -c "import torch; assert not torch.cuda.is_available(); import piano_transcription_inference" \
+    && du -sh /opt/venv
 
 # ---- runtime ------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime

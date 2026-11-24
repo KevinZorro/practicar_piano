@@ -60,6 +60,12 @@ services:
         - linux/arm64
     image: notacaida-phase0:local
     restart: unless-stopped
+    # Container logs live on the host disk: cap them so they cannot grow without limit.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     entrypoint: ["uvicorn"]
     command:
       - notacaida.api.wiring:create_production_app
