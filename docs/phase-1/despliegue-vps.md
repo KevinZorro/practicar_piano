@@ -80,3 +80,9 @@ Los términos (`/terminos.html`) prometen bloquear un video si su titular lo rec
 
 ## Límites conocidos
 La cola y los resultados viven en memoria: reiniciar el contenedor pierde los trabajos en curso (ADR 0016). Un proceso a la vez; el límite de memoria del contenedor es 10 GB de los 12 de la VPS.
+
+## Disco de la VPS
+- Causa del «no space left on device» en cada despliegue: `torch` desde PyPI arrastra en Linux ~4 GB de bibliotecas CUDA (cudnn, cublas, nccl, triton) que una VPS sin GPU no usa. Con la imagen vieja en uso, la nueva en construcción y la caché, se llenaba el disco. El `backend/Dockerfile` instala ahora `torch` CPU desde `download.pytorch.org/whl/cpu` (misma versión del `uv.lock`) y omite los paquetes CUDA; el build falla si `torch.cuda.is_available()` o si no importa.
+- `deploy.sh` poda imágenes y caché antes y después de construir; el contenedor `api` rota sus logs (3 × 10 MB).
+- Diagnóstico: `df -h /`, `docker system df`, `sudo du -xh / --max-depth=2 2>/dev/null | sort -h | tail -15`.
+- Si aun así falta espacio, el volumen de arranque de Oracle se amplía gratis (hasta 200 GB en total en Always Free): consola OCI → Block Storage → Boot Volumes → Edit → tamaño; luego en la VPS `sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1` (o `sudo /usr/libexec/oci-growfs -y` en imágenes Oracle).

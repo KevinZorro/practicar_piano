@@ -27,6 +27,8 @@ sudo rsync -a --delete frontend/dist/ /var/www/notacaida/
 for _ in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:8000/healthz >/dev/null; then
     docker image prune -f >/dev/null
+    docker builder prune -af >/dev/null  # the build cache is only useful during the build
+    df -h / | tail -1
     echo "Deploy OK: $(git rev-parse --short HEAD)"
     exit 0
   fi
