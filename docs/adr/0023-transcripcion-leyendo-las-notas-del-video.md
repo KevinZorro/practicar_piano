@@ -43,6 +43,10 @@ Con el detector corregido según las imágenes de la primera corrida, **7 de 10 
 
 Sin verificar: el estimador con audio real y la lectura descartada de un teclado de 55 teclas. El ADR sigue en **Propuesta** hasta ver una tercera corrida con esos dos puntos.
 
+### Tercera medición (2026-11-26)
+
+Con el PR 37 en la VPS: **8 de 10 leídos, 5 confirmados**. Las confirmadas son todas tutoriales con teclas iluminadas (F1 alineado contra ByteDance 0,978, 0,958, 0,952, 0,887 y 0,470 en el de 40 teclas). Ninguna de las 3 sin confirmar (cover con teclado dibujado de 83 teclas, video con manos y chispas, tutorial de 55 teclas) se usaría. El estimador de octava con audio real acertó en los 6 teclados donde corrió: 0 donde el teclado ya estaba bien y +24 en el de 40 teclas (F1 de 0,020 a 0,470). El piano filmado y la pieza clásica en perspectiva siguen sin leerse. Pendiente: entender el recall bajo (0,32) del teclado de 40 teclas y las teclas perdidas del de 55. El ADR sigue en **Propuesta** hasta que Kevin decida el alcance.
+
 ## Costo medido
 
 - **En la VPS** (Ampere A1, 10 canciones reales de 2 a 4 min): leer el video tardó de 6,7 a 16,2 s por canción (mediana **12,9 s**) con 134–177 MB. ByteDance tardó de 239 a 550 s (mediana **413 s**) con 1,4–1,6 GB: leer la imagen es unas 30 veces más rápido y usa una décima parte de la memoria.

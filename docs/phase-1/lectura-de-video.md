@@ -67,7 +67,29 @@ Lo que enseñan las imágenes: hay tres clases de video. Los tutoriales con tecl
 
 Cambios que salieron de ahí: el detector acepta teclas más oscuras y una primera o última tecla algo más tenue que su vecina; la lectura de las teclas iluminadas se «confirma» solo si coincide con la de las barras (F1 ≥ 0,4); se miden también las lecturas descartadas; y la octava de un teclado no estándar se comprueba con el sonido (paso 6). Lo único que la app podría usar sin ByteDance es una lectura confirmada.
 
-Sin verificar todavía en la VPS: el estimador de octava con audio real (se espera desplazamiento 0 en los tutoriales de tamaño estándar y +24 en el de 40 teclas) y el F1 real de la lectura descartada de la canción de 55 teclas.
+Lo que quedaba sin verificar (el estimador de octava con audio real y el F1 de la lectura descartada del teclado de 55 teclas) se midió en la tercera corrida, abajo.
+
+## Tercera corrida real (VPS, 2026-11-26)
+
+Mismo comando, ByteDance reutilizado, con el PR 37 desplegado. Se leyeron **8 de 10** y **5 quedaron confirmadas**. Leer el video: mediana 9,7 s y unos 180 MB.
+
+| Canción | Teclado | Lectura | F1 alineado contra ByteDance | Octava según el audio |
+| --- | --- | --- | --- | --- |
+| tutorial, 88 teclas | 88, A0-C8 | teclas, confirmada | **0,978** | 0 (margen 1,06), estándar: no se toca |
+| tutorial, 61 teclas | 61, C2-C7 | teclas, confirmada | **0,958** | 0 (margen 1,62), estándar |
+| tutorial, 47 teclas | 47, G2-F6 | teclas, confirmada | **0,952** | 0 (margen 0,79), coincide |
+| tutorial, 88 teclas | 88, A0-C8 | teclas, confirmada | **0,887** | no hizo falta (estándar) |
+| tutorial, 40 teclas | 40, E2-G5 | teclas, confirmada | 0,470 (era 0,020) | **+24 (margen 1,10), se corrigió** |
+| tutorial, 55 teclas | 55, B1-F6 | barras (teclas descartadas) | barras 0,215; teclas descartadas **0,718** | 0 (margen 0,23), coincide |
+| cover con teclado dibujado, 83 teclas | 83, A0-G7 | teclas, sin confirmar | 0,115 (barras 0,320) | 0 (margen 0,40), coincide |
+| video con manos y chispas | 88, A0-C8 | barras (teclas descartadas: 4320 notas) | 0,002 (teclas 0,048) | |
+| piano filmado | no se encontró teclado | | | |
+| pieza clásica con teclado dibujado | 87, A0-B7 | no se vieron barras | | |
+
+- **La confirmación funciona como filtro**: las 5 lecturas confirmadas son de tutoriales con teclas iluminadas y ninguna de las 3 sin confirmar (cover de 83 teclas, manos con chispas, tutorial de 55 teclas) se usaría. Confirmada no es sinónimo de completa: la de 40 teclas lee con precisión 0,90 pero recall 0,32 contra ByteDance (185 notas contra 522); falta ver si el que falla es el lector o ByteDance.
+- **El estimador de octava acertó con audio real** en los 6 teclados donde se corrió: dio 0 donde el teclado ya estaba bien y +24 en el de 40 teclas, que subió de F1 0,020 a 0,470. Los márgenes de los aciertos van de 0,23 a 1,62; el umbral de 0,3 queda por ahora.
+- **Teclas descartadas del tutorial de 55 teclas**: leen 164 notas con precisión 0,95 y F1 0,72, mucho mejor que sus barras (0,215). La regla las rechazó por ser menos de la mitad de las notas de las barras, que sobran. Con ByteDance al lado se vería, pero sin él no hay cómo saberlo: hay que entender por qué se pierden teclas (recall 0,58).
+- **Sin leer**: el piano filmado (no hay teclado dibujado) y la pieza clásica (teclado en perspectiva, 87 teclas, sin barras a velocidad constante).
 
 ## Resultados con videos sintéticos (2026-11-22)
 
@@ -104,7 +126,7 @@ Lo que enseñan los estilos:
 - Videos en los que el teclado se mueve, cambia de tamaño o queda tapado buena parte del tiempo (cámara, zoom, superposiciones).
 - Teclados en perspectiva, notas que suben en lugar de caer o barras con degradados muy marcados: no hay ninguno entre los sintéticos.
 - Videos con manos reales o chispas sobre el teclado dibujado, y piano filmado: el lector no los lee bien y lo dice (lectura sin confirmar).
-- La octava de un teclado de tamaño no estándar se estima con el sonido; falta validarlo con audio real.
+- La octava de un teclado de tamaño no estándar se estima con el sonido; acertó en los 6 teclados medidos, pero son pocos y el menor margen de un acierto fue 0,23.
 - Teclados en perspectiva: el extremo derecho más angosto (~8 %) puede dar una tecla de más.
 - Supone fotogramas a ritmo constante, que es lo que sirve YouTube.
 
