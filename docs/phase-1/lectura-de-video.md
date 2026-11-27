@@ -1,6 +1,6 @@
 # Lectura de las notas que caen del video (prototipo del ADR 0023)
 
-Ver el ADR [0023](../adr/0023-transcripcion-leyendo-las-notas-del-video.md), que sigue en **Propuesta**. Este prototipo es un comando aparte (`notacaida videonotes run`): todavía no entra en la app ni cambia cómo se transcribe una canción.
+Ver el ADR [0023](../adr/0023-transcripcion-leyendo-las-notas-del-video.md), que Kevin aceptó el 2026-11-26 solo para lecturas confirmadas. Este prototipo es un comando aparte (`notacaida videonotes run`): todavía no entra en la app ni cambia cómo se transcribe una canción.
 
 **Medido con videos sintéticos y con 10 canciones reales en la VPS, dos veces** (2026-11-22, ver «Resultados con canciones reales»). En los tutoriales con teclas iluminadas coincide con ByteDance (F1 0,89–0,98) en unos 10 s en vez de unos 5 min; en los videos con manos reales sobre un teclado dibujado y en el piano filmado no sirve, y el sistema lo sabe (una lectura solo se da por buena si dos lecturas independientes coinciden).
 
