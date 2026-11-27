@@ -1,6 +1,6 @@
 # ADR 0023 — Transcripción leyendo las notas que caen del video
 
-Estado: **Propuesta** (idea de Kevin, 2026-11-22). Hay un prototipo medido con videos sintéticos y una primera medición con 10 canciones reales en la VPS (ver «Prototipo» y «Primera medición real»); se decide cuando el detector encuentre los tutoriales que todavía no encuentra. Modifica D-04 (se baja también la imagen, no solo el audio) y complementa D-06 y el ADR 0014.
+Estado: **Aceptada con alcance limitado** (Kevin, 2026-11-26): se adopta el lector de video, pero la app solo puede usar sin ByteDance una lectura **confirmada** (las teclas iluminadas y las barras leen las mismas notas, F1 ≥ 0,4; en un teclado de tamaño no estándar, además la octava oída en el audio). Todo lo demás sigue con ByteDance. Idea de Kevin (2026-11-22); medida con videos sintéticos y en tres corridas reales en la VPS (ver «Prototipo» y las mediciones). Modifica D-04 (se baja también la imagen, no solo el audio) y complementa D-06 y el ADR 0014. Falta integrarlo en la app (otro incremento) y entender el recall bajo de algunos tutoriales confirmados.
 
 ## Contexto
 
@@ -42,6 +42,10 @@ Falta para decidir: que el detector encuentre los tutoriales que no encontró (e
 Con el detector corregido según las imágenes de la primera corrida, **7 de 10 leídos** (antes 4). Los tutoriales con teclas iluminadas coinciden con ByteDance en F1 0,978, 0,958, 0,952 (teclado de 47 teclas con letras, antes no encontrado) y 0,887. Los videos con manos y chispas sobre el teclado dan lecturas malas (F1 0,05 y menos): el lector ahora las marca como no confirmadas (teclas y barras deben coincidir con F1 ≥ 0,4) y solo una lectura confirmada podría usarse sin ByteDance. En un teclado de 40 teclas la octava salió corrida dos octavas (F1 0,02; con +24, 0,47): se añadió un estimador de octava con el sonido, que se aplica solo si el teclado no es de tamaño estándar y el margen llega a 0,3. Quedan sin leer el piano filmado y dos videos con teclado cubierto por manos.
 
 Sin verificar: el estimador con audio real y la lectura descartada de un teclado de 55 teclas. El ADR sigue en **Propuesta** hasta ver una tercera corrida con esos dos puntos.
+
+### Tercera medición (2026-11-26)
+
+Con el PR 37 en la VPS: **8 de 10 leídos, 5 confirmados**. Las confirmadas son todas tutoriales con teclas iluminadas (F1 alineado contra ByteDance 0,978, 0,958, 0,952, 0,887 y 0,470 en el de 40 teclas). Ninguna de las 3 sin confirmar (cover con teclado dibujado de 83 teclas, video con manos y chispas, tutorial de 55 teclas) se usaría. El estimador de octava con audio real acertó en los 6 teclados donde corrió: 0 donde el teclado ya estaba bien y +24 en el de 40 teclas (F1 de 0,020 a 0,470). El piano filmado y la pieza clásica en perspectiva siguen sin leerse. Pendiente: entender el recall bajo (0,32) del teclado de 40 teclas y las teclas perdidas del de 55. Kevin lo aceptó el 2026-11-26 con alcance limitado a lecturas confirmadas.
 
 ## Costo medido
 
